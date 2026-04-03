@@ -1,0 +1,25 @@
+project_id = "zylabppirmfpmibbbhfx"
+
+[functions.create-payment]
+verify_jwt = false
+
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.affiliates]
+verify_jwt = false
+
+[functions.download]
+verify_jwt = false
+
+[functions.download-archive]
+verify_jwt = false
+
+[functions.google-drive]
+verify_jwt = false
+
+[functions.sync-drive]
+verify_jwt = false
+
+[functions.create-trial]
+verify_jwt = false

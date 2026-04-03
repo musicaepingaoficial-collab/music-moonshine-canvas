@@ -1,0 +1,1 @@
+ALTER TABLE public.musicas ADD COLUMN subfolder TEXT NULL;
