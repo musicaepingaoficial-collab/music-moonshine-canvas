@@ -29,8 +29,7 @@ export function useProfile(userId?: string | null) {
     queryKey: ["profile", userId],
     queryFn: async () => {
       if (!userId) return null;
-      const { data, error } = await supabase
-        .from("profiles")
+      const { data, error } = await (supabase.from("profiles" as any) as any)
         .select("*")
         .eq("id", userId)
         .maybeSingle();
@@ -46,8 +45,7 @@ export function useAssinatura(userId?: string | null) {
     queryKey: ["assinatura", userId],
     queryFn: async () => {
       if (!userId) return null;
-      const { data, error } = await supabase
-        .from("assinaturas")
+      const { data, error } = await (supabase.from("assinaturas" as any) as any)
         .select("*")
         .eq("user_id", userId)
         .eq("status", "active")

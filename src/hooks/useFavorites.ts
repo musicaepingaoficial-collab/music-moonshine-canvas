@@ -11,8 +11,7 @@ export function useFavoritos() {
     queryKey: ["favoritos", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
-        .from("favoritos")
+      const { data, error } = await (supabase.from("favoritos" as any) as any)
         .select("*, musicas(*)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -31,19 +30,18 @@ export function useToggleFavorito() {
     mutationFn: async (musicaId: string) => {
       if (!user) throw new Error("Não autenticado");
 
-      const { data: existing } = await supabase
-        .from("favoritos")
+      const { data: existing } = await (supabase.from("favoritos" as any) as any)
         .select("id")
         .eq("user_id", user.id)
         .eq("musica_id", musicaId)
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase.from("favoritos").delete().eq("id", existing.id);
+        const { error } = await (supabase.from("favoritos" as any) as any).delete().eq("id", existing.id);
         if (error) throw error;
         return { action: "removed" as const };
       } else {
-        const { error } = await supabase.from("favoritos").insert({ user_id: user.id, musica_id: musicaId });
+        const { error } = await (supabase.from("favoritos" as any) as any).insert({ user_id: user.id, musica_id: musicaId });
         if (error) throw error;
         return { action: "added" as const };
       }
@@ -65,7 +63,7 @@ export function useAddDownload() {
   return useMutation({
     mutationFn: async (musicaId: string) => {
       if (!user) throw new Error("Não autenticado");
-      const { error } = await supabase.from("downloads").insert({ user_id: user.id, musica_id: musicaId });
+      const { error } = await (supabase.from("downloads" as any) as any).insert({ user_id: user.id, musica_id: musicaId });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -82,8 +80,7 @@ export function useDownloads() {
     queryKey: ["downloads", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
-        .from("downloads")
+      const { data, error } = await (supabase.from("downloads" as any) as any)
         .select("*, musicas(*)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });

@@ -11,8 +11,7 @@ export function useAfiliado() {
     queryKey: ["afiliado", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase
-        .from("afiliados")
+      const { data, error } = await (supabase.from("afiliados" as any) as any)
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -68,14 +67,12 @@ export function useIndicacoes() {
     queryKey: ["indicacoes", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data: afiliado } = await supabase
-        .from("afiliados")
+      const { data: afiliado } = await (supabase.from("afiliados" as any) as any)
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!afiliado) return [];
-      const { data, error } = await supabase
-        .from("indicacoes")
+      const { data, error } = await (supabase.from("indicacoes" as any) as any)
         .select("*")
         .eq("afiliado_id", afiliado.id)
         .order("created_at", { ascending: false });
