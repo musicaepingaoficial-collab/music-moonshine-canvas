@@ -32,8 +32,7 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
   const { data: planos, isLoading } = useQuery<Plano[]>({
     queryKey: ["planos"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("planos")
+      const { data, error } = await (supabase.from("planos" as any) as any)
         .select("*")
         .eq("active", true)
         .order("price", { ascending: true });
@@ -77,7 +76,7 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
 
   const handlePaymentSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["assinatura"] });
-    onTrialStarted(); // reuses the same navigation callback
+    onTrialStarted();
   };
 
   const getDurationLabel = (days: number | null) => {

@@ -26,16 +26,16 @@ export async function uploadRepertorioCover(file: File, repertorioId: string): P
   if (error) throw error;
 
   const { data } = supabase.storage.from("repertorio-covers").getPublicUrl(path);
-  // Add cache-buster to force reload after update
   return `${data.publicUrl}?t=${Date.now()}`;
 }
+
+const db = supabase as any;
 
 export function useRepertorios() {
   return useQuery<RepertorioWithCount[]>({
     queryKey: ["repertorios"],
     queryFn: async () => {
-      console.log("[Repertorios:fetch]");
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("repertorios")
         .select("*")
         .order("created_at", { ascending: false });
@@ -43,7 +43,7 @@ export function useRepertorios() {
 
       const withCounts = await Promise.all(
         (data ?? []).map(async (r: Repertorio) => {
-          const { data: rmData } = await supabase
+          const { data: rmData } = await db
             .from("repertorio_musicas")
             .select("musica_id, musicas(file_size)")
             .eq("repertorio_id", r.id);
@@ -64,8 +64,7 @@ export function useRepertorioMusicas(repertorioId: string | undefined) {
     queryKey: ["repertorio-musicas", repertorioId],
     queryFn: async () => {
       if (!repertorioId) return [];
-      console.log("[RepertorioMusicas:fetch]", repertorioId);
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("repertorio_musicas")
         .select("musica_id, musicas(*)")
         .eq("repertorio_id", repertorioId);
@@ -80,20 +79,19 @@ export function useCreateRepertorio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { name: string; description?: string; coverFile?: File }) => {
-      console.log("[Repertorio:create]", input.name);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from("repertorios")
         .insert({ name: input.name, description: input.description ?? null, user_id: user.id })
         .select()
         .single();
       if (error) throw error;
 
-      if (input.coverFile) {
+      if (input.coverFile && data) {
         const coverUrl = await uploadRepertorioCover(input.coverFile, data.id);
-        await supabase.from("repertorios").update({ cover_url: coverUrl }).eq("id", data.id);
+        await db.from("repertorios").update({ cover_url: coverUrl }).eq("id", data.id);
         return { ...data, cover_url: coverUrl };
       }
 
@@ -117,7 +115,7 @@ export function useUpdateRepertorio() {
       }
 
       if (Object.keys(updates).length > 0) {
-        const { error } = await supabase.from("repertorios").update(updates).eq("id", repertorioId);
+        const { error } = await db.from("repertorios").update(updates).eq("id", repertorioId);
         if (error) throw error;
       }
     },
@@ -133,7 +131,7 @@ export function useUpdateRepertorioCover() {
   return useMutation({
     mutationFn: async ({ repertorioId, coverFile }: { repertorioId: string; coverFile: File }) => {
       const coverUrl = await uploadRepertorioCover(coverFile, repertorioId);
-      const { error } = await supabase
+      const { error } = await db
         .from("repertorios")
         .update({ cover_url: coverUrl })
         .eq("id", repertorioId);
@@ -151,8 +149,7 @@ export function useDeleteRepertorio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      console.log("[Repertorio:delete]", id);
-      const { error } = await supabase.from("repertorios").delete().eq("id", id);
+      const { error } = await db.from("repertorios").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["repertorios"] }),
@@ -163,9 +160,8 @@ export function useAddMusicasToRepertorio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ repertorioId, musicaIds }: { repertorioId: string; musicaIds: string[] }) => {
-      console.log("[Repertorio:addMusicas]", { repertorioId, count: musicaIds.length });
       const rows = musicaIds.map((musica_id) => ({ repertorio_id: repertorioId, musica_id }));
-      const { error } = await supabase.from("repertorio_musicas").upsert(rows, { onConflict: "repertorio_id,musica_id" });
+      const { error } = await db.from("repertorio_musicas").upsert(rows, { onConflict: "repertorio_id,musica_id" });
       if (error) throw error;
     },
     onSuccess: (_, vars) => {
@@ -179,8 +175,7 @@ export function useRemoveMusicaFromRepertorio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ repertorioId, musicaId }: { repertorioId: string; musicaId: string }) => {
-      console.log("[Repertorio:removeMusica]", { repertorioId, musicaId });
-      const { error } = await supabase
+      const { error } = await db
         .from("repertorio_musicas")
         .delete()
         .eq("repertorio_id", repertorioId)
@@ -198,8 +193,7 @@ export function useRemoveMusicasFromRepertorio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ repertorioId, musicaIds }: { repertorioId: string; musicaIds: string[] }) => {
-      console.log("[Repertorio:removeMusicas]", { repertorioId, count: musicaIds.length });
-      const { error } = await supabase
+      const { error } = await db
         .from("repertorio_musicas")
         .delete()
         .eq("repertorio_id", repertorioId)

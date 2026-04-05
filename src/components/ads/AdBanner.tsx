@@ -10,9 +10,7 @@ export function AdBanner({ position = "top" }: { position?: "top" | "inline" }) 
   const { data: anuncios } = useQuery<Anuncio[]>({
     queryKey: ["anuncios", position],
     queryFn: async () => {
-      console.log("[AdBanner:fetch]", { position });
-      const { data, error } = await supabase
-        .from("anuncios")
+      const { data, error } = await (supabase.from("anuncios" as any) as any)
         .select("*")
         .eq("active", true)
         .limit(1);
@@ -61,10 +59,7 @@ export function AdBanner({ position = "top" }: { position?: "top" | "inline" }) 
           </div>
         </div>
         <button
-          onClick={() => {
-            console.log("[AdBanner:dismissed]", { adId: ad.id });
-            setDismissed(true);
-          }}
+          onClick={() => setDismissed(true)}
           className="shrink-0 rounded-full p-1 text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Fechar anúncio"
         >

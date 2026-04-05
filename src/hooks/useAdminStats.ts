@@ -18,9 +18,7 @@ export function useAdminStats() {
   return useQuery<AdminStats>({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      console.log("[useAdminStats:fetch]", { userId: user?.id });
-
-      // Parallel queries for performance
+      const s = supabase as any;
       const [
         { count: totalUsers },
         { count: activeSubscriptions },
@@ -30,19 +28,17 @@ export function useAdminStats() {
         { data: drives },
         { data: downloads },
       ] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("assinaturas").select("*", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("musicas").select("*", { count: "exact", head: true }),
-        supabase.from("assinaturas").select("price").eq("status", "active"),
-        supabase.from("profiles").select("id, name, email, created_at").order("created_at", { ascending: false }).limit(5),
-        supabase.from("google_drives").select("name, status, usage_percent"),
-        supabase.from("downloads").select("musica_id, musicas(id, title, artist)").limit(100),
+        s.from("profiles").select("*", { count: "exact", head: true }),
+        s.from("assinaturas").select("*", { count: "exact", head: true }).eq("status", "active"),
+        s.from("musicas").select("*", { count: "exact", head: true }),
+        s.from("assinaturas").select("price").eq("status", "active"),
+        s.from("profiles").select("id, name, email, created_at").order("created_at", { ascending: false }).limit(5),
+        s.from("google_drives").select("name, status, usage_percent"),
+        s.from("downloads").select("musica_id, musicas(id, title, artist)").limit(100),
       ]);
 
-      // Calculate revenue
-      const totalRevenue = (subscriptions ?? []).reduce((sum, s) => sum + Number(s.price || 0), 0);
+      const totalRevenue = (subscriptions ?? []).reduce((sum: number, s: any) => sum + Number(s.price || 0), 0);
 
-      // Calculate popular tracks from downloads
       const trackCounts = new Map<string, { id: string; title: string; artist: string; count: number }>();
       (downloads ?? []).forEach((d: any) => {
         if (d.musicas) {
@@ -59,8 +55,6 @@ export function useAdminStats() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5)
         .map((t) => ({ id: t.id, title: t.title, artist: t.artist, download_count: t.count }));
-
-      console.log("[useAdminStats:done]", { totalUsers, activeSubscriptions, totalMusicas });
 
       return {
         totalUsers: totalUsers ?? 0,
