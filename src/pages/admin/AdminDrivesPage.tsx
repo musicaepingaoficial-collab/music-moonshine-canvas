@@ -61,7 +61,7 @@ const AdminDrivesPage = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Record<string, unknown> }) => {
-      const { error } = await supabase.from("google_drives").update(updates).eq("id", id);
+      const { error } = await supabase.from("google_drives").update(updates as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
