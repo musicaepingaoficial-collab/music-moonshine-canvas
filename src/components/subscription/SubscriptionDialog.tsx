@@ -47,23 +47,11 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
     if (!user) return;
     setStartingTrial(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Não autenticado");
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-trial`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
-      );
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Erro ao iniciar teste grátis");
+      const { data, error } = await supabase.functions.invoke("create-trial", {
+        method: "POST",
+      });
+      if (error) throw new Error((data as any)?.error || error.message || "Erro ao iniciar teste grátis");
+      if (data && (data as any).error) throw new Error((data as any).error);
 
       toast.success("Teste grátis de 1 dia ativado!");
       onTrialStarted();
