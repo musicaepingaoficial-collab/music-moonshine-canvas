@@ -1,4 +1,5 @@
-import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, Music2, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay } from "lucide-react";
+import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay } from "lucide-react";
+import logo from "@/assets/logo.jpeg";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -36,10 +37,14 @@ export function AdminSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="p-4">
-        <NavLink to="/admin" className="flex items-center gap-2 text-primary">
-          <Music2 className="h-7 w-7" />
+        <NavLink to="/admin" className="flex items-center gap-2">
+          <img
+            src={logo}
+            alt="Repertório Música e Pinga"
+            className="h-9 w-9 rounded-lg object-cover shrink-0"
+          />
           {!collapsed && (
-            <span className="text-xl font-bold tracking-tight text-foreground">
+            <span className="text-base font-bold tracking-tight text-foreground leading-tight">
               Admin
             </span>
           )}
