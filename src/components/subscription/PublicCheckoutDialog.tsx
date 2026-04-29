@@ -249,7 +249,27 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
               />
             </div>
 
-            <Button type="submit" disabled={submitting} className="w-full gap-2 mt-2">
+            <div className="flex items-start gap-2 pt-1">
+              <Checkbox
+                id="pc-terms"
+                checked={acceptedTerms}
+                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="pc-terms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                Li e aceito os{" "}
+                <Link to="/termos" target="_blank" className="text-primary underline hover:no-underline">
+                  Termos de Uso
+                </Link>{" "}
+                e a{" "}
+                <Link to="/privacidade" target="_blank" className="text-primary underline hover:no-underline">
+                  Política de Privacidade
+                </Link>
+                .
+              </label>
+            </div>
+
+            <Button type="submit" disabled={submitting || !acceptedTerms} className="w-full gap-2 mt-2">
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
