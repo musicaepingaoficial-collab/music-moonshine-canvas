@@ -1,56 +1,46 @@
-## Programa de Indicações — "Indique e Ganhe"
+## Banner promocional em slides no Dashboard
 
-Implementar um banner no menu/dashboard principal mostrando o programa: cada amigo que assinar qualquer plano dá **1 mês grátis** ao indicador, e ao atingir **10 indicações premiadas** o usuário ganha **acesso vitalício**.
+Adicionar um carrossel de banners (imagem + título + link) acima da seção de músicas no Dashboard, totalmente responsivo (mobile/tablet/desktop), administrado pelo Super Admin.
 
-### O que o usuário verá
+### Como vai parecer
 
-- **Dashboard**: banner em destaque "Indique amigos e ganhe 1 mês grátis. 10 indicações = vitalício!", com progresso (ex.: `3 / 10 indicações`) e botão "Ver meu link".
-- **Página `/indicacoes`** (nova): link/código do usuário, botão copiar e compartilhar (WhatsApp), barra de progresso até 10, lista das indicações (pendente / premiada) e tabela de recompensas já concedidas.
-- Item "Indicações" no menu lateral.
-
-### Regras de recompensa (lado servidor)
-
-Quando uma indicação muda para `rewarded` (pagamento aprovado do indicado), o sistema concede automaticamente:
-
-```text
-indicacoes_rewarded == 10 → assinatura "vitalicio" ativa, sem expiração
-indicacoes_rewarded <  10 → +30 dias na assinatura ativa
-                            (se não houver assinatura ativa, cria uma de 30 dias no plano "mensal")
-```
-
-A trava antiga de "máximo 3 bônus" é removida — agora o teto é 10 (após isso vira vitalício e indicações extras não geram mais bônus).
-
-### Mudanças técnicas
-
-1. **`supabase/functions/affiliates/index.ts`**
-   - Remover o limite de 3 indicações premiadas no `register-referral` (deixa registrar sempre que o indicado ainda não foi referenciado).
-   - Manter geração de código e bloqueio de auto-indicação.
-
-2. **`supabase/functions/payment-webhook/index.ts`**
-   - Ao marcar uma `indicacao` como `rewarded`, executar lógica de recompensa para o **dono do afiliado** (`afiliado.user_id`):
-     - Recontar `rewarded` após o update.
-     - Se contagem == 10 → `INSERT` em `assinaturas` com `plan='vitalicio'`, `status='active'`, `expires_at=NULL` (e marca demais assinaturas ativas como `superseded`).
-     - Se contagem < 10 → estender em 30 dias a assinatura ativa do indicador (ou criar uma nova de 30 dias).
-   - Inserir `notificacoes` para o usuário ("Você ganhou 1 mês grátis!" / "Parabéns! Acesso vitalício desbloqueado").
-
-3. **Frontend**
-   - `src/components/referrals/ReferralBanner.tsx` (novo): card destacado com gradiente, ícone, progresso `X/10` e CTA → `/indicacoes`.
-   - `src/pages/IndicacoesPage.tsx` (nova): usa `useAfiliado`, `useIndicacoes`, `useGenerateAffiliateLink`. Mostra link `https://<host>/auth?ref=CODE`, botão copiar, share WhatsApp, progresso, lista.
-   - `src/pages/DashboardPage.tsx`: incluir `<ReferralBanner />` logo após o `Banner` de boas-vindas.
-   - `src/components/layout/AppSidebar.tsx`: adicionar item "Indicações" (ícone `Gift`).
-   - `src/App.tsx`: rota `/indicacoes`.
-   - `src/pages/AuthPage.tsx` (ou onde for o cadastro): se houver `?ref=CODE` na URL, salvar em `localStorage` e, após cadastro, chamar `affiliates` com `action: "register-referral"` para vincular o novo usuário ao afiliado.
+- **Dashboard (`/dashboard`)**: novo componente `HeroCarousel` logo abaixo do banner "Bem-vindo de volta", antes do `ReferralBanner`. Altura adaptativa: `h-40` no mobile, `h-56` no tablet, `h-64/72` no desktop. Auto-play a cada 5s, setas (apenas no desktop), bullets de navegação, loop infinito. Cada slide é clicável (abre o link em nova aba).
+- **Admin (`/admin/anuncios`)**: nova página com listagem dos banners, formulário para criar/editar (título, subtítulo opcional, link, upload de imagem, ordem, ativo/inativo) e botões de ação (editar, ativar/desativar, excluir, mover para cima/baixo).
+- **AdminSidebar**: novo item "Banners" (ícone `ImagePlay`).
 
 ### Banco de dados
 
-Não há mudanças de schema necessárias — `afiliados` e `indicacoes` já existem. Apenas mudanças de lógica nas Edge Functions.
+A tabela `anuncios` já existe com `title`, `image_url`, `link`, `active`. Migração para enriquecer:
+
+- `anuncios.position` (`integer not null default 0`) — ordem de exibição.
+- `anuncios.subtitle` (`text`) — texto secundário opcional.
+- Índice em `(active, position)`.
+- Bucket público `anuncios-images` para as imagens dos banners; somente admins podem fazer upload/atualizar/excluir.
+
+### Frontend
+
+Arquivos novos:
+
+- `src/components/promotions/HeroCarousel.tsx` — usa `embla-carousel-react` (já instalado) + `embla-carousel-autoplay` (adicionar) com setas, dots e responsividade.
+- `src/pages/admin/AdminAnunciosPage.tsx` — CRUD completo com upload via `supabase.storage.from('anuncios-images')`, drag-friendly reorder por botões ↑/↓.
+
+Arquivos editados:
+
+- `src/pages/DashboardPage.tsx` — incluir `<HeroCarousel />`.
+- `src/components/layout/AdminSidebar.tsx` — novo item "Banners".
+- `src/App.tsx` — rota `/admin/anuncios`.
+- `src/types/database.ts` (se aplicável) — campos `position`, `subtitle` no tipo `Anuncio`.
+
+### Pacotes
+
+- `bun add embla-carousel-autoplay` (plugin oficial pequeno, mantido pela mesma equipe do embla).
 
 ### Critérios de aceite
 
-- Banner aparece no dashboard para todos os usuários logados, com contagem real.
-- Link de afiliado pode ser gerado e copiado.
-- Quando um indicado paga qualquer plano, o indicador recebe automaticamente +30 dias (ou vitalício na 10ª).
-- Notificação aparece para o indicador a cada recompensa.
-- Auto-indicação e dupla-indicação do mesmo usuário continuam bloqueadas.
+- Carrossel aparece no Dashboard quando há ao menos 1 banner ativo; some quando não há nenhum.
+- Banners passam automaticamente a cada 5s, com loop e navegação manual (setas/dots).
+- Cliques no banner abrem o `link` em nova aba (quando preenchido).
+- Admin consegue criar, editar, ordenar, ativar/desativar e excluir banners; imagens ficam no bucket público.
+- Layout funciona bem em 360px, 768px e 1280px+ sem cortar conteúdo.
 
-Aguardando sua aprovação para implementar.
+Aguardando aprovação para implementar.
