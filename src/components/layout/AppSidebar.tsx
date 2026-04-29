@@ -24,6 +24,7 @@ const menuItems = [
   { title: "PDFs", url: "/pdfs", icon: FileText },
   { title: "Favoritos", url: "/favoritos", icon: Heart },
   { title: "Assinatura", url: "/ofertas", icon: Tag },
+  { title: "Indicações", url: "/indicacoes", icon: Gift },
   { title: "Conta", url: "/conta", icon: User },
 ];
 
