@@ -113,19 +113,7 @@ serve(async (req) => {
         });
       }
 
-      // Check bonus limit (max 3 rewarded)
-      const { count } = await supabase
-        .from("indicacoes")
-        .select("*", { count: "exact", head: true })
-        .eq("afiliado_id", affiliate.id)
-        .eq("status", "rewarded");
-
-      if ((count ?? 0) >= 3) {
-        return new Response(JSON.stringify({ error: "Limite de bônus atingido" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      // Sem limite de indicações registradas — recompensas até 10x são tratadas no webhook
 
       const { error: refError } = await supabase.from("indicacoes").insert({
         afiliado_id: affiliate.id,
