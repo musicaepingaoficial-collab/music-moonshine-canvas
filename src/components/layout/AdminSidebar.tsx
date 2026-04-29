@@ -1,4 +1,4 @@
-import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, Music2, FolderOpen, BadgeDollarSign, Settings, Target, Bell } from "lucide-react";
+import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, Music2, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ const adminItems = [
   { title: "Drives", url: "/admin/drives", icon: HardDrive },
   { title: "Planos", url: "/admin/planos", icon: BadgeDollarSign },
   { title: "Repertórios", url: "/admin/repertorios", icon: FolderOpen },
+  { title: "PDFs", url: "/admin/pdfs", icon: FileText },
   { title: "Financeiro", url: "/admin/financeiro", icon: DollarSign },
   { title: "Site", url: "/admin/site", icon: Settings },
   { title: "Pixels", url: "/admin/pixels", icon: Target },
