@@ -1,45 +1,36 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { X, Download, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function InstallBanner() {
-  const { canInstall, isInstalled, install } = usePWAInstall();
-  const [dismissed, setDismissed] = useState(false);
+  const { platform, installed, canPrompt, shouldShow, promptInstall, dismiss } = usePWAInstall();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Check if user previously dismissed
-    const wasDismissed = sessionStorage.getItem("pwa-banner-dismissed");
-    if (wasDismissed) {
-      setDismissed(true);
-      return;
-    }
-
-    // Show banner after a short delay for better UX
-    if (canInstall && !isInstalled) {
-      const timer = setTimeout(() => setShow(true), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [canInstall, isInstalled]);
-
-  const handleDismiss = () => {
-    setDismissed(true);
-    setShow(false);
-    sessionStorage.setItem("pwa-banner-dismissed", "true");
-    console.log("[InstallBanner:dismiss]");
-  };
+    if (!shouldShow) return;
+    const t = setTimeout(() => setShow(true), 1500);
+    return () => clearTimeout(t);
+  }, [shouldShow]);
 
   const handleInstall = async () => {
-    console.log("[InstallBanner:install]");
-    const accepted = await install();
-    if (accepted) {
-      setShow(false);
+    if (canPrompt) {
+      const accepted = await promptInstall();
+      if (accepted) setShow(false);
     }
   };
 
-  if (isInstalled || dismissed || !show) return null;
+  const handleDismiss = () => {
+    dismiss();
+    setShow(false);
+  };
+
+  if (installed || !shouldShow || !show) return null;
+
+  const platformLabel =
+    platform === "ios" ? "iPhone / iPad" : platform === "android" ? "Android" : "computador";
 
   return (
     <AnimatePresence>
@@ -55,26 +46,32 @@ export function InstallBanner() {
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground text-sm">Instalar MusicaePinga</p>
+              <p className="font-semibold text-foreground text-sm">Instalar o app</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Acesse mais rápido direto da sua tela inicial, como um app nativo.
+                Acesse mais rápido no seu {platformLabel}, direto da tela inicial.
               </p>
-              <div className="flex items-center gap-2 mt-3">
-                <Button
-                  size="sm"
-                  onClick={handleInstall}
-                  className="gap-1.5 text-xs"
-                  aria-label="Instalar aplicativo"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Instalar
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                {canPrompt ? (
+                  <Button size="sm" onClick={handleInstall} className="gap-1.5 text-xs">
+                    <Download className="h-3.5 w-3.5" />
+                    Instalar
+                  </Button>
+                ) : (
+                  <Button size="sm" asChild className="gap-1.5 text-xs">
+                    <Link to="/instalar">
+                      <Download className="h-3.5 w-3.5" />
+                      Como instalar
+                    </Link>
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" asChild className="text-xs">
+                  <Link to="/instalar">Ver tutorial</Link>
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={handleDismiss}
                   className="text-xs text-muted-foreground"
-                  aria-label="Dispensar banner de instalação"
                 >
                   Agora não
                 </Button>
