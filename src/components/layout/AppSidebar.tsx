@@ -45,11 +45,15 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="p-4">
-        <NavLink to="/" className="flex items-center gap-2 text-primary">
-          <Music2 className="h-7 w-7" />
+        <NavLink to="/" className="flex items-center gap-2">
+          <img
+            src={logo}
+            alt="Repertório Música e Pinga"
+            className="h-9 w-9 rounded-lg object-cover shrink-0"
+          />
           {!collapsed && (
-            <span className="text-xl font-bold tracking-tight text-foreground">
-              MusicaePinga
+            <span className="text-base font-bold tracking-tight text-foreground leading-tight">
+              Música e Pinga
             </span>
           )}
         </NavLink>
