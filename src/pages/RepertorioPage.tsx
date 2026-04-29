@@ -64,6 +64,8 @@ const RepertorioPage = () => {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
+  const { hasAccess } = useHasActiveSubscription();
+  const navigate = useNavigate();
   const isTrial = assinatura?.plan === "trial";
 
   const removeSingle = useRemoveMusicaFromRepertorio();
