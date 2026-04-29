@@ -35,7 +35,7 @@ const IndicacoesPage = () => {
 
   const handleShare = () => {
     if (!link) return;
-    const text = `Conheça o MusicaePinga! Assine usando meu link e bora curtir 🎵\n${link}`;
+    const text = `Conheça o Repertório Música e Pinga! Assine usando meu link e bora curtir 🎵\n${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
