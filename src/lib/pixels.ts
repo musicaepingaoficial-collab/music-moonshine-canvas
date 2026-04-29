@@ -275,6 +275,44 @@ export function dispatchEvent(
     }
   }
 
+  // ── TikTok Pixel ──
+  if (settings.tiktok_enabled && typeof (window as any).ttq?.track === "function") {
+    const ttName = TIKTOK_EVENT_MAP[event];
+    if (ttName) {
+      const ttPayload: Record<string, unknown> = {};
+      if (payload.value != null) ttPayload.value = payload.value;
+      if (payload.value != null || payload.currency)
+        ttPayload.currency = payload.currency || "BRL";
+      if (payload.content_ids?.length) {
+        ttPayload.contents = payload.content_ids.map((id) => ({
+          content_id: id,
+          quantity: 1,
+        }));
+        ttPayload.content_type = payload.content_type || "product";
+      }
+      if (payload.content_name) ttPayload.content_name = payload.content_name;
+      if (payload.transaction_id) ttPayload.event_id = payload.transaction_id;
+      log("ttq track", ttName, ttPayload);
+      (window as any).ttq.track(ttName, ttPayload);
+    }
+  }
+
+  // ── Kwai Pixel ──
+  if (settings.kwai_enabled && typeof (window as any).kwaiq === "function") {
+    const kwName = KWAI_EVENT_MAP[event];
+    if (kwName && settings.kwai_pixel_id) {
+      const kwPayload: Record<string, unknown> = {};
+      if (payload.value != null) kwPayload.value = payload.value;
+      if (payload.value != null || payload.currency)
+        kwPayload.currency = payload.currency || "BRL";
+      if (payload.content_ids?.length) kwPayload.content_id = payload.content_ids[0];
+      if (payload.content_name) kwPayload.content_name = payload.content_name;
+      if (payload.transaction_id) kwPayload.order_id = payload.transaction_id;
+      log("kwaiq track", kwName, kwPayload);
+      (window as any).kwaiq("track", kwName, kwPayload);
+    }
+  }
+
   // ── GTM dataLayer ──
   if (settings.gtm_enabled && settings.gtm_container_id) {
     window.dataLayer = window.dataLayer || [];
