@@ -68,6 +68,8 @@ const DashboardPage = () => {
         subtitle="Descubra novas músicas e curta suas favoritas."
       />
 
+      <HeroCarousel />
+
       <ReferralBanner />
 
       {isLoading && (
