@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Loader2 } from "lucide-react";
-import { useQueryClient as _unused } from "@tanstack/react-query";
 import { CheckoutForm } from "./CheckoutForm";
 
 interface Plano {
@@ -24,8 +23,6 @@ interface SubscriptionDialogProps {
 
 export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogProps) {
   const [selectedPlan, setSelectedPlan] = useState<Plano | null>(null);
-  const [startingTrial, setStartingTrial] = useState(false);
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: planos, isLoading } = useQuery<Plano[]>({
@@ -41,25 +38,6 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
     enabled: open,
     staleTime: 5 * 60 * 1000,
   });
-
-  const handleStartTrial = async () => {
-    if (!user) return;
-    setStartingTrial(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-trial", {
-        method: "POST",
-      });
-      if (error) throw new Error((data as any)?.error || error.message || "Erro ao iniciar teste grátis");
-      if (data && (data as any).error) throw new Error((data as any).error);
-
-      toast.success("Teste grátis de 1 dia ativado!");
-      onTrialStarted();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao iniciar teste grátis");
-    } finally {
-      setStartingTrial(false);
-    }
-  };
 
   const handlePaymentSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["assinatura"] });
@@ -95,7 +73,7 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
             <DialogHeader>
               <DialogTitle className="text-center text-xl">Escolha seu plano</DialogTitle>
               <DialogDescription className="text-center">
-                Assine para ter acesso completo ou inicie um teste grátis de 1 dia.
+                Assine para ter acesso completo à plataforma.
               </DialogDescription>
             </DialogHeader>
 
@@ -144,7 +122,6 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
                           className="mt-4 w-full"
                           size="sm"
                           variant={highlighted ? "default" : "outline"}
-                          disabled={startingTrial}
                           onClick={() => setSelectedPlan(plano)}
                         >
                           Assinar
@@ -153,34 +130,6 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
                     );
                   })}
                 </div>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">ou</span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 border-dashed"
-                  disabled={startingTrial}
-                  onClick={handleStartTrial}
-                >
-                  {startingTrial ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      Iniciar teste grátis (1 dia)
-                    </>
-                  )}
-                </Button>
-                <p className="text-center text-[11px] text-muted-foreground">
-                  O teste grátis permite download de 1 música por vez. Sem download de pastas ou repertórios completos.
-                </p>
               </div>
             )}
           </>
