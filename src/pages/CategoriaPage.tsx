@@ -43,6 +43,11 @@ const CategoriaPage = () => {
 
   const handleBatchDownload = async (musicas: { id: string; file_size?: number | null }[], label: string) => {
     if (!musicas.length) return;
+    if (!hasAccess) {
+      toast.error("Assine um plano para baixar pastas e categorias.");
+      navigate("/planos");
+      return;
+    }
     setDownloading(true);
     try {
       const result = await downloadMultipleAsParts(
