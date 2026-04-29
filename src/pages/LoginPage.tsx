@@ -142,10 +142,12 @@ const LoginPage = () => {
         className="w-full max-w-sm space-y-8"
       >
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/20">
-            <Music2 className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">MusicaePinga</h1>
+          <img
+            src={logo}
+            alt="Repertório Música e Pinga"
+            className="h-20 w-20 rounded-2xl object-cover shadow-lg shadow-primary/20"
+          />
+          <h1 className="text-2xl font-bold text-foreground">Música e Pinga</h1>
           <p className="text-sm text-muted-foreground">
             {isSignUp ? "Crie sua conta" : "Faça login para continuar"}
           </p>
