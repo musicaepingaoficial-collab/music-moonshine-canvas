@@ -160,6 +160,11 @@ const RepertorioPage = () => {
 
   const handleDownloadAll = async () => {
     if (!musicas?.length) return;
+    if (!hasAccess) {
+      toast.error("Assine um plano para baixar repertórios.");
+      navigate("/planos");
+      return;
+    }
     setDownloading(true);
     setDownloadProgress(0);
     setDownloadTotal(100);
