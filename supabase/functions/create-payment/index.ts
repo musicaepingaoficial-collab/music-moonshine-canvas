@@ -249,7 +249,7 @@ serve(async (req) => {
           body: JSON.stringify({
             type: "pix_generated",
             title: "🟢 Pix gerado",
-            body: `Plano ${plano.slug} — R$ ${Number(plano.price).toFixed(2)} aguardando pagamento`,
+            body: `Plano ${selectedPlan.slug} — R$ ${Number(selectedPlan.price).toFixed(2)} aguardando pagamento`,
             url: "/admin/assinaturas",
           }),
         });
