@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ChangePasswordCard } from "@/components/account/ChangePasswordCard";
 
 const ContaPage = () => {
   const { user } = useAuth();
@@ -112,7 +113,7 @@ const ContaPage = () => {
             </Button>
           </div>
 
-          {isAdmin && (
+          <ChangePasswordCard />
             <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="rounded-lg bg-primary/20 p-2">
