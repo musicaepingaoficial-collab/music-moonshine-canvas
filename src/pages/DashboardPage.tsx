@@ -52,6 +52,10 @@ const DashboardPage = () => {
   const recent = musicas?.slice(0, 6) ?? [];
   const popular = musicas?.slice(6, 10) ?? [];
 
+  useEffect(() => {
+    flushPendingReferral();
+  }, []);
+
   console.log("[Dashboard:render]", { count: musicas?.length, isLoading, hasError: !!error });
 
   return (
