@@ -436,9 +436,11 @@ export default function LandingPage() {
               © {new Date().getFullYear()} Repertório Música e Pinga. Todos os direitos reservados.
             </span>
           </div>
-          <div className="flex gap-5 text-sm text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
             <Link to="/login" className="hover:text-primary transition-colors">Entrar</Link>
             <button onClick={scrollToPrices} className="hover:text-primary transition-colors">Planos</button>
+            <Link to="/termos" className="hover:text-primary transition-colors">Termos de Uso</Link>
+            <Link to="/privacidade" className="hover:text-primary transition-colors">Privacidade</Link>
           </div>
         </div>
       </footer>
