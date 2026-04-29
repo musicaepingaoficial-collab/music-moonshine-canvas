@@ -377,6 +377,92 @@ export type Database = {
         }
         Relationships: []
       }
+      pdf_purchases: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          payment_id: string | null
+          pdf_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          pdf_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          pdf_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_purchases_pdf_id_fkey"
+            columns: ["pdf_id"]
+            isOneToOne: false
+            referencedRelation: "pdfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdfs: {
+        Row: {
+          access_type: Database["public"]["Enums"]["pdf_access_type"]
+          active: boolean
+          author: string | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          file_path: string
+          file_size: number
+          id: string
+          price: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          access_type?: Database["public"]["Enums"]["pdf_access_type"]
+          active?: boolean
+          author?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          file_path: string
+          file_size?: number
+          id?: string
+          price?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          access_type?: Database["public"]["Enums"]["pdf_access_type"]
+          active?: boolean
+          author?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          file_size?: number
+          id?: string
+          price?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pixel_settings: {
         Row: {
           ga4_enabled: boolean
@@ -625,6 +711,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_pdf_access: {
+        Args: { _pdf_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -635,6 +725,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      pdf_access_type: "paid" | "subscriber_bonus"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -763,6 +854,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      pdf_access_type: ["paid", "subscriber_bonus"],
     },
   },
 } as const

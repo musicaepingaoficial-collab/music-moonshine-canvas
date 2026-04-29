@@ -26,6 +26,7 @@ const RepertorioPage = lazy(() => import("./pages/RepertorioPage"));
 const MeusRepertoriosPage = lazy(() => import("./pages/MeusRepertoriosPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
 const InstalarPage = lazy(() => import("./pages/InstalarPage"));
+const PdfsPage = lazy(() => import("./pages/PdfsPage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const AdminUsuariosPage = lazy(() => import("./pages/admin/AdminUsuariosPage"));
 const AdminAssinaturasPage = lazy(() => import("./pages/admin/AdminAssinaturasPage"));
@@ -37,6 +38,7 @@ const AdminPlanosPage = lazy(() => import("./pages/admin/AdminPlanosPage"));
 const AdminSitePage = lazy(() => import("./pages/admin/AdminSitePage"));
 const AdminPixelsPage = lazy(() => import("./pages/admin/AdminPixelsPage"));
 const AdminNotificacoesPage = lazy(() => import("./pages/admin/AdminNotificacoesPage"));
+const AdminPdfsPage = lazy(() => import("./pages/admin/AdminPdfsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -87,6 +89,7 @@ const App = () => (
                 <Route path="/ofertas" element={<OfertasPage />} />
                 <Route path="/repertorio/:id" element={<RepertorioPage />} />
                 <Route path="/repertorios" element={<MeusRepertoriosPage />} />
+                <Route path="/pdfs" element={<PdfsPage />} />
               </Route>
               </Route>
 
@@ -104,6 +107,7 @@ const App = () => (
                 <Route path="site" element={<AdminSitePage />} />
                 <Route path="pixels" element={<AdminPixelsPage />} />
                 <Route path="notificacoes" element={<AdminNotificacoesPage />} />
+                <Route path="pdfs" element={<AdminPdfsPage />} />
               </Route>
               </Route>
 

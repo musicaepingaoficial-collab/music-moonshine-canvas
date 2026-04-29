@@ -1,4 +1,4 @@
-import { Library, Heart, User, Music2, Tag, LogOut, FolderOpen } from "lucide-react";
+import { Library, Heart, User, Music2, Tag, LogOut, FolderOpen, FileText } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useUser";
 const menuItems = [
   { title: "Biblioteca", url: "/biblioteca", icon: Library },
   { title: "Meus Repertórios", url: "/repertorios", icon: FolderOpen },
+  { title: "PDFs", url: "/pdfs", icon: FileText },
   { title: "Favoritos", url: "/favoritos", icon: Heart },
   { title: "Assinatura", url: "/ofertas", icon: Tag },
   { title: "Conta", url: "/conta", icon: User },

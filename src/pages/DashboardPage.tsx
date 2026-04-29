@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdBanner } from "@/components/ads/AdBanner";
 import { Music } from "lucide-react";
+import { PdfsHighlight } from "@/components/pdfs/PdfsHighlight";
 
 const container = {
   hidden: {},
@@ -75,6 +76,8 @@ const DashboardPage = () => {
           </motion.div>
         </section>
       )}
+
+      <PdfsHighlight />
     </div>
   );
 };

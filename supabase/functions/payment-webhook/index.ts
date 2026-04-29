@@ -54,7 +54,62 @@ serve(async (req) => {
     }
 
     if (payment.status === "approved") {
-      const [userId, planSlug] = String(payment.external_reference || "").split(":");
+      const ref = String(payment.external_reference || "");
+
+      // ==== Compra avulsa de PDF ====
+      if (ref.startsWith("pdf:")) {
+        const [, userId, pdfId] = ref.split(":");
+        if (!userId || !pdfId) {
+          console.error("Invalid pdf reference:", ref);
+          return new Response("Invalid reference", { status: 400 });
+        }
+
+        const { data: pdf } = await supabase
+          .from("pdfs")
+          .select("title, price")
+          .eq("id", pdfId)
+          .maybeSingle();
+
+        const { error: updErr } = await supabase
+          .from("pdf_purchases")
+          .update({ status: "approved" })
+          .eq("user_id", userId)
+          .eq("pdf_id", pdfId)
+          .eq("payment_id", String(payment.id));
+
+        if (updErr) console.error("update pdf_purchase err:", updErr);
+
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("name, email")
+            .eq("id", userId)
+            .maybeSingle();
+          const who = profile?.name || profile?.email || "Usuário";
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              type: "purchase",
+              title: "📕 PDF vendido",
+              body: `${who} comprou "${pdf?.title || "PDF"}" — R$ ${Number(pdf?.price || 0).toFixed(2)}`,
+              url: "/admin/financeiro",
+            }),
+          });
+        } catch (err) {
+          console.error("[push pdf purchase]", err);
+        }
+
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ==== Assinatura (fluxo original) ====
+      const [userId, planSlug] = ref.split(":");
       if (!userId || !planSlug) {
         console.error("Invalid external_reference:", payment.external_reference);
         return new Response("Invalid reference", { status: 400 });
@@ -120,7 +175,6 @@ serve(async (req) => {
 
       console.log(`Subscription activated for user ${userId}, plan: ${planSlug}`);
 
-      // Notificar admins via push
       try {
         const { data: profile } = await supabase
           .from("profiles")
