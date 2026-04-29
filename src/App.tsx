@@ -14,6 +14,7 @@ import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
 import { PixelInjector } from "@/components/pixels/PixelInjector";
 import { Loader2 } from "lucide-react";
 
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const BibliotecaPage = lazy(() => import("./pages/BibliotecaPage"));
@@ -74,6 +75,9 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
             <Routes>
+              {/* Public landing */}
+              <Route path="/" element={<LandingPage />} />
+
               <Route path="/login" element={<LoginPage />} />
               <Route path="/completar-perfil" element={<CompleteProfilePage />} />
               <Route path="/instalar" element={<InstalarPage />} />
@@ -81,7 +85,6 @@ const App = () => (
               {/* App routes */}
               <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/biblioteca" element={<BibliotecaPage />} />
                 <Route path="/categoria/:id" element={<CategoriaPage />} />
