@@ -51,6 +51,16 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Captura código de indicação na URL: /login?ref=CODE
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      localStorage.setItem("referral_code", ref);
+      setIsSignUp(true);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
