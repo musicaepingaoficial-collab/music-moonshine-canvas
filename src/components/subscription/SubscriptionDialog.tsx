@@ -4,9 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Loader2, Sparkles } from "lucide-react";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/useUser";
+import { Check, Crown, Loader2 } from "lucide-react";
+import { useQueryClient as _unused } from "@tanstack/react-query";
 import { CheckoutForm } from "./CheckoutForm";
 
 interface Plano {
