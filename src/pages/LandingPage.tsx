@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useUser";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
+import { PublicCheckoutDialog } from "@/components/subscription/PublicCheckoutDialog";
 
 const GENRES = [
   "Sertanejo", "Eletrônicas", "Flash Back", "Dance", "Forró", "Pagode",
@@ -69,6 +70,7 @@ const FAQ = [
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [checkoutPlan, setCheckoutPlan] = useState<{ slug: string; name: string; price: number } | null>(null);
 
   const { data: planos } = useQuery({
     queryKey: ["public-planos"],
@@ -96,8 +98,8 @@ export default function LandingPage() {
     );
   }
 
-  // Authenticated users go to dashboard
-  if (user) return <Navigate to="/dashboard" replace />;
+  // Authenticated users go to dashboard — but not while a checkout is in progress
+  if (user && !checkoutPlan) return <Navigate to="/dashboard" replace />;
 
   const scrollToPrices = () => {
     document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" });
@@ -343,11 +345,13 @@ export default function LandingPage() {
                       </li>
                     )}
                   </ul>
-                  <Link to="/login" className="mt-auto">
-                    <Button className={`w-full ${isLifetime ? "bg-primary hover:bg-primary/90" : ""}`} variant={isLifetime ? "default" : "outline"}>
-                      Comprar agora
-                    </Button>
-                  </Link>
+                  <Button
+                    onClick={() => setCheckoutPlan({ slug: p.slug, name: p.name, price: Number(p.price) })}
+                    className={`mt-auto w-full ${isLifetime ? "bg-primary hover:bg-primary/90" : ""}`}
+                    variant={isLifetime ? "default" : "outline"}
+                  >
+                    Comprar agora
+                  </Button>
                 </Card>
               );
             })}
@@ -456,8 +460,13 @@ export default function LandingPage() {
         className="hidden lg:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-30 items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors animate-bounce"
         aria-label="Ver planos"
       >
-        <ChevronDown className="h-4 w-4" />
       </button>
+
+      <PublicCheckoutDialog
+        open={!!checkoutPlan}
+        onOpenChange={(o) => !o && setCheckoutPlan(null)}
+        plan={checkoutPlan}
+      />
     </div>
   );
 }
