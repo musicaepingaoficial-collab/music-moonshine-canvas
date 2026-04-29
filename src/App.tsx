@@ -91,6 +91,7 @@ const App = () => (
                 <Route path="/repertorio/:id" element={<RepertorioPage />} />
                 <Route path="/repertorios" element={<MeusRepertoriosPage />} />
                 <Route path="/pdfs" element={<PdfsPage />} />
+                <Route path="/indicacoes" element={<IndicacoesPage />} />
               </Route>
               </Route>
 
