@@ -119,6 +119,31 @@ serve(async (req) => {
       }
 
       console.log(`Subscription activated for user ${userId}, plan: ${planSlug}`);
+
+      // Notificar admins via push
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, email")
+          .eq("id", userId)
+          .maybeSingle();
+        const who = profile?.name || profile?.email || "Usuário";
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            type: "purchase",
+            title: "💰 Compra aprovada",
+            body: `${who} ativou o plano ${planSlug} — R$ ${Number(plan.price).toFixed(2)}`,
+            url: "/admin/assinaturas",
+          }),
+        });
+      } catch (err) {
+        console.error("[push purchase] erro:", err);
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {

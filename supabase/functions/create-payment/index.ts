@@ -237,6 +237,27 @@ serve(async (req) => {
 
     const transactionData = mpData?.point_of_interaction?.transaction_data || {};
 
+    // Notificar admins quando um Pix é gerado
+    if (isPix && transactionData.qr_code) {
+      try {
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            type: "pix_generated",
+            title: "🟢 Pix gerado",
+            body: `Plano ${selectedPlan.slug} — R$ ${Number(selectedPlan.price).toFixed(2)} aguardando pagamento`,
+            url: "/admin/assinaturas",
+          }),
+        });
+      } catch (err) {
+        console.error("[push pix] erro:", err);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         status: mpData.status,
