@@ -62,7 +62,7 @@ const PlanosGatePage = () => {
       <div className="w-full max-w-md space-y-6 text-center">
         <h1 className="text-2xl font-bold text-foreground">Escolha seu plano para continuar</h1>
         <p className="text-sm text-muted-foreground">
-          Para acessar a plataforma, escolha um plano abaixo ou inicie um teste grátis de 1 dia.
+          Para acessar a plataforma, escolha um dos planos abaixo.
         </p>
       </div>
 
