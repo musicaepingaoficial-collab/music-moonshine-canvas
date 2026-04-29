@@ -18,6 +18,8 @@ const SCRIPT_IDS = {
   gtmNoscript: "lov-pixel-gtm-noscript",
   gtag: "lov-pixel-gtag",
   gtagInit: "lov-pixel-gtag-init",
+  tiktok: "lov-pixel-tiktok",
+  kwai: "lov-pixel-kwai",
 };
 
 function removeById(id: string) {
