@@ -3,15 +3,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useAuth, useProfile, useAssinatura } from "@/hooks/useUser";
+import { useAuth, useProfile, useAssinatura, useIsAdmin } from "@/hooks/useUser";
 import { StatCardSkeleton } from "@/components/ui/Skeletons";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ContaPage = () => {
   const { user } = useAuth();
   const { data: profile, isLoading: loadingProfile, error: errorProfile, refetch: refetchProfile } = useProfile(user?.id);
   const { data: assinatura, isLoading: loadingSub } = useAssinatura(user?.id);
+  const { data: isAdmin } = useIsAdmin(user?.id);
+  const navigate = useNavigate();
 
   const isLoading = loadingProfile || loadingSub;
 
