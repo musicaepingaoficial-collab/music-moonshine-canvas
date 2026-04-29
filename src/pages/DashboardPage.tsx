@@ -8,6 +8,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdBanner } from "@/components/ads/AdBanner";
 import { Music } from "lucide-react";
 import { PdfsHighlight } from "@/components/pdfs/PdfsHighlight";
+import { ReferralBanner } from "@/components/referrals/ReferralBanner";
 
 const container = {
   hidden: {},
