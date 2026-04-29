@@ -100,11 +100,12 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, onRem
         </button>
         <button
           onClick={handleDownload}
-          disabled={addDownload.isPending}
+          disabled={downloading || accessLoading}
+          title={!hasAccess && !accessLoading ? "Assine para baixar" : undefined}
           className="rounded-full p-1.5 text-muted-foreground transition-all duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           aria-label={`Baixar ${title}`}
         >
-          <Download className="h-4 w-4" />
+          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         </button>
         <AddToRepertorioDialog musicaId={id} title={title} />
         {onRemove && (
