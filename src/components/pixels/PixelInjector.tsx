@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { usePixelSettings } from "@/hooks/useSiteSettings";
+import { _setCachedPixelSettings } from "@/lib/pixels";
 
 declare global {
   interface Window {
