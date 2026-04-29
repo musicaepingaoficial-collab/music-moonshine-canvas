@@ -23,6 +23,12 @@ export interface PixelSettings {
   gtm_container_id: string | null;
   ga4_enabled: boolean;
   ga4_measurement_id: string | null;
+  kwai_enabled: boolean;
+  kwai_pixel_id: string | null;
+  kwai_access_token: string | null;
+  tiktok_enabled: boolean;
+  tiktok_pixel_id: string | null;
+  tiktok_access_token: string | null;
   updated_at: string;
 }
 

@@ -111,6 +111,34 @@ const ADS_LABEL_KEY_MAP: Partial<Record<PixelEvent, string>> = {
   sign_up: "sign_up",
 };
 
+/** TikTok standard event names */
+const TIKTOK_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
+  page_view: "Pageview",
+  view_content: "ViewContent",
+  add_to_cart: "AddToCart",
+  initiate_checkout: "InitiateCheckout",
+  begin_checkout: "InitiateCheckout",
+  add_payment_info: "AddPaymentInfo",
+  purchase: "PlaceAnOrder",
+  lead: "SubmitForm",
+  complete_registration: "CompleteRegistration",
+  sign_up: "CompleteRegistration",
+};
+
+/** Kwai standard event names */
+const KWAI_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
+  page_view: "EVENT_PAGE_VIEW",
+  view_content: "EVENT_CONTENT_VIEW",
+  add_to_cart: "EVENT_ADD_TO_CART",
+  initiate_checkout: "EVENT_INITIATED_CHECKOUT",
+  begin_checkout: "EVENT_INITIATED_CHECKOUT",
+  add_payment_info: "EVENT_ADD_PAYMENT_INFO",
+  purchase: "EVENT_PURCHASE",
+  lead: "EVENT_FORM",
+  complete_registration: "EVENT_COMPLETE_REGISTRATION",
+  sign_up: "EVENT_COMPLETE_REGISTRATION",
+};
+
 // ───────────────── Payload mapping helpers ─────────────────
 
 function buildMetaPayload(event: PixelEvent, p: PixelPayload): Record<string, unknown> {
@@ -244,6 +272,44 @@ export function dispatchEvent(
       );
       log("gtag Ads conversion", adsPayload);
       window.gtag("event", "conversion", adsPayload);
+    }
+  }
+
+  // ── TikTok Pixel ──
+  if (settings.tiktok_enabled && typeof (window as any).ttq?.track === "function") {
+    const ttName = TIKTOK_EVENT_MAP[event];
+    if (ttName) {
+      const ttPayload: Record<string, unknown> = {};
+      if (payload.value != null) ttPayload.value = payload.value;
+      if (payload.value != null || payload.currency)
+        ttPayload.currency = payload.currency || "BRL";
+      if (payload.content_ids?.length) {
+        ttPayload.contents = payload.content_ids.map((id) => ({
+          content_id: id,
+          quantity: 1,
+        }));
+        ttPayload.content_type = payload.content_type || "product";
+      }
+      if (payload.content_name) ttPayload.content_name = payload.content_name;
+      if (payload.transaction_id) ttPayload.event_id = payload.transaction_id;
+      log("ttq track", ttName, ttPayload);
+      (window as any).ttq.track(ttName, ttPayload);
+    }
+  }
+
+  // ── Kwai Pixel ──
+  if (settings.kwai_enabled && typeof (window as any).kwaiq === "function") {
+    const kwName = KWAI_EVENT_MAP[event];
+    if (kwName && settings.kwai_pixel_id) {
+      const kwPayload: Record<string, unknown> = {};
+      if (payload.value != null) kwPayload.value = payload.value;
+      if (payload.value != null || payload.currency)
+        kwPayload.currency = payload.currency || "BRL";
+      if (payload.content_ids?.length) kwPayload.content_id = payload.content_ids[0];
+      if (payload.content_name) kwPayload.content_name = payload.content_name;
+      if (payload.transaction_id) kwPayload.order_id = payload.transaction_id;
+      log("kwaiq track", kwName, kwPayload);
+      (window as any).kwaiq("track", kwName, kwPayload);
     }
   }
 

@@ -279,6 +279,112 @@ const AdminPixelsPage = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {/* TikTok Ads */}
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>TikTok Ads</CardTitle>
+            <CardDescription>Pixel ID + Access Token (Events API, opcional)</CardDescription>
+          </div>
+          <Switch
+            checked={!!form.tiktok_enabled}
+            onCheckedChange={(v) => set("tiktok_enabled", v)}
+          />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="tt-id">Pixel ID</Label>
+              <Input
+                id="tt-id"
+                placeholder="C4XXXXXXXXXXXXXXXXXX"
+                value={form.tiktok_pixel_id || ""}
+                onChange={(e) => set("tiktok_pixel_id", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tt-token">Access Token (opcional)</Label>
+              <Input
+                id="tt-token"
+                type="password"
+                placeholder="••••••••••••••••"
+                value={form.tiktok_access_token || ""}
+                onChange={(e) => set("tiktok_access_token", e.target.value)}
+              />
+            </div>
+          </div>
+          <Button
+            onClick={() =>
+              saveSection(
+                {
+                  tiktok_enabled: form.tiktok_enabled,
+                  tiktok_pixel_id: form.tiktok_pixel_id,
+                  tiktok_access_token: form.tiktok_access_token,
+                },
+                "TikTok"
+              )
+            }
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Save className="h-4 w-4" />
+            Salvar TikTok
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Kwai Ads */}
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>Kwai Ads</CardTitle>
+            <CardDescription>Pixel ID + Access Token (Events API, opcional)</CardDescription>
+          </div>
+          <Switch
+            checked={!!form.kwai_enabled}
+            onCheckedChange={(v) => set("kwai_enabled", v)}
+          />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="kwai-id">Pixel ID</Label>
+              <Input
+                id="kwai-id"
+                placeholder="XXXXXXXXXXXX"
+                value={form.kwai_pixel_id || ""}
+                onChange={(e) => set("kwai_pixel_id", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="kwai-token">Access Token (opcional)</Label>
+              <Input
+                id="kwai-token"
+                type="password"
+                placeholder="••••••••••••••••"
+                value={form.kwai_access_token || ""}
+                onChange={(e) => set("kwai_access_token", e.target.value)}
+              />
+            </div>
+          </div>
+          <Button
+            onClick={() =>
+              saveSection(
+                {
+                  kwai_enabled: form.kwai_enabled,
+                  kwai_pixel_id: form.kwai_pixel_id,
+                  kwai_access_token: form.kwai_access_token,
+                },
+                "Kwai"
+              )
+            }
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Save className="h-4 w-4" />
+            Salvar Kwai
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };
