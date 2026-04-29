@@ -25,6 +25,7 @@ const OfertasPage = lazy(() => import("./pages/OfertasPage"));
 const RepertorioPage = lazy(() => import("./pages/RepertorioPage"));
 const MeusRepertoriosPage = lazy(() => import("./pages/MeusRepertoriosPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
+const InstalarPage = lazy(() => import("./pages/InstalarPage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const AdminUsuariosPage = lazy(() => import("./pages/admin/AdminUsuariosPage"));
 const AdminAssinaturasPage = lazy(() => import("./pages/admin/AdminAssinaturasPage"));
@@ -71,6 +72,7 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/completar-perfil" element={<CompleteProfilePage />} />
+              <Route path="/instalar" element={<InstalarPage />} />
 
               {/* App routes */}
               <Route element={<ProtectedRoute />}>
