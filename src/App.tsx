@@ -29,6 +29,7 @@ const OfertasPage = lazy(() => import("./pages/OfertasPage"));
 const RepertorioPage = lazy(() => import("./pages/RepertorioPage"));
 const MeusRepertoriosPage = lazy(() => import("./pages/MeusRepertoriosPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
+const PlanosGatePage = lazy(() => import("./pages/PlanosGatePage"));
 const InstalarPage = lazy(() => import("./pages/InstalarPage"));
 const PdfsPage = lazy(() => import("./pages/PdfsPage"));
 const IndicacoesPage = lazy(() => import("./pages/IndicacoesPage"));
@@ -86,6 +87,7 @@ const App = () => (
 
               <Route path="/login" element={<LoginPage />} />
               <Route path="/completar-perfil" element={<CompleteProfilePage />} />
+              <Route path="/planos" element={<PlanosGatePage />} />
               <Route path="/instalar" element={<InstalarPage />} />
 
               {/* App routes */}

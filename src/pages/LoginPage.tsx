@@ -78,7 +78,7 @@ const LoginPage = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -87,10 +87,15 @@ const LoginPage = () => {
           },
         });
         if (error) throw error;
-        toast({
-          title: "Conta criada!",
-          description: "Verifique seu email para confirmar o cadastro.",
-        });
+        if (data.session) {
+          await registerPendingReferral();
+          navigate("/planos");
+        } else {
+          toast({
+            title: "Conta criada!",
+            description: "Verifique seu email para confirmar o cadastro.",
+          });
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
