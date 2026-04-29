@@ -101,6 +101,7 @@ const App = () => (
                 <Route path="repertorios" element={<AdminRepertoriosPage />} />
                 <Route path="site" element={<AdminSitePage />} />
                 <Route path="pixels" element={<AdminPixelsPage />} />
+                <Route path="notificacoes" element={<AdminNotificacoesPage />} />
               </Route>
               </Route>
 
