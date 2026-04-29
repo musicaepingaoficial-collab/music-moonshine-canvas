@@ -111,6 +111,34 @@ const ADS_LABEL_KEY_MAP: Partial<Record<PixelEvent, string>> = {
   sign_up: "sign_up",
 };
 
+/** TikTok standard event names */
+const TIKTOK_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
+  page_view: "Pageview",
+  view_content: "ViewContent",
+  add_to_cart: "AddToCart",
+  initiate_checkout: "InitiateCheckout",
+  begin_checkout: "InitiateCheckout",
+  add_payment_info: "AddPaymentInfo",
+  purchase: "PlaceAnOrder",
+  lead: "SubmitForm",
+  complete_registration: "CompleteRegistration",
+  sign_up: "CompleteRegistration",
+};
+
+/** Kwai standard event names */
+const KWAI_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
+  page_view: "EVENT_PAGE_VIEW",
+  view_content: "EVENT_CONTENT_VIEW",
+  add_to_cart: "EVENT_ADD_TO_CART",
+  initiate_checkout: "EVENT_INITIATED_CHECKOUT",
+  begin_checkout: "EVENT_INITIATED_CHECKOUT",
+  add_payment_info: "EVENT_ADD_PAYMENT_INFO",
+  purchase: "EVENT_PURCHASE",
+  lead: "EVENT_FORM",
+  complete_registration: "EVENT_COMPLETE_REGISTRATION",
+  sign_up: "EVENT_COMPLETE_REGISTRATION",
+};
+
 // ───────────────── Payload mapping helpers ─────────────────
 
 function buildMetaPayload(event: PixelEvent, p: PixelPayload): Record<string, unknown> {
