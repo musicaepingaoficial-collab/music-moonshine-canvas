@@ -3,15 +3,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useAuth, useProfile, useAssinatura } from "@/hooks/useUser";
+import { useAuth, useProfile, useAssinatura, useIsAdmin } from "@/hooks/useUser";
 import { StatCardSkeleton } from "@/components/ui/Skeletons";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ContaPage = () => {
   const { user } = useAuth();
   const { data: profile, isLoading: loadingProfile, error: errorProfile, refetch: refetchProfile } = useProfile(user?.id);
   const { data: assinatura, isLoading: loadingSub } = useAssinatura(user?.id);
+  const { data: isAdmin } = useIsAdmin(user?.id);
+  const navigate = useNavigate();
 
   const isLoading = loadingProfile || loadingSub;
 
@@ -107,6 +111,27 @@ const ContaPage = () => {
               Gerenciar assinatura
             </Button>
           </div>
+
+          {isAdmin && (
+            <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="rounded-lg bg-primary/20 p-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <h2 className="text-lg font-semibold text-foreground">Super Admin</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Você tem acesso ao painel administrativo do sistema.
+              </p>
+              <Button
+                onClick={() => navigate("/admin")}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+              >
+                <Shield className="h-4 w-4" />
+                Acessar painel admin
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
