@@ -323,6 +323,57 @@ export type Database = {
         }
         Relationships: []
       }
+      pixel_settings: {
+        Row: {
+          ga4_enabled: boolean
+          ga4_measurement_id: string | null
+          google_ads_conversion_id: string | null
+          google_ads_enabled: boolean
+          google_ads_labels: Json
+          gtm_container_id: string | null
+          gtm_enabled: boolean
+          id: string
+          meta_access_token: string | null
+          meta_enabled: boolean
+          meta_events: Json
+          meta_pixel_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ga4_enabled?: boolean
+          ga4_measurement_id?: string | null
+          google_ads_conversion_id?: string | null
+          google_ads_enabled?: boolean
+          google_ads_labels?: Json
+          gtm_container_id?: string | null
+          gtm_enabled?: boolean
+          id?: string
+          meta_access_token?: string | null
+          meta_enabled?: boolean
+          meta_events?: Json
+          meta_pixel_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ga4_enabled?: boolean
+          ga4_measurement_id?: string | null
+          google_ads_conversion_id?: string | null
+          google_ads_enabled?: boolean
+          google_ads_labels?: Json
+          gtm_container_id?: string | null
+          gtm_enabled?: boolean
+          id?: string
+          meta_access_token?: string | null
+          meta_enabled?: boolean
+          meta_events?: Json
+          meta_pixel_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       planos: {
         Row: {
           active: boolean
@@ -446,6 +497,36 @@ export type Database = {
           id?: string
           name?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          id: string
+          maintenance_message: string
+          maintenance_mode: boolean
+          maintenance_title: string
+          updated_at: string
+          updated_by: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          id?: string
+          maintenance_message?: string
+          maintenance_mode?: boolean
+          maintenance_title?: string
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          id?: string
+          maintenance_message?: string
+          maintenance_mode?: boolean
+          maintenance_title?: string
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
