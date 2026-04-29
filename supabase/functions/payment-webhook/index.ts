@@ -151,6 +151,7 @@ serve(async (req) => {
         return new Response("DB error", { status: 500 });
       }
 
+      // ---------- Programa de indicações ----------
       const { data: referral } = await supabase
         .from("indicacoes")
         .select("*, afiliados(*)")
@@ -159,17 +160,98 @@ serve(async (req) => {
         .maybeSingle();
 
       if (referral) {
-        const { count } = await supabase
+        const afiliadoId = referral.afiliado_id;
+        const indicadorId = (referral as any).afiliados?.user_id;
+
+        // marca a indicação como recompensada
+        await supabase
+          .from("indicacoes")
+          .update({ status: "rewarded" })
+          .eq("id", referral.id);
+
+        // recontagem
+        const { count: rewardedCount } = await supabase
           .from("indicacoes")
           .select("*", { count: "exact", head: true })
-          .eq("afiliado_id", referral.afiliado_id)
+          .eq("afiliado_id", afiliadoId)
           .eq("status", "rewarded");
 
-        if ((count ?? 0) < 3) {
-          await supabase
-            .from("indicacoes")
-            .update({ status: "rewarded" })
-            .eq("id", referral.id);
+        const total = rewardedCount ?? 0;
+
+        if (indicadorId) {
+          if (total >= 10) {
+            // Vitalício: encerra ativas e cria vitalícia
+            const { data: jaVitalicio } = await supabase
+              .from("assinaturas")
+              .select("id")
+              .eq("user_id", indicadorId)
+              .eq("plan", "vitalicio")
+              .eq("status", "active")
+              .maybeSingle();
+
+            if (!jaVitalicio) {
+              await supabase
+                .from("assinaturas")
+                .update({ status: "superseded" })
+                .eq("user_id", indicadorId)
+                .eq("status", "active");
+
+              await supabase.from("assinaturas").insert({
+                user_id: indicadorId,
+                plan: "vitalicio",
+                status: "active",
+                price: 0,
+                starts_at: new Date().toISOString(),
+                expires_at: null,
+              });
+
+              await supabase.from("notificacoes").insert({
+                user_id: indicadorId,
+                type: "success",
+                title: "🎉 Acesso vitalício desbloqueado!",
+                message: "Você atingiu 10 indicações premiadas e ganhou acesso vitalício ao sistema.",
+              });
+            }
+          } else {
+            // +30 dias na assinatura ativa, ou cria mensal de 30 dias
+            const { data: ativa } = await supabase
+              .from("assinaturas")
+              .select("*")
+              .eq("user_id", indicadorId)
+              .eq("status", "active")
+              .order("created_at", { ascending: false })
+              .maybeSingle();
+
+            if (ativa) {
+              const base = ativa.expires_at ? new Date(ativa.expires_at) : new Date();
+              const novaData = base > new Date() ? base : new Date();
+              novaData.setDate(novaData.getDate() + 30);
+              if (ativa.expires_at !== null) {
+                await supabase
+                  .from("assinaturas")
+                  .update({ expires_at: novaData.toISOString() })
+                  .eq("id", ativa.id);
+              }
+            } else {
+              const expira = new Date();
+              expira.setDate(expira.getDate() + 30);
+              await supabase.from("assinaturas").insert({
+                user_id: indicadorId,
+                plan: "mensal",
+                status: "active",
+                price: 0,
+                starts_at: new Date().toISOString(),
+                expires_at: expira.toISOString(),
+              });
+            }
+
+            await supabase.from("notificacoes").insert({
+              user_id: indicadorId,
+              type: "success",
+              title: "🎁 Você ganhou 1 mês grátis!",
+              message: `Sua indicação assinou um plano. Total de indicações premiadas: ${total}/10.`,
+            });
+          }
         }
       }
 

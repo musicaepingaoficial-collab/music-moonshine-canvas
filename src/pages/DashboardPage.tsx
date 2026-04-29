@@ -8,6 +8,33 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdBanner } from "@/components/ads/AdBanner";
 import { Music } from "lucide-react";
 import { PdfsHighlight } from "@/components/pdfs/PdfsHighlight";
+import { ReferralBanner } from "@/components/referrals/ReferralBanner";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+async function flushPendingReferral() {
+  try {
+    const ref = localStorage.getItem("referral_code");
+    if (!ref) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/affiliates`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ action: "register-referral", referralCode: ref }),
+      }
+    );
+    localStorage.removeItem("referral_code");
+  } catch {
+    /* ignore */
+  }
+}
 
 const container = {
   hidden: {},
@@ -25,6 +52,10 @@ const DashboardPage = () => {
   const recent = musicas?.slice(0, 6) ?? [];
   const popular = musicas?.slice(6, 10) ?? [];
 
+  useEffect(() => {
+    flushPendingReferral();
+  }, []);
+
   console.log("[Dashboard:render]", { count: musicas?.length, isLoading, hasError: !!error });
 
   return (
@@ -35,6 +66,8 @@ const DashboardPage = () => {
         title="Bem-vindo de volta 👋"
         subtitle="Descubra novas músicas e curta suas favoritas."
       />
+
+      <ReferralBanner />
 
       {isLoading && (
         <section>

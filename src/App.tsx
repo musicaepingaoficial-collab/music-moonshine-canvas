@@ -27,6 +27,7 @@ const MeusRepertoriosPage = lazy(() => import("./pages/MeusRepertoriosPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
 const InstalarPage = lazy(() => import("./pages/InstalarPage"));
 const PdfsPage = lazy(() => import("./pages/PdfsPage"));
+const IndicacoesPage = lazy(() => import("./pages/IndicacoesPage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const AdminUsuariosPage = lazy(() => import("./pages/admin/AdminUsuariosPage"));
 const AdminAssinaturasPage = lazy(() => import("./pages/admin/AdminAssinaturasPage"));
@@ -90,6 +91,7 @@ const App = () => (
                 <Route path="/repertorio/:id" element={<RepertorioPage />} />
                 <Route path="/repertorios" element={<MeusRepertoriosPage />} />
                 <Route path="/pdfs" element={<PdfsPage />} />
+                <Route path="/indicacoes" element={<IndicacoesPage />} />
               </Route>
               </Route>
 
