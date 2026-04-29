@@ -12,7 +12,8 @@ import { Music, Folder, ArrowLeft, Download, ListPlus } from "lucide-react";
 import { downloadMultipleAsParts } from "@/services/zipService";
 import { AddBulkToRepertorioDialog } from "@/components/music/AddBulkToRepertorioDialog";
 import { toast } from "sonner";
-import { useAssinatura, useAuth } from "@/hooks/useUser";
+import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
+import { useNavigate } from "react-router-dom";
 
 const CategoriaPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,8 @@ const CategoriaPage = () => {
   const [downloading, setDownloading] = useState(false);
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
+  const { hasAccess } = useHasActiveSubscription();
+  const navigate = useNavigate();
   const isTrial = assinatura?.plan === "trial";
 
   // Get unique subfolders
