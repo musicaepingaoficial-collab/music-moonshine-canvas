@@ -73,3 +73,24 @@ export function useAssinatura(userId?: string | null) {
     enabled: !!userId,
   });
 }
+
+/**
+ * Returns true when the user has an active, non-expired subscription
+ * OR is an admin. Use this as the gate for download actions.
+ */
+export function useHasActiveSubscription() {
+  const { user } = useAuth();
+  const { data: assinatura, isLoading: subLoading } = useAssinatura(user?.id);
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
+
+  const notExpired =
+    !!assinatura &&
+    (!assinatura.expires_at || new Date(assinatura.expires_at) > new Date());
+
+  return {
+    hasAccess: Boolean(isAdmin) || notExpired,
+    isLoading: subLoading || adminLoading,
+    isAdmin: Boolean(isAdmin),
+    plan: assinatura?.plan ?? null,
+  };
+}
