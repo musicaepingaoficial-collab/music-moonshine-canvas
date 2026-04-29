@@ -37,6 +37,8 @@ const DashboardPage = () => {
         subtitle="Descubra novas músicas e curta suas favoritas."
       />
 
+      <ReferralBanner />
+
       {isLoading && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-foreground">Tocados recentemente</h2>
