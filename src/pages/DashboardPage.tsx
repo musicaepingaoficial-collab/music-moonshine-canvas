@@ -9,6 +9,7 @@ import { AdBanner } from "@/components/ads/AdBanner";
 import { Music } from "lucide-react";
 import { PdfsHighlight } from "@/components/pdfs/PdfsHighlight";
 import { ReferralBanner } from "@/components/referrals/ReferralBanner";
+import { HeroCarousel } from "@/components/promotions/HeroCarousel";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -66,6 +67,8 @@ const DashboardPage = () => {
         title="Bem-vindo de volta 👋"
         subtitle="Descubra novas músicas e curta suas favoritas."
       />
+
+      <HeroCarousel />
 
       <ReferralBanner />
 
