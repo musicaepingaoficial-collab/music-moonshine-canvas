@@ -1,4 +1,4 @@
-import { Library, Heart, User, Music2, Tag, LogOut, FolderOpen } from "lucide-react";
+import { Library, Heart, User, Music2, Tag, LogOut, FolderOpen, Shield } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth, useIsAdmin } from "@/hooks/useUser";
 
 const menuItems = [
   { title: "Biblioteca", url: "/biblioteca", icon: Library },
