@@ -162,5 +162,39 @@ ${configs.join("\n")}`,
     s?.google_ads_conversion_id,
   ]);
 
+  // TikTok Pixel
+  useEffect(() => {
+    if (s?.tiktok_enabled && s.tiktok_pixel_id) {
+      injectScript(
+        SCRIPT_IDS.tiktok,
+        `!function (w, d, t) {
+  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=r;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+  ttq.load('${s.tiktok_pixel_id}');
+  ttq.page();
+}(window, document, 'ttq');`,
+        false
+      );
+    } else {
+      removeById(SCRIPT_IDS.tiktok);
+      delete (window as any).ttq;
+    }
+  }, [s?.tiktok_enabled, s?.tiktok_pixel_id]);
+
+  // Kwai Pixel
+  useEffect(() => {
+    if (s?.kwai_enabled && s.kwai_pixel_id) {
+      injectScript(
+        SCRIPT_IDS.kwai,
+        `!function(w,d,s,o){w.kwaiq=w.kwaiq||function(){(w.kwaiq.q=w.kwaiq.q||[]).push(arguments)};var f=d.createElement(s);f.async=!0;f.src='https://s1.kwai.net/kos/s101/nlav11187/pixel/events.js';var g=d.getElementsByTagName(s)[0];g.parentNode.insertBefore(f,g);}(window,document,'script');
+kwaiq.load('${s.kwai_pixel_id}');
+kwaiq.page();`,
+        false
+      );
+    } else {
+      removeById(SCRIPT_IDS.kwai);
+      delete (window as any).kwaiq;
+    }
+  }, [s?.kwai_enabled, s?.kwai_pixel_id]);
+
   return null;
 }
