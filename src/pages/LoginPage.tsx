@@ -96,6 +96,7 @@ const LoginPage = () => {
           password,
         });
         if (error) throw error;
+        await registerPendingReferral();
         navigate("/dashboard");
       }
     } catch (error: any) {
