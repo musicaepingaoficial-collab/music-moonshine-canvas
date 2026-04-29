@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
 import { Loader2 } from "lucide-react";
 
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -31,6 +32,8 @@ const AdminDrivesPage = lazy(() => import("./pages/admin/AdminDrivesPage"));
 const AdminFinanceiroPage = lazy(() => import("./pages/admin/AdminFinanceiroPage"));
 const AdminRepertoriosPage = lazy(() => import("./pages/admin/AdminRepertoriosPage"));
 const AdminPlanosPage = lazy(() => import("./pages/admin/AdminPlanosPage"));
+const AdminSitePage = lazy(() => import("./pages/admin/AdminSitePage"));
+const AdminPixelsPage = lazy(() => import("./pages/admin/AdminPixelsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -61,6 +64,7 @@ const App = () => (
       <ErrorBoundary>
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
+            <MaintenanceGate>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/completar-perfil" element={<CompleteProfilePage />} />
@@ -92,11 +96,14 @@ const App = () => (
                 <Route path="financeiro" element={<AdminFinanceiroPage />} />
                 <Route path="planos" element={<AdminPlanosPage />} />
                 <Route path="repertorios" element={<AdminRepertoriosPage />} />
+                <Route path="site" element={<AdminSitePage />} />
+                <Route path="pixels" element={<AdminPixelsPage />} />
               </Route>
               </Route>
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </MaintenanceGate>
           </Suspense>
         </BrowserRouter>
       </ErrorBoundary>
