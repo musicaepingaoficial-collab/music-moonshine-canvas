@@ -1,4 +1,5 @@
-import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, Music2, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay } from "lucide-react";
+import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay } from "lucide-react";
+import logo from "@/assets/logo.jpeg";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
