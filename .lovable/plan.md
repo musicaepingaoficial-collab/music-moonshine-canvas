@@ -1,46 +1,74 @@
-## Banner promocional em slides no Dashboard
+## Objetivo
 
-Adicionar um carrossel de banners (imagem + título + link) acima da seção de músicas no Dashboard, totalmente responsivo (mobile/tablet/desktop), administrado pelo Super Admin.
+Permitir comprar direto pela landing page: o usuário escolhe um plano, preenche **nome completo, CPF, WhatsApp, e-mail e senha** no checkout, paga (Pix ou cartão) e — após confirmação — entra automaticamente no painel.
 
-### Como vai parecer
+## Fluxo desejado
 
-- **Dashboard (`/dashboard`)**: novo componente `HeroCarousel` logo abaixo do banner "Bem-vindo de volta", antes do `ReferralBanner`. Altura adaptativa: `h-40` no mobile, `h-56` no tablet, `h-64/72` no desktop. Auto-play a cada 5s, setas (apenas no desktop), bullets de navegação, loop infinito. Cada slide é clicável (abre o link em nova aba).
-- **Admin (`/admin/anuncios`)**: nova página com listagem dos banners, formulário para criar/editar (título, subtítulo opcional, link, upload de imagem, ordem, ativo/inativo) e botões de ação (editar, ativar/desativar, excluir, mover para cima/baixo).
-- **AdminSidebar**: novo item "Banners" (ícone `ImagePlay`).
+```
+Landing → [Comprar plano X] 
+  → Modal Checkout (passo 1: dados + senha)
+  → (passo 2: pagamento Pix/Cartão)
+  → Pagamento confirmado
+  → Login automático
+  → /dashboard
+```
 
-### Banco de dados
+## Mudanças
 
-A tabela `anuncios` já existe com `title`, `image_url`, `link`, `active`. Migração para enriquecer:
+### 1. Botões de plano na LandingPage
+Hoje os botões "Comprar agora" levam para `/login`. Trocar por um botão que abre um **modal de checkout público** com o plano escolhido (slug + price + name).
 
-- `anuncios.position` (`integer not null default 0`) — ordem de exibição.
-- `anuncios.subtitle` (`text`) — texto secundário opcional.
-- Índice em `(active, position)`.
-- Bucket público `anuncios-images` para as imagens dos banners; somente admins podem fazer upload/atualizar/excluir.
+### 2. Novo componente `PublicCheckoutDialog`
+Dialog em duas etapas:
 
-### Frontend
+**Etapa 1 — Dados do cadastro (sempre visível primeiro):**
+- Nome completo (obrigatório, 2+ palavras)
+- CPF (validado, 11 dígitos)
+- WhatsApp (formato BR, mesmo formato do LoginPage)
+- E-mail (validado)
+- Senha (mín. 6 caracteres)
+- Confirmar senha
 
-Arquivos novos:
+Validação client-side com zod. Botão "Continuar para pagamento" → cria a conta via `supabase.auth.signUp` com `data: { name, whatsapp, cpf }` e `emailRedirectTo: window.location.origin`. Se o e-mail já existir, mostra erro pedindo para fazer login.
 
-- `src/components/promotions/HeroCarousel.tsx` — usa `embla-carousel-react` (já instalado) + `embla-carousel-autoplay` (adicionar) com setas, dots e responsividade.
-- `src/pages/admin/AdminAnunciosPage.tsx` — CRUD completo com upload via `supabase.storage.from('anuncios-images')`, drag-friendly reorder por botões ↑/↓.
+Após signUp bem-sucedido, faz **signIn imediato com email/senha** (a confirmação de e-mail no Supabase pode estar desativada; se estiver ativada, mostraremos aviso e bloquearemos — recomendamos desativar "Confirm email" no painel para o fluxo funcionar 100%).
 
-Arquivos editados:
+**Etapa 2 — Pagamento:**
+Reaproveitar lógica do `CheckoutForm.tsx` existente (Pix + Cartão Mercado Pago), agora com o usuário já autenticado e os dados já pré-preenchidos (nome, CPF, e-mail).
 
-- `src/pages/DashboardPage.tsx` — incluir `<HeroCarousel />`.
-- `src/components/layout/AdminSidebar.tsx` — novo item "Banners".
-- `src/App.tsx` — rota `/admin/anuncios`.
-- `src/types/database.ts` (se aplicável) — campos `position`, `subtitle` no tipo `Anuncio`.
+### 3. Login automático após pagamento confirmado
+- **Pix**: o `CheckoutForm` já faz polling via `getSubscriptionStatus`. Quando o status retornar ativo, redirecionar para `/dashboard` (usuário já está logado da etapa 1).
+- **Cartão aprovado**: mesmo redirect.
+- **Pix pendente**: mostrar tela "aguardando pagamento" com QR code; o usuário fica logado, e ao confirmar é levado ao dashboard. Como fallback, polling a cada 5s no `assinaturas` por até ~10 min.
 
-### Pacotes
+### 4. Banco de dados
+Adicionar coluna `cpf TEXT` em `public.profiles` (nullable, único parcial onde não-nulo). Atualizar `handle_new_user()` para gravar `cpf` a partir de `raw_user_meta_data->>'cpf'`.
 
-- `bun add embla-carousel-autoplay` (plugin oficial pequeno, mantido pela mesma equipe do embla).
+### 5. Página `/login`
+Mantida para quem já é cliente (botão "Já sou cliente" na landing). Sem mudanças funcionais.
 
-### Critérios de aceite
+## Detalhes técnicos
 
-- Carrossel aparece no Dashboard quando há ao menos 1 banner ativo; some quando não há nenhum.
-- Banners passam automaticamente a cada 5s, com loop e navegação manual (setas/dots).
-- Cliques no banner abrem o `link` em nova aba (quando preenchido).
-- Admin consegue criar, editar, ordenar, ativar/desativar e excluir banners; imagens ficam no bucket público.
-- Layout funciona bem em 360px, 768px e 1280px+ sem cortar conteúdo.
+- **Autenticação**: `supabase.auth.signUp({ email, password, options: { data: { name, whatsapp, cpf }, emailRedirectTo: window.location.origin } })`. Se o projeto exigir confirmação de e-mail, o usuário não conseguirá logar imediatamente — aviso na UI orientando a desativar "Confirm email" no Supabase Auth para login automático funcionar.
+- **Validação de CPF**: reutilizar `isValidCpf` já existente em `CheckoutForm.tsx` (extrair para `src/lib/validators.ts`).
+- **Persistência do CPF**: gravado em `profiles.cpf` via trigger `handle_new_user`, e usado no checkout do Mercado Pago (Pix exige CPF do titular).
+- **Webhook**: o `payment-webhook` já ativa a assinatura quando o MP confirma. Sem mudanças.
+- **Pixels de conversão**: disparar evento `complete_registration` após signUp e `purchase` após confirmação — os pixels já existem (`src/lib/pixels.ts`).
 
-Aguardando aprovação para implementar.
+## Arquivos
+
+**Criar**
+- `src/components/subscription/PublicCheckoutDialog.tsx` — modal 2 etapas
+- `src/lib/validators.ts` — `isValidCpf`, `formatCpf`, `formatWhatsApp` extraídos
+
+**Editar**
+- `src/pages/LandingPage.tsx` — substituir `<Link to="/login">` dos planos por botão que abre `PublicCheckoutDialog` com o plano escolhido
+- `src/components/subscription/CheckoutForm.tsx` — pré-preencher Pix com dados do signUp; redirecionar para `/dashboard` no `onSuccess`
+
+**Migration**
+- `ALTER TABLE profiles ADD COLUMN cpf TEXT`
+- Atualizar função `handle_new_user` para incluir cpf
+
+## Importante (aviso ao usuário)
+
+Para o **login automático após cadastro** funcionar, o Supabase precisa estar com **"Confirm email" desativado** em Authentication → Providers → Email. Caso contrário, o usuário precisará confirmar o e-mail antes de pagar. Recomendo desativar essa opção.
