@@ -98,8 +98,8 @@ export default function LandingPage() {
     );
   }
 
-  // Authenticated users go to dashboard
-  if (user) return <Navigate to="/dashboard" replace />;
+  // Authenticated users go to dashboard — but not while a checkout is in progress
+  if (user && !checkoutPlan) return <Navigate to="/dashboard" replace />;
 
   const scrollToPrices = () => {
     document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" });
