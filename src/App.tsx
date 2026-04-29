@@ -89,6 +89,7 @@ const App = () => (
                 <Route path="/ofertas" element={<OfertasPage />} />
                 <Route path="/repertorio/:id" element={<RepertorioPage />} />
                 <Route path="/repertorios" element={<MeusRepertoriosPage />} />
+                <Route path="/pdfs" element={<PdfsPage />} />
               </Route>
               </Route>
 
@@ -106,6 +107,7 @@ const App = () => (
                 <Route path="site" element={<AdminSitePage />} />
                 <Route path="pixels" element={<AdminPixelsPage />} />
                 <Route path="notificacoes" element={<AdminNotificacoesPage />} />
+                <Route path="pdfs" element={<AdminPdfsPage />} />
               </Route>
               </Route>
 
