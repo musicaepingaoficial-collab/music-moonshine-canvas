@@ -28,6 +28,15 @@ const OfertasPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<Plano | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: assinatura } = useAssinatura(user?.id);
+
+  const isExpired = (a: typeof assinatura) =>
+    !!a?.expires_at && new Date(a.expires_at as any) < new Date();
+  const currentSlug =
+    assinatura && assinatura.status === "active" && !isExpired(assinatura)
+      ? (assinatura as any).plan
+      : null;
 
   const { data: planos, isLoading } = useQuery<Plano[]>({
     queryKey: ["planos"],
