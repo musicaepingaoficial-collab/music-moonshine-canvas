@@ -1,6 +1,6 @@
 // Chave pública VAPID. É pública por design (não é secret).
 export const VAPID_PUBLIC_KEY =
-  "BCSzNXxsi33IT8i_lsaT5v-feQYpxGgv3rr-6bbjcmg_tcqpD5gw7ZdeiKg4gAlche5-zG94AkWoVAqJSR2b3gY";
+  "BN-hIpAQpcXUc11Aur03FwwMAsaBNM6vHHtqRj0_xIfPuXYC3gnXNdy0d4tHp4o4RQJ7FV1x2QGyu6uonqHi1VE";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
