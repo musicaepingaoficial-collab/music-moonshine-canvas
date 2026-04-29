@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CheckoutForm } from "@/components/subscription/CheckoutForm";
 import {
   formatCpf,
@@ -36,6 +37,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const reset = () => {
     setStep("form");
@@ -46,6 +48,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setAcceptedTerms(false);
   };
 
   const handleClose = (isOpen: boolean) => {
@@ -80,6 +83,10 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
     }
     if (password !== confirmPassword) {
       toast.error("As senhas não coincidem.");
+      return;
+    }
+    if (!acceptedTerms) {
+      toast.error("Você precisa aceitar os Termos de Uso e a Política de Privacidade.");
       return;
     }
 
@@ -242,7 +249,27 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
               />
             </div>
 
-            <Button type="submit" disabled={submitting} className="w-full gap-2 mt-2">
+            <div className="flex items-start gap-2 pt-1">
+              <Checkbox
+                id="pc-terms"
+                checked={acceptedTerms}
+                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="pc-terms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                Li e aceito os{" "}
+                <Link to="/termos" target="_blank" className="text-primary underline hover:no-underline">
+                  Termos de Uso
+                </Link>{" "}
+                e a{" "}
+                <Link to="/privacidade" target="_blank" className="text-primary underline hover:no-underline">
+                  Política de Privacidade
+                </Link>
+                .
+              </label>
+            </div>
+
+            <Button type="submit" disabled={submitting || !acceptedTerms} className="w-full gap-2 mt-2">
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

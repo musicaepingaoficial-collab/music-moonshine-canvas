@@ -12,9 +12,12 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
 import { PixelInjector } from "@/components/pixels/PixelInjector";
+import { CookieBanner } from "@/components/legal/CookieBanner";
 import { Loader2 } from "lucide-react";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const BibliotecaPage = lazy(() => import("./pages/BibliotecaPage"));
@@ -72,11 +75,14 @@ const App = () => (
       <ErrorBoundary>
         <BrowserRouter>
           <PixelInjector />
+          <CookieBanner />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
             <Routes>
               {/* Public landing */}
               <Route path="/" element={<LandingPage />} />
+              <Route path="/privacidade" element={<PrivacyPage />} />
+              <Route path="/termos" element={<TermsPage />} />
 
               <Route path="/login" element={<LoginPage />} />
               <Route path="/completar-perfil" element={<CompleteProfilePage />} />
