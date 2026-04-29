@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notification_prefs: {
+        Row: {
+          notify_pix_generated: boolean
+          notify_purchase: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          notify_pix_generated?: boolean
+          notify_purchase?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          notify_pix_generated?: boolean
+          notify_purchase?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      admin_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       afiliados: {
         Row: {
           code: string
