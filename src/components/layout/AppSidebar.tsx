@@ -32,7 +32,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: isAdmin } = useIsAdmin(user?.id);
+  
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
