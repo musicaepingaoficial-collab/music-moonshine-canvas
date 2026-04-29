@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { useMemo, useRef, useState } from "react";
 import type { Musica } from "@/types/database";
 import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
-import { useNavigate } from "react-router-dom";
 
 interface FolderGroup {
   name: string | null;
