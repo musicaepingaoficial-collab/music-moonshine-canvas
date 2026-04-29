@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { usePixelSettings } from "@/hooks/useSiteSettings";
+import { _setCachedPixelSettings } from "@/lib/pixels";
 
 declare global {
   interface Window {
@@ -57,6 +58,7 @@ function injectGtmNoscript(id: string, containerId: string) {
 
 export function PixelInjector() {
   const { data: s } = usePixelSettings();
+  _setCachedPixelSettings(s);
 
   // Meta Pixel
   useEffect(() => {
