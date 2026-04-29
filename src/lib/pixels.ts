@@ -18,14 +18,6 @@
 import { usePixelSettings, type PixelSettings } from "@/hooks/useSiteSettings";
 import { useCallback } from "react";
 
-declare global {
-  interface Window {
-    fbq?: (...args: any[]) => void;
-    dataLayer?: any[];
-    gtag?: (...args: any[]) => void;
-  }
-}
-
 // ───────────────────────── Types ─────────────────────────
 
 export type PixelEvent =
