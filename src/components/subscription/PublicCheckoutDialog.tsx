@@ -37,6 +37,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const reset = () => {
     setStep("form");
@@ -47,6 +48,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setAcceptedTerms(false);
   };
 
   const handleClose = (isOpen: boolean) => {
@@ -81,6 +83,10 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
     }
     if (password !== confirmPassword) {
       toast.error("As senhas não coincidem.");
+      return;
+    }
+    if (!acceptedTerms) {
+      toast.error("Você precisa aceitar os Termos de Uso e a Política de Privacidade.");
       return;
     }
 
