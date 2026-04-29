@@ -40,6 +40,23 @@ export function useProfile(userId?: string | null) {
   });
 }
 
+export function useIsAdmin(userId?: string | null) {
+  return useQuery<boolean>({
+    queryKey: ["is-admin", userId],
+    queryFn: async () => {
+      if (!userId) return false;
+      const { data, error } = await (supabase.rpc as any)("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (error) return false;
+      return Boolean(data);
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useAssinatura(userId?: string | null) {
   return useQuery<Assinatura | null>({
     queryKey: ["assinatura", userId],

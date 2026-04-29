@@ -1,4 +1,4 @@
-import { Library, Heart, User, Music2, Tag, LogOut, FolderOpen } from "lucide-react";
+import { Library, Heart, User, Music2, Tag, LogOut, FolderOpen, Shield } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth, useIsAdmin } from "@/hooks/useUser";
 
 const menuItems = [
   { title: "Biblioteca", url: "/biblioteca", icon: Library },
@@ -30,6 +31,8 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: isAdmin } = useIsAdmin(user?.id);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -70,6 +73,20 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/admin"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-primary transition-colors hover:bg-sidebar-accent"
+                      activeClassName="bg-sidebar-accent font-medium"
+                    >
+                      <Shield className="h-5 w-5 shrink-0" />
+                      {!collapsed && <span>Super Admin</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
