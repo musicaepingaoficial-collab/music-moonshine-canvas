@@ -333,10 +333,16 @@ export type Database = {
           gtm_container_id: string | null
           gtm_enabled: boolean
           id: string
+          kwai_access_token: string | null
+          kwai_enabled: boolean
+          kwai_pixel_id: string | null
           meta_access_token: string | null
           meta_enabled: boolean
           meta_events: Json
           meta_pixel_id: string | null
+          tiktok_access_token: string | null
+          tiktok_enabled: boolean
+          tiktok_pixel_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -349,10 +355,16 @@ export type Database = {
           gtm_container_id?: string | null
           gtm_enabled?: boolean
           id?: string
+          kwai_access_token?: string | null
+          kwai_enabled?: boolean
+          kwai_pixel_id?: string | null
           meta_access_token?: string | null
           meta_enabled?: boolean
           meta_events?: Json
           meta_pixel_id?: string | null
+          tiktok_access_token?: string | null
+          tiktok_enabled?: boolean
+          tiktok_pixel_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -365,10 +377,16 @@ export type Database = {
           gtm_container_id?: string | null
           gtm_enabled?: boolean
           id?: string
+          kwai_access_token?: string | null
+          kwai_enabled?: boolean
+          kwai_pixel_id?: string | null
           meta_access_token?: string | null
           meta_enabled?: boolean
           meta_events?: Json
           meta_pixel_id?: string | null
+          tiktok_access_token?: string | null
+          tiktok_enabled?: boolean
+          tiktok_pixel_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
