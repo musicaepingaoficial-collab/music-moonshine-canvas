@@ -58,6 +58,7 @@ function injectGtmNoscript(id: string, containerId: string) {
 
 export function PixelInjector() {
   const { data: s } = usePixelSettings();
+  _setCachedPixelSettings(s);
 
   // Meta Pixel
   useEffect(() => {
