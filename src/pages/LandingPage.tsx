@@ -460,8 +460,13 @@ export default function LandingPage() {
         className="hidden lg:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-30 items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors animate-bounce"
         aria-label="Ver planos"
       >
-        <ChevronDown className="h-4 w-4" />
       </button>
+
+      <PublicCheckoutDialog
+        open={!!checkoutPlan}
+        onOpenChange={(o) => !o && setCheckoutPlan(null)}
+        plan={checkoutPlan}
+      />
     </div>
   );
 }
