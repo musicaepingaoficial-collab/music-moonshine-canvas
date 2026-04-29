@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Tag, Crown, Check } from "lucide-react";
+import { Tag, Crown, Check, BadgeCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CheckoutForm } from "@/components/subscription/CheckoutForm";
 import { useNavigate } from "react-router-dom";
+import { useAuth, useAssinatura } from "@/hooks/useUser";
 
 interface Plano {
   id: string;
@@ -27,6 +28,15 @@ const OfertasPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<Plano | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: assinatura } = useAssinatura(user?.id);
+
+  const isExpired = (a: typeof assinatura) =>
+    !!a?.expires_at && new Date(a.expires_at as any) < new Date();
+  const currentSlug =
+    assinatura && assinatura.status === "active" && !isExpired(assinatura)
+      ? (assinatura as any).plan
+      : null;
 
   const { data: planos, isLoading } = useQuery<Plano[]>({
     queryKey: ["planos"],
@@ -76,22 +86,30 @@ const OfertasPage = () => {
         >
           {planos!.map((plano) => {
             const highlighted = isHighlighted(plano.slug);
+            const isCurrent = currentSlug === plano.slug;
             return (
               <motion.div
                 key={plano.id}
                 variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
                 className={`relative flex flex-col rounded-2xl border p-6 transition-all ${
-                  highlighted
+                  isCurrent
+                    ? "border-emerald-500 bg-emerald-500/5 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/40"
+                    : highlighted
                     ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                     : "border-border bg-card"
                 }`}
               >
-                {highlighted && (
+                {isCurrent ? (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 gap-1 bg-emerald-500 text-white hover:bg-emerald-500">
+                    <BadgeCheck className="h-3 w-3" />
+                    Seu plano atual
+                  </Badge>
+                ) : highlighted ? (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 gap-1 bg-primary text-primary-foreground">
                     <Crown className="h-3 w-3" />
                     Melhor custo-benefício
                   </Badge>
-                )}
+                ) : null}
 
                 <h3 className="text-xl font-bold text-foreground">{plano.name}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{getDurationLabel(plano.duration_days)}</p>
@@ -121,12 +139,23 @@ const OfertasPage = () => {
                   </li>
                 </ul>
 
+                {isCurrent && (assinatura as any)?.expires_at && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Válido até{" "}
+                    {new Date((assinatura as any).expires_at).toLocaleDateString("pt-BR")}
+                  </p>
+                )}
+                {isCurrent && !(assinatura as any)?.expires_at && (
+                  <p className="mt-3 text-xs text-muted-foreground">Acesso vitalício</p>
+                )}
+
                 <Button
                   className="mt-6 w-full"
-                  variant={highlighted ? "default" : "outline"}
+                  variant={isCurrent ? "outline" : highlighted ? "default" : "outline"}
+                  disabled={isCurrent}
                   onClick={() => setSelectedPlan(plano)}
                 >
-                  Assinar agora
+                  {isCurrent ? "Plano atual" : "Assinar agora"}
                 </Button>
               </motion.div>
             );
