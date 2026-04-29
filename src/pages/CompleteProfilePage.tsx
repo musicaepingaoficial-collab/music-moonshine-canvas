@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useUser";
 import { useQueryClient } from "@tanstack/react-query";
-import { SubscriptionDialog } from "@/components/subscription/SubscriptionDialog";
 
 function formatWhatsApp(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -20,7 +19,6 @@ function formatWhatsApp(value: string) {
 const CompleteProfilePage = () => {
   const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPlans, setShowPlans] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -52,7 +50,7 @@ const CompleteProfilePage = () => {
       if (activeSub) {
         navigate("/dashboard");
       } else {
-        setShowPlans(true);
+        navigate("/planos");
       }
     } catch (error: any) {
       toast({
@@ -63,11 +61,6 @@ const CompleteProfilePage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleTrialStarted = () => {
-    queryClient.invalidateQueries({ queryKey: ["assinatura"] });
-    navigate("/dashboard");
   };
 
   return (
@@ -109,8 +102,6 @@ const CompleteProfilePage = () => {
           </Button>
         </form>
       </motion.div>
-
-      <SubscriptionDialog open={showPlans} onTrialStarted={handleTrialStarted} />
     </div>
   );
 };
