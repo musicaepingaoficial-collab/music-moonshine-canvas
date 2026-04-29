@@ -11,6 +11,7 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
+import { PixelInjector } from "@/components/pixels/PixelInjector";
 import { Loader2 } from "lucide-react";
 
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -63,6 +64,7 @@ const App = () => (
       
       <ErrorBoundary>
         <BrowserRouter>
+          <PixelInjector />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
             <Routes>
