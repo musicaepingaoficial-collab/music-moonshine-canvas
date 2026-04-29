@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Tag, Crown, Check } from "lucide-react";
+import { Tag, Crown, Check, BadgeCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CheckoutForm } from "@/components/subscription/CheckoutForm";
 import { useNavigate } from "react-router-dom";
+import { useAuth, useAssinatura } from "@/hooks/useUser";
 
 interface Plano {
   id: string;
