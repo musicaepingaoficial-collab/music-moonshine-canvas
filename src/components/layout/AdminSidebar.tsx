@@ -22,6 +22,7 @@ const adminItems = [
   { title: "Planos", url: "/admin/planos", icon: BadgeDollarSign },
   { title: "Repertórios", url: "/admin/repertorios", icon: FolderOpen },
   { title: "PDFs", url: "/admin/pdfs", icon: FileText },
+  { title: "Banners", url: "/admin/anuncios", icon: ImagePlay },
   { title: "Financeiro", url: "/admin/financeiro", icon: DollarSign },
   { title: "Site", url: "/admin/site", icon: Settings },
   { title: "Pixels", url: "/admin/pixels", icon: Target },
