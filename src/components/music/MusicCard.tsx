@@ -1,7 +1,12 @@
-import { Play, Download, Heart, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Play, Download, Heart, Trash2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useToggleFavorito, useAddDownload } from "@/hooks/useFavorites";
+import { useToggleFavorito } from "@/hooks/useFavorites";
 import { usePlayerStore } from "@/stores/playerStore";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useHasActiveSubscription } from "@/hooks/useUser";
+import { downloadSingle } from "@/services/zipService";
 import { AddToRepertorioDialog } from "./AddToRepertorioDialog";
 
 interface MusicCardProps {
@@ -17,7 +22,9 @@ interface MusicCardProps {
 
 export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, onRemove, removeDisabled }: MusicCardProps) {
   const toggleFav = useToggleFavorito();
-  const addDownload = useAddDownload();
+  const [downloading, setDownloading] = useState(false);
+  const { hasAccess, isLoading: accessLoading } = useHasActiveSubscription();
+  const navigate = useNavigate();
   const play = usePlayerStore((s) => s.play);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -32,9 +39,23 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, onRem
     toggleFav.mutate(id);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    if (accessLoading) return;
+    if (!hasAccess) {
+      toast.error("Assine um plano para baixar músicas.");
+      navigate("/planos");
+      return;
+    }
     console.log("[MusicCard:download]", { id, title });
-    addDownload.mutate(id);
+    setDownloading(true);
+    try {
+      await downloadSingle(id);
+      toast.success("Download iniciado");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao baixar música");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -79,11 +100,12 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, onRem
         </button>
         <button
           onClick={handleDownload}
-          disabled={addDownload.isPending}
+          disabled={downloading || accessLoading}
+          title={!hasAccess && !accessLoading ? "Assine para baixar" : undefined}
           className="rounded-full p-1.5 text-muted-foreground transition-all duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           aria-label={`Baixar ${title}`}
         >
-          <Download className="h-4 w-4" />
+          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         </button>
         <AddToRepertorioDialog musicaId={id} title={title} />
         {onRemove && (

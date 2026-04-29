@@ -1,4 +1,4 @@
-﻿import { useParams, Link } from "react-router-dom";
+﻿import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MusicCard } from "@/components/music/MusicCard";
@@ -15,7 +15,7 @@ import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdat
 import { toast } from "sonner";
 import { useMemo, useRef, useState } from "react";
 import type { Musica } from "@/types/database";
-import { useAssinatura, useAuth } from "@/hooks/useUser";
+import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
 
 interface FolderGroup {
   name: string | null;
@@ -64,6 +64,8 @@ const RepertorioPage = () => {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
+  const { hasAccess } = useHasActiveSubscription();
+  const navigate = useNavigate();
   const isTrial = assinatura?.plan === "trial";
 
   const removeSingle = useRemoveMusicaFromRepertorio();
@@ -158,6 +160,11 @@ const RepertorioPage = () => {
 
   const handleDownloadAll = async () => {
     if (!musicas?.length) return;
+    if (!hasAccess) {
+      toast.error("Assine um plano para baixar repertórios.");
+      navigate("/planos");
+      return;
+    }
     setDownloading(true);
     setDownloadProgress(0);
     setDownloadTotal(100);
