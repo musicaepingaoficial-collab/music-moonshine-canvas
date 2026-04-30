@@ -1,46 +1,60 @@
-# Opção B: gate de assinatura após cadastro em /login
+## Problema
 
-Manter "Criar conta" em `/login`, mas após cadastro o usuário cai numa tela com `SubscriptionDialog` (planos + trial) antes de acessar o dashboard. Quem não tem assinatura ativa nem trial é bloqueado em `/dashboard`.
+A identificação de super admin falha intermitentemente. Investigação mostrou três causas:
 
-## Alterações
+### 1. Duas implementações concorrentes da mesma query
+- `src/hooks/useUser.ts` → `useIsAdmin()` usa queryKey `["is-admin", userId]` com `staleTime: 5 min` e retorna `Boolean(data)`.
+- `src/components/auth/AdminRoute.tsx` reimplementa a query inline com a **mesma queryKey** `["is-admin", user?.id]`, mas **sem staleTime** e sem tratamento robusto.
 
-### 1. `src/components/auth/ProtectedRoute.tsx`
-Adicionar checagem de assinatura ativa, depois da checagem de whatsapp:
+Como o React Query deduplica por chave, qual versão "ganha" depende de qual monta primeiro. Se o `AdminRoute` montar primeiro (ex.: navegação direta para `/admin`), a versão sem `staleTime` é cacheada e qualquer flicker de rede faz `isAdmin` voltar a `false`.
 
-- Usar `useAssinatura(user.id)` para buscar assinatura ativa.
-- Se `!profile?.whatsapp` → redireciona para `/completar-perfil` (já existe).
-- Se whatsapp ok mas não tem assinatura ativa (`assinatura == null`) e a rota atual não é `/completar-perfil` nem `/planos` → redireciona para `/planos`.
-- Admins (`useIsAdmin`) passam direto, sem gate de assinatura (eles ganham vitalícia automática, mas garantimos bypass).
-- Considerar `expires_at` nulo (vitalício) ou futuro como "ativa" — o hook já filtra por `status='active'`, então ok.
-
-### 2. Nova página `src/pages/PlanosGatePage.tsx`
-Página dedicada que renderiza `SubscriptionDialog` em modo `open` fixo, similar à parte final de `CompleteProfilePage`. Ao concluir (trial iniciado ou pagamento aprovado) invalida `["assinatura"]` e navega para `/dashboard`.
-
-Layout: fundo igual ao login, título "Escolha seu plano para continuar", botão "Sair" no topo (chama `supabase.auth.signOut()` e vai para `/login`) para o usuário poder cancelar.
-
-### 3. `src/App.tsx`
-Adicionar rota:
+### 2. Erros de RPC silenciosamente viram `false`
+Em ambas as implementações:
+```ts
+if (error) return false;
 ```
-<Route path="/planos" element={<PlanosGatePage />} />
-```
-Como rota pública (fora de `ProtectedRoute`), mas a página em si exige usuário logado — se `!user`, redireciona para `/login`. Isso evita loop de redirect dentro do `ProtectedRoute`.
+Quando há um erro transitório (rede, token expirando, refresh em andamento), o usuário é tratado como **não-admin** e redirecionado. Isso explica os "momentos" em que o sistema não identifica o admin.
 
-### 4. `src/pages/CompleteProfilePage.tsx`
-Substituir o `SubscriptionDialog` inline por `navigate("/planos")` quando não houver assinatura. Mantém comportamento atual mas centraliza a tela de planos numa rota só.
+### 3. Race condition com sessão
+`useIsAdmin` é chamado com `user?.id` logo após `useAuth`. Em alguns ciclos, a query dispara antes do token ser totalmente propagado, causando falha de RLS na RPC.
 
-### 5. `src/pages/LoginPage.tsx`
-No fluxo de `signUp`, após sucesso:
-- Se a sessão já estiver criada (confirmação de email desativada), navegar direto para `/planos`.
-- Se exigir confirmação de email, manter o toast atual ("Verifique seu email…").
+## Plano de correção
 
-O `ProtectedRoute` cobre o caso de o usuário voltar logado mais tarde.
+### A. Centralizar `useIsAdmin` (uma fonte da verdade)
+Arquivo: `src/components/auth/AdminRoute.tsx`
+- Remover a query inline.
+- Importar e usar `useIsAdmin` de `@/hooks/useUser`.
 
-## Detalhes técnicos
+### B. Tornar `useIsAdmin` resiliente
+Arquivo: `src/hooks/useUser.ts`
+- Em vez de engolir erro como `false`, **lançar** o erro para que o React Query faça retry.
+- Adicionar `retry: 2` e `retryDelay` exponencial.
+- Manter `staleTime: 5 min` e adicionar `gcTime: 10 min`.
+- Garantir `enabled: !!userId` (já existe).
+- Distinguir "carregando/erro" de "definitivamente não-admin": expor também `isError` para os consumidores que quiserem tratar.
 
-- `useAssinatura` retorna a primeira `assinatura` com `status='active'`. Trial criado por `create-trial` precisa inserir com `status='active'` (já é o caso pelas tabelas existentes).
-- Admins na allowlist recebem vitalícia automaticamente via trigger `assign_admin_for_allowlisted_email`, então o gate não os bloqueia.
-- Sem mudanças de DB nem de edge functions.
+### C. Esperar a sessão estar pronta
+Arquivo: `src/hooks/useUser.ts`
+- No `useAuth`, só considerar `loading=false` após o primeiro `onAuthStateChange` confirmar (já está perto disso).
+- Em `ProtectedRoute` e `AdminRoute`: enquanto `useIsAdmin` estiver em `isLoading` **ou** `isFetching` na primeira vez, mostrar o loader em vez de redirecionar. Não redirecionar com base em `isAdmin === false` se a query ainda não foi bem-sucedida pelo menos uma vez.
 
-## Arquivos
-- editar: `src/components/auth/ProtectedRoute.tsx`, `src/App.tsx`, `src/pages/CompleteProfilePage.tsx`, `src/pages/LoginPage.tsx`
-- criar: `src/pages/PlanosGatePage.tsx`
+### D. Invalidação após login
+Arquivo: `src/hooks/useUser.ts`
+- No listener `onAuthStateChange`, ao detectar `SIGNED_IN` ou `TOKEN_REFRESHED`, invalidar `["is-admin"]` e `["assinatura"]` para forçar recarregar com o novo token.
+
+### E. (Opcional, recomendado) Verificar via `user_roles` direto como fallback
+Se a RPC `has_role` falhar, fazer fallback para `select` em `user_roles` filtrando por `user_id` e `role='admin'` (a policy "Users can view own roles" permite). Isso elimina pontos únicos de falha.
+
+## Arquivos alterados
+
+- `src/hooks/useUser.ts` — endurecer `useIsAdmin` (retry, não engolir erros, invalidação no auth change, fallback opcional).
+- `src/components/auth/AdminRoute.tsx` — usar `useIsAdmin` central; não redirecionar enquanto a query ainda não teve sucesso.
+- `src/components/auth/ProtectedRoute.tsx` — mesma regra de "esperar sucesso" antes de tratar como não-admin para o gate de assinatura.
+
+Sem mudanças de banco de dados.
+
+## Resultado esperado
+
+- Admin deixa de ser ocasionalmente redirecionado para `/dashboard` ou `/planos`.
+- Erros transitórios fazem retry em vez de "rebaixar" o usuário.
+- Uma única queryKey `["is-admin", userId]` em todo o app, com cache estável.
