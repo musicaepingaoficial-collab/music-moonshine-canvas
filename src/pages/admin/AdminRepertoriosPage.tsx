@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const AdminRepertoriosPage = () => {
   const { data: repertorios, isLoading, error, refetch } = useRepertorios();
@@ -62,8 +63,6 @@ const AdminRepertoriosPage = () => {
     }
   };
 
-  console.log("[AdminRepertorios:render]", { total: repertorios?.length });
-
   return (
     <div className="space-y-6">
       <div>
@@ -78,24 +77,56 @@ const AdminRepertoriosPage = () => {
         <CardHeader className="pb-3">
           <h2 className="text-sm font-semibold text-foreground">Novo repertório</h2>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row">
-          <Input
-            placeholder="Nome (ex: Repertório Abril 2026)"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            className="flex-1"
-            aria-label="Nome do repertório"
-          />
-          <Input
-            placeholder="Descrição (opcional)"
-            value={newDesc}
-            onChange={(e) => setNewDesc(e.target.value)}
-            className="flex-1"
-            aria-label="Descrição do repertório"
-          />
-          <Button onClick={handleCreate} disabled={createRep.isPending || !newName.trim()}>
-            <Plus className="mr-1 h-4 w-4" /> Criar
-          </Button>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Input
+              placeholder="Nome (ex: Repertório Abril 2026)"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="flex-1"
+              aria-label="Nome do repertório"
+            />
+            <Input
+              placeholder="Descrição (opcional)"
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              className="flex-1"
+              aria-label="Descrição do repertório"
+            />
+          </div>
+          
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Capa do repertório</label>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => document.getElementById('cover-upload')?.click()}
+                  className="w-full justify-start h-10 border-dashed"
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  {coverFile ? coverFile.name : "Selecionar capa..."}
+                </Button>
+                <input
+                  id="cover-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {coverPreview && (
+                  <div className="h-10 w-10 rounded border overflow-hidden bg-muted">
+                    <img src={coverPreview} alt="Preview" className="h-full w-full object-cover" />
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <Button onClick={handleCreate} disabled={createRep.isPending || !newName.trim()} className="h-10 px-6">
+              <Plus className="mr-1 h-4 w-4" /> Criar Repertório
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -114,6 +145,7 @@ const AdminRepertoriosPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Capa</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Músicas</TableHead>
@@ -124,6 +156,17 @@ const AdminRepertoriosPage = () => {
               <TableBody>
                 {repertorios!.map((r) => (
                   <TableRow key={r.id}>
+                    <TableCell>
+                      {r.cover_url ? (
+                        <div className="h-10 w-10 rounded border overflow-hidden bg-muted">
+                          <img src={r.cover_url} alt={r.name} className="h-full w-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 rounded border flex items-center justify-center bg-muted text-muted-foreground">
+                          <ImageIcon className="h-5 w-5" />
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium text-foreground">{r.name}</TableCell>
                     <TableCell className="text-muted-foreground">{r.description || "—"}</TableCell>
                     <TableCell>
@@ -181,6 +224,31 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const { data: drives } = useQuery({
+    queryKey: ["admin-drives"],
+    queryFn: async () => {
+      const { data } = await supabase.from("google_drives").select("*");
+      return data || [];
+    }
+  });
+
+  const { data: folders } = useQuery({
+    queryKey: ["available-folders", drives],
+    queryFn: async () => {
+      const { data } = await supabase.from("musicas").select("subfolder, drive_id").not("subfolder", "is", null);
+      const uniqueFolders: { subfolder: string, drive_id: string }[] = [];
+      const seen = new Set();
+      data?.forEach(item => {
+        const key = `${item.drive_id}|${item.subfolder}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueFolders.push(item);
+        }
+      });
+      return uniqueFolders;
+    }
+  });
+
   const repMusicaIds = new Set((repMusicas ?? []).map((m) => m.id));
   const available = (allMusicas ?? []).filter(
     (m) =>
@@ -197,6 +265,40 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
       toast.success(`${selected.size} música(s) adicionada(s)!`);
     } catch {
       toast.error("Erro ao adicionar músicas.");
+    }
+  };
+
+  const addAllFromDrive = async (driveId: string) => {
+    try {
+      const { data: driveMusicas } = await supabase.from("musicas").select("id").eq("drive_id", driveId);
+      if (driveMusicas && driveMusicas.length > 0) {
+        const idsToAdd = driveMusicas.map(m => m.id).filter(id => !repMusicaIds.has(id));
+        if (idsToAdd.length === 0) {
+          toast.info("Todas as músicas deste drive já estão no repertório.");
+          return;
+        }
+        await addMusicas.mutateAsync({ repertorioId, musicaIds: idsToAdd });
+        toast.success(`${idsToAdd.length} música(s) do drive adicionada(s)!`);
+      }
+    } catch {
+      toast.error("Erro ao adicionar músicas do drive.");
+    }
+  };
+
+  const addAllFromFolder = async (driveId: string, subfolder: string) => {
+    try {
+      const { data: folderMusicas } = await supabase.from("musicas").select("id").eq("drive_id", driveId).eq("subfolder", subfolder);
+      if (folderMusicas && folderMusicas.length > 0) {
+        const idsToAdd = folderMusicas.map(m => m.id).filter(id => !repMusicaIds.has(id));
+        if (idsToAdd.length === 0) {
+          toast.info("Todas as músicas desta pasta já estão no repertório.");
+          return;
+        }
+        await addMusicas.mutateAsync({ repertorioId, musicaIds: idsToAdd });
+        toast.success(`${idsToAdd.length} música(s) da pasta adicionada(s)!`);
+      }
+    } catch {
+      toast.error("Erro ao adicionar músicas da pasta.");
     }
   };
 
@@ -222,14 +324,14 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Gerenciar músicas do repertório</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-6">
+        <div className="flex-1 overflow-hidden flex flex-col gap-6">
           {/* Current songs */}
-          <div>
+          <div className="shrink-0">
             <h3 className="text-sm font-semibold text-foreground mb-2">
               Músicas no repertório ({repMusicas?.length ?? 0})
             </h3>
@@ -238,7 +340,7 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
             ) : (repMusicas?.length ?? 0) === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma música adicionada.</p>
             ) : (
-              <div className="space-y-1 max-h-40 overflow-y-auto">
+              <div className="space-y-1 max-h-32 overflow-y-auto pr-2">
                 {repMusicas!.map((m) => (
                   <div key={m.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
                     <span className="text-sm text-foreground">
@@ -251,7 +353,7 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
                       disabled={removeMusica.isPending}
                       aria-label={`Remover ${m.title}`}
                     >
-                      <Trash2 className="h-3 w-3 text-destructive" />
+                      <Trash2 className="h-3.3 w-3.5 text-destructive" />
                     </Button>
                   </div>
                 ))}
@@ -259,54 +361,116 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
             )}
           </div>
 
-          {/* Add songs */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-2">Adicionar músicas</h3>
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar músicas..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-                aria-label="Buscar músicas para adicionar"
-              />
-            </div>
-            <div className="space-y-1 max-h-48 overflow-y-auto">
-              {available.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  {search ? "Nenhuma música encontrada." : "Todas as músicas já estão no repertório."}
-                </p>
-              ) : (
-                available.map((m) => (
-                  <label
-                    key={m.id}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      checked={selected.has(m.id)}
-                      onCheckedChange={() => toggleSelect(m.id)}
-                      aria-label={`Selecionar ${m.title}`}
-                    />
-                    <span className="text-sm text-foreground">
-                      {m.title} — <span className="text-muted-foreground">{m.artist}</span>
-                    </span>
-                  </label>
-                ))
-              )}
-            </div>
-          </div>
+          <Tabs defaultValue="individual" className="flex-1 overflow-hidden flex flex-col">
+            <TabsList className="grid grid-cols-3 mb-4">
+              <TabsTrigger value="individual">Músicas</TabsTrigger>
+              <TabsTrigger value="pastas">Pastas</TabsTrigger>
+              <TabsTrigger value="drives">Drives</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="individual" className="flex-1 overflow-hidden flex flex-col m-0">
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar músicas..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex-1 overflow-y-auto pr-2 space-y-1">
+                {available.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-10 text-center">
+                    {search ? "Nenhuma música encontrada." : "Todas as músicas já estão no repertório."}
+                  </p>
+                ) : (
+                  available.map((m) => (
+                    <label
+                      key={m.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+                    >
+                      <Checkbox
+                        checked={selected.has(m.id)}
+                        onCheckedChange={() => toggleSelect(m.id)}
+                      />
+                      <span className="text-sm text-foreground">
+                        {m.title} — <span className="text-muted-foreground">{m.artist}</span>
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+              <div className="pt-4 border-t flex justify-end gap-2 shrink-0">
+                {selected.size > 0 && (
+                  <Button size="sm" onClick={handleAdd} disabled={addMusicas.isPending}>
+                    <Plus className="mr-1 h-4 w-4" /> Adicionar {selected.size} selecionada(s)
+                  </Button>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="pastas" className="flex-1 overflow-y-auto pr-2 m-0">
+              <div className="space-y-2">
+                {folders?.length === 0 ? (
+                  <EmptyState icon={Folder} title="Nenhuma pasta encontrada" />
+                ) : (
+                  folders?.map((f, i) => {
+                    const drive = drives?.find(d => d.id === f.drive_id);
+                    return (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <Folder className="h-5 w-5 text-primary shrink-0" />
+                          <div className="overflow-hidden">
+                            <p className="font-medium text-sm truncate">{f.subfolder}</p>
+                            <p className="text-xs text-muted-foreground truncate">{drive?.name || "Drive Desconhecido"}</p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => addAllFromFolder(f.drive_id, f.subfolder)}
+                          disabled={addMusicas.isPending}
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Adicionar Tudo
+                        </Button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="drives" className="flex-1 overflow-y-auto pr-2 m-0">
+              <div className="space-y-2">
+                {drives?.length === 0 ? (
+                  <EmptyState icon={HardDrive} title="Nenhum drive encontrado" />
+                ) : (
+                  drives?.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                      <div className="flex items-center gap-3">
+                        <HardDrive className="h-5 w-5 text-primary" />
+                        <span className="font-medium text-sm">{d.name}</span>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => addAllFromDrive(d.id)}
+                        disabled={addMusicas.isPending}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar Tudo
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
+        <div className="flex justify-end pt-4 border-t">
           <DialogClose asChild>
             <Button variant="outline" size="sm">Fechar</Button>
           </DialogClose>
-          {selected.size > 0 && (
-            <Button size="sm" onClick={handleAdd} disabled={addMusicas.isPending}>
-              <Plus className="mr-1 h-4 w-4" /> Adicionar {selected.size} música(s)
-            </Button>
-          )}
         </div>
       </DialogContent>
     </Dialog>
