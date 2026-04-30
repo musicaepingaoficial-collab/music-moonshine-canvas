@@ -63,12 +63,15 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Using service role to check user because getUser() can be flaky with some tokens
+    const { data: { user }, error: authError } = await supabase.auth.admin.getUserById(
+      (JSON.parse(atob(token.split('.')[1]))).sub
+    );
     
     if (authError || !user) {
       console.error("[google-drive] Erro de autenticação:", authError?.message || "Usuário não encontrado");
       return new Response(JSON.stringify({ 
-        error: "Token inválido",
+        error: "Token inválido ou sessão expirada",
         details: authError?.message
       }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
