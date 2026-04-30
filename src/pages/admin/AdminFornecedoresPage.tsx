@@ -88,7 +88,16 @@ const AdminFornecedoresPage = () => {
           .eq("id", editingSupplier.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("suppliers").insert([supplier]);
+        if (!supplier.name) throw new Error("Nome é obrigatório");
+        const { error } = await supabase.from("suppliers").insert([
+          {
+            name: supplier.name,
+            website: supplier.website,
+            contact: supplier.contact,
+            login_info: supplier.login_info,
+            notes: supplier.notes,
+          },
+        ]);
         if (error) throw error;
       }
     },
