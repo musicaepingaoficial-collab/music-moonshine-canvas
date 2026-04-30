@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -17,7 +18,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { HardDrive, Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { HardDrive, Plus, Pencil, Trash2, RefreshCw, HelpCircle, Key, Users, FileText, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -29,6 +30,7 @@ interface DriveForm {
 const AdminDrivesPage = () => {
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<DriveForm>({ name: "", drive_id: "" });
@@ -141,10 +143,104 @@ const AdminDrivesPage = () => {
           <h1 className="text-2xl font-bold text-foreground">Google Drives</h1>
           <p className="text-sm text-muted-foreground">Monitore e gerencie os drives conectados</p>
         </div>
-        <Button onClick={() => { setForm({ name: "", drive_id: "" }); setAddOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> Adicionar Drive
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowTutorial(true)}>
+            <HelpCircle className="h-4 w-4 mr-1" /> Tutorial
+          </Button>
+          <Button onClick={() => { setForm({ name: "", drive_id: "" }); setAddOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Adicionar Drive
+          </Button>
+        </div>
       </div>
+
+      {showTutorial && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-6 overflow-hidden">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Passo a Passo: Como Adicionar um Google Drive
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowTutorial(false)}>Ocultar</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="step-1">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">1</div>
+                      <span>Configurar Conta de Serviço</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3 pt-2">
+                    <p className="text-sm text-muted-foreground">O sistema utiliza uma conta de serviço para acessar os arquivos. Você precisa compartilhar seu drive com o e-mail de serviço abaixo:</p>
+                    <div className="flex items-center gap-2 p-3 bg-card rounded-lg border border-border/50">
+                      <code className="text-xs font-mono break-all flex-1">google-drive-sync@zsquzchwxnsuysfrlngt.iam.gserviceaccount.com</code>
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        navigator.clipboard.writeText("google-drive-sync@zsquzchwxnsuysfrlngt.iam.gserviceaccount.com");
+                        toast.success("E-mail copiado!");
+                      }}>Copiar</Button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="step-2">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">2</div>
+                      <span>Compartilhar a Pasta/Drive</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3 pt-2">
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-2">
+                      <li>Abra o seu Google Drive.</li>
+                      <li>Clique com o botão direito na pasta que deseja sincronizar ou no "Drive Compartilhado".</li>
+                      <li>Clique em <strong>Compartilhar</strong>.</li>
+                      <li>Cole o e-mail copiado no passo anterior.</li>
+                      <li>Certifique-se de que a permissão é de <strong>Leitor</strong> ou superior.</li>
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="step-3">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">3</div>
+                      <span>Obter o Drive ID</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3 pt-2">
+                    <p className="text-sm text-muted-foreground">O ID do drive é o código que aparece na barra de endereços do seu navegador quando você abre a pasta:</p>
+                    <div className="p-3 bg-card rounded-lg border border-border/50 space-y-2">
+                      <p className="text-xs text-muted-foreground">Exemplo de URL:</p>
+                      <code className="text-[10px] font-mono break-all block">drive.google.com/drive/folders/<span className="text-primary font-bold">1A2B3C4D5E6F7G8H9I0J</span></code>
+                      <p className="text-xs text-primary italic">O que está em destaque é o seu Drive ID.</p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="step-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">4</div>
+                      <span>Adicionar e Sincronizar</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3 pt-2">
+                    <p className="text-sm text-muted-foreground">Agora basta clicar no botão <strong>"Adicionar Drive"</strong> no topo desta página, preencher um nome para sua identificação e colar o Drive ID obtido.</p>
+                    <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Após salvar, clique no botão de sincronizar (<RefreshCw className="h-3 w-3 inline" />) no card do drive.</span>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {error && <ErrorState message="Erro ao carregar drives." onRetry={() => refetch()} />}
 
