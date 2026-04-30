@@ -272,6 +272,32 @@ const AdminDrivesPage = () => {
 
       {error && <ErrorState message="Erro ao carregar drives." onRetry={() => refetch()} />}
 
+      {syncStatus && (
+        <Card className={`mb-6 border-l-4 ${
+          syncStatus.type === "success" ? "border-l-green-500" : 
+          syncStatus.type === "error" ? "border-l-red-500" : "border-l-blue-500"
+        }`}>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                {syncingId ? (
+                  <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+                ) : syncStatus.type === "success" ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : null}
+                <span className="font-medium text-sm">{syncStatus.message}</span>
+              </div>
+              {syncStatus.total > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {syncStatus.processed} / {syncStatus.total} arquivos
+                </span>
+              )}
+            </div>
+            {syncingId && <Progress value={100} className="h-1.5 animate-pulse" />}
+          </CardContent>
+        </Card>
+      )}
+
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
