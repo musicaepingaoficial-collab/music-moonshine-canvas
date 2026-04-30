@@ -52,6 +52,7 @@ const item = {
 
 const DashboardPage = () => {
   const { data: musicas, isLoading, error, refetch } = useMusicas();
+  const { data: repertorios, isLoading: isLoadingReps } = useRepertorios();
 
   const recent = musicas?.slice(0, 6) ?? [];
   const popular = musicas?.slice(6, 10) ?? [];
