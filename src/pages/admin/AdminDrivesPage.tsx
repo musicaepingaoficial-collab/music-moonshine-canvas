@@ -88,10 +88,23 @@ const AdminDrivesPage = () => {
   });
 
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<{
+    total: number;
+    processed: number;
+    message: string;
+    type: "info" | "success" | "error";
+  } | null>(null);
 
   const syncMutation = useMutation({
     mutationFn: async (drive: { id: string; drive_id: string }) => {
       setSyncingId(drive.id);
+      setSyncStatus({
+        total: 0,
+        processed: 0,
+        message: "Iniciando sincronização...",
+        type: "info"
+      });
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
@@ -114,13 +127,28 @@ const AdminDrivesPage = () => {
     },
     onSuccess: (data) => {
       toast.success(data.message);
+      setSyncStatus({
+        total: data.total || 0,
+        processed: data.total || 0,
+        message: data.message,
+        type: "success"
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-drives"] });
       queryClient.invalidateQueries({ queryKey: ["musicas"] });
       queryClient.invalidateQueries({ queryKey: ["categorias"] });
       setSyncingId(null);
+      
+      // Limpa o status após 5 segundos
+      setTimeout(() => setSyncStatus(null), 5000);
     },
     onError: (err: Error) => {
       toast.error(err.message || "Erro ao sincronizar drive.");
+      setSyncStatus({
+        total: 0,
+        processed: 0,
+        message: err.message || "Erro ao sincronizar drive.",
+        type: "error"
+      });
       setSyncingId(null);
     },
   });
