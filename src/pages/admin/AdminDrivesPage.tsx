@@ -177,9 +177,9 @@ const AdminDrivesPage = () => {
                   <AccordionContent className="space-y-3 pt-2">
                     <p className="text-sm text-muted-foreground">O sistema utiliza uma conta de serviço para acessar os arquivos. Você precisa compartilhar seu drive com o e-mail de serviço abaixo:</p>
                     <div className="flex items-center gap-2 p-3 bg-card rounded-lg border border-border/50">
-                      <code className="text-xs font-mono break-all flex-1">google-drive-sync@zsquzchwxnsuysfrlngt.iam.gserviceaccount.com</code>
+                      <code className="text-xs font-mono break-all flex-1">sounddrive-bot@helpful-argon-490712-j5.iam.gserviceaccount.com</code>
                       <Button variant="ghost" size="sm" onClick={() => {
-                        navigator.clipboard.writeText("google-drive-sync@zsquzchwxnsuysfrlngt.iam.gserviceaccount.com");
+                        navigator.clipboard.writeText("sounddrive-bot@helpful-argon-490712-j5.iam.gserviceaccount.com");
                         toast.success("E-mail copiado!");
                       }}>Copiar</Button>
                     </div>
