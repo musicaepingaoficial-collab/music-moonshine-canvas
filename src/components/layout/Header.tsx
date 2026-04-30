@@ -1,4 +1,4 @@
-import { Search, Bell, ArrowLeft, Crown, Clock, Megaphone, User, LogOut, CreditCard, CheckCheck } from "lucide-react";
+import { Search, Bell, ArrowLeft, Crown, Clock, Megaphone, User, LogOut, CreditCard, CheckCheck, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { useAssinatura, useAuth, useProfile } from "@/hooks/useUser";
 import { useNotificacoes, useUnreadCount, useMarkAllRead } from "@/hooks/useNotificacoes";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +22,10 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export function Header() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -29,6 +34,46 @@ export function Header() {
   const { data: notificacoes } = useNotificacoes();
   const unreadCount = useUnreadCount();
   const markAllRead = useMarkAllRead();
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchTerm.length >= 2) {
+        setIsSearching(true);
+        try {
+          const { data, error } = await supabase
+            .from("musicas" as any)
+            .select("id, title, artist, cover_url, file_url, drive_id")
+            .or(`title.ilike.%${searchTerm}%,artist.ilike.%${searchTerm}%`)
+            .limit(10);
+          
+          if (!error) {
+            setSearchResults(data || []);
+            setShowResults(true);
+          }
+        } catch (err) {
+          console.error("Search error:", err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+        setShowResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
 
   const showBack = location.pathname !== "/" && location.pathname !== "/dashboard";
 
