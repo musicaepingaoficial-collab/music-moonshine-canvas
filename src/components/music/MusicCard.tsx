@@ -3,7 +3,7 @@ import { Play, Download, Heart, Trash2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToggleFavorito } from "@/hooks/useFavorites";
 import { usePlayerStore } from "@/stores/playerStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useHasActiveSubscription } from "@/hooks/useUser";
 import { downloadSingle } from "@/services/zipService";
@@ -86,7 +86,9 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, onRem
         </button>
       </div>
 
-      <h3 className="truncate text-sm font-semibold text-foreground">{title}</h3>
+      <Link to={`/musica/${id}`} className="block hover:underline underline-offset-2">
+        <h3 className="truncate text-sm font-semibold text-foreground">{title}</h3>
+      </Link>
       <p className="truncate text-xs text-muted-foreground">{artist}</p>
 
       <div className="mt-2 flex items-center gap-1">

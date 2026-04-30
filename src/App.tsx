@@ -28,6 +28,7 @@ const ContaPage = lazy(() => import("./pages/ContaPage"));
 const OfertasPage = lazy(() => import("./pages/OfertasPage"));
 const RepertorioPage = lazy(() => import("./pages/RepertorioPage"));
 const MeusRepertoriosPage = lazy(() => import("./pages/MeusRepertoriosPage"));
+const MusicaPage = lazy(() => import("./pages/MusicaPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
 const PlanosGatePage = lazy(() => import("./pages/PlanosGatePage"));
 const InstalarPage = lazy(() => import("./pages/InstalarPage"));
@@ -100,6 +101,7 @@ const App = () => (
                 <Route path="/favoritos" element={<FavoritosPage />} />
                 <Route path="/downloads" element={<DownloadsPage />} />
                 <Route path="/conta" element={<ContaPage />} />
+                <Route path="/musica/:id" element={<MusicaPage />} />
                 <Route path="/ofertas" element={<OfertasPage />} />
                 <Route path="/repertorio/:id" element={<RepertorioPage />} />
                 <Route path="/repertorios" element={<MeusRepertoriosPage />} />
