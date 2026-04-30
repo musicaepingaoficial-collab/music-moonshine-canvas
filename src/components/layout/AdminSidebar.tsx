@@ -1,4 +1,4 @@
-import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay } from "lucide-react";
+import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay, Truck } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -24,6 +24,7 @@ const adminItems = [
   { title: "Repertórios", url: "/admin/repertorios", icon: FolderOpen },
   { title: "PDFs", url: "/admin/pdfs", icon: FileText },
   { title: "Banners", url: "/admin/anuncios", icon: ImagePlay },
+  { title: "Fornecedores", url: "/admin/fornecedores", icon: Truck },
   { title: "Financeiro", url: "/admin/financeiro", icon: DollarSign },
   { title: "Site", url: "/admin/site", icon: Settings },
   { title: "Pixels", url: "/admin/pixels", icon: Target },
