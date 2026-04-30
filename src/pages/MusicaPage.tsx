@@ -30,8 +30,7 @@ const MusicaPage = () => {
     queryKey: ["musica", id],
     queryFn: async () => {
       if (!id) throw new Error("ID não informado");
-      const { data, error } = await supabase
-        .from("musicas" as any)
+      const { data, error } = await (supabase.from("musicas" as any) as any)
         .select("*")
         .eq("id", id)
         .single();
@@ -144,12 +143,8 @@ const MusicaPage = () => {
               {isFavorite ? "Favoritado" : "Favoritar"}
             </Button>
 
-            <AddToRepertorioDialog musicaId={musica.id} title={musica.title}>
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
-                <ListPlus className="h-5 w-5" />
-                Adicionar ao repertório
-              </Button>
-            </AddToRepertorioDialog>
+            <AddToRepertorioDialog musicaId={musica.id} title={musica.title} />
+            <span className="text-sm text-muted-foreground mt-1">Salvar em repertório</span>
           </div>
         </div>
       </div>
