@@ -135,7 +135,7 @@ export function Header() {
                         onClick={() => {
                           setShowResults(false);
                           setSearchTerm("");
-                          navigate(`/biblioteca`); 
+                          navigate(`/musica/${track.id}`); 
                         }}
                         className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent"
                       >
