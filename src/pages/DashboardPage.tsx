@@ -6,12 +6,15 @@ import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdBanner } from "@/components/ads/AdBanner";
-import { Music } from "lucide-react";
+import { Music, FolderOpen, ChevronRight } from "lucide-react";
 import { PdfsHighlight } from "@/components/pdfs/PdfsHighlight";
 import { ReferralBanner } from "@/components/referrals/ReferralBanner";
 import { HeroCarousel } from "@/components/promotions/HeroCarousel";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRepertorios } from "@/hooks/useRepertorios";
+import { Link } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
 async function flushPendingReferral() {
   try {
