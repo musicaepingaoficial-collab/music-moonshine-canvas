@@ -75,7 +75,9 @@ const DashboardPage = () => {
 
       <ReferralBanner />
 
-      {isLoading && (
+      <FeaturedRepertorios />
+
+      {(isLoading || isLoadingReps) && (
         <section>
           <h2 className="mb-4 text-lg font-semibold text-foreground">Tocados recentemente</h2>
           <MusicGridSkeleton count={6} />
