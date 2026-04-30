@@ -69,7 +69,10 @@ const MusicaPage = () => {
   if (error || !musica) return <ErrorState message="Música não encontrada." onRetry={() => refetch()} />;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
+    <div className="space-y-8">
+      <Banner title="Detalhes da Música" subtitle="Ouça e baixe sua música favorita." />
+      
+      <div className="mx-auto max-w-4xl space-y-8 px-4 md:px-6">
       <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
