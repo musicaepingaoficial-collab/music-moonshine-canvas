@@ -12,7 +12,9 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Trash2, Music2, FolderOpen, Search } from "lucide-react";
+import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminRepertoriosPage = () => {
   const { data: repertorios, isLoading, error, refetch } = useRepertorios();
@@ -21,14 +23,30 @@ const AdminRepertoriosPage = () => {
 
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverFile(file);
+      setCoverPreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
     try {
-      await createRep.mutateAsync({ name: newName.trim(), description: newDesc.trim() || undefined });
+      await createRep.mutateAsync({ 
+        name: newName.trim(), 
+        description: newDesc.trim() || undefined,
+        coverFile: coverFile || undefined
+      });
       setNewName("");
       setNewDesc("");
+      setCoverFile(null);
+      setCoverPreview(null);
       toast.success("Repertório criado!");
     } catch {
       toast.error("Erro ao criar repertório.");
