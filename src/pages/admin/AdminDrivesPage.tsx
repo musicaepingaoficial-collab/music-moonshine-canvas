@@ -88,10 +88,23 @@ const AdminDrivesPage = () => {
   });
 
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<{
+    total: number;
+    processed: number;
+    message: string;
+    type: "info" | "success" | "error";
+  } | null>(null);
 
   const syncMutation = useMutation({
     mutationFn: async (drive: { id: string; drive_id: string }) => {
       setSyncingId(drive.id);
+      setSyncStatus({
+        total: 0,
+        processed: 0,
+        message: "Iniciando sincronização...",
+        type: "info"
+      });
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
@@ -114,13 +127,28 @@ const AdminDrivesPage = () => {
     },
     onSuccess: (data) => {
       toast.success(data.message);
+      setSyncStatus({
+        total: data.total || 0,
+        processed: data.total || 0,
+        message: data.message,
+        type: "success"
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-drives"] });
       queryClient.invalidateQueries({ queryKey: ["musicas"] });
       queryClient.invalidateQueries({ queryKey: ["categorias"] });
       setSyncingId(null);
+      
+      // Limpa o status após 5 segundos
+      setTimeout(() => setSyncStatus(null), 5000);
     },
     onError: (err: Error) => {
       toast.error(err.message || "Erro ao sincronizar drive.");
+      setSyncStatus({
+        total: 0,
+        processed: 0,
+        message: err.message || "Erro ao sincronizar drive.",
+        type: "error"
+      });
       setSyncingId(null);
     },
   });
@@ -243,6 +271,32 @@ const AdminDrivesPage = () => {
       )}
 
       {error && <ErrorState message="Erro ao carregar drives." onRetry={() => refetch()} />}
+
+      {syncStatus && (
+        <Card className={`mb-6 border-l-4 ${
+          syncStatus.type === "success" ? "border-l-green-500" : 
+          syncStatus.type === "error" ? "border-l-red-500" : "border-l-blue-500"
+        }`}>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                {syncingId ? (
+                  <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+                ) : syncStatus.type === "success" ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : null}
+                <span className="font-medium text-sm">{syncStatus.message}</span>
+              </div>
+              {syncStatus.total > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {syncStatus.processed} / {syncStatus.total} arquivos
+                </span>
+              )}
+            </div>
+            {syncingId && <Progress value={100} className="h-1.5 animate-pulse" />}
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
