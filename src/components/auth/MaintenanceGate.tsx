@@ -10,9 +10,9 @@ interface MaintenanceGateProps {
 
 export function MaintenanceGate({ children }: MaintenanceGateProps) {
   const location = useLocation();
-  const { data: settings, isLoading } = useSiteSettings();
-  const { user, loading: loadingAuth } = useAuth();
-  const { data: isAdmin, isLoading: loadingAdmin } = useIsAdmin(user?.id);
+  const { data: settings, isLoading: settingsLoading } = useSiteSettings();
+  const { user, loading: authLoading } = useAuth();
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
 
   // Rotas sempre permitidas durante manutenção
   const allowedPaths = ["/login", "/admin"];
@@ -20,7 +20,7 @@ export function MaintenanceGate({ children }: MaintenanceGateProps) {
     allowedPaths.some((p) => location.pathname.startsWith(p)) ||
     location.pathname === "/completar-perfil";
 
-  if (isLoading || loadingAuth) {
+  if (settingsLoading || authLoading || (adminLoading && user)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -30,13 +30,6 @@ export function MaintenanceGate({ children }: MaintenanceGateProps) {
 
   if (!settings?.maintenance_mode) return <>{children}</>;
   if (isAllowed) return <>{children}</>;
-  if (loadingAdmin) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
   if (isAdmin) return <>{children}</>;
 
   return (
