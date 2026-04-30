@@ -101,12 +101,68 @@ export function Header() {
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
-        <div className="relative hidden sm:block">
+        <div className="relative hidden sm:block" ref={searchRef}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar músicas, artistas..."
-            className="w-64 border-border/50 bg-secondary pl-9 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary lg:w-80"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => searchTerm.length >= 2 && setShowResults(true)}
+            className="w-64 border-border/50 bg-secondary pl-9 pr-9 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary lg:w-80"
           />
+          {searchTerm && (
+            <button 
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+
+          {showResults && (
+            <div className="absolute top-full mt-2 w-full overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="max-h-[400px] overflow-y-auto p-2">
+                {isSearching ? (
+                  <div className="flex items-center justify-center p-4">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="space-y-1">
+                    <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Resultados</p>
+                    {searchResults.map((track) => (
+                      <button
+                        key={track.id}
+                        onClick={() => {
+                          setShowResults(false);
+                          setSearchTerm("");
+                          navigate(`/biblioteca`); 
+                        }}
+                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent"
+                      >
+                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                          {track.cover_url ? (
+                            <img src={track.cover_url} alt={track.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <Search className="h-4 w-4 text-muted-foreground/40" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{track.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Nenhuma música encontrada
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-3">
