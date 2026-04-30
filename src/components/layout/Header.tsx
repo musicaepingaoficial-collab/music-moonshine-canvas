@@ -1,4 +1,4 @@
-import { Search, Bell, ArrowLeft, Crown, Clock, Megaphone, User, LogOut, CreditCard, CheckCheck } from "lucide-react";
+import { Search, Bell, ArrowLeft, Crown, Clock, Megaphone, User, LogOut, CreditCard, CheckCheck, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { useAssinatura, useAuth, useProfile } from "@/hooks/useUser";
 import { useNotificacoes, useUnreadCount, useMarkAllRead } from "@/hooks/useNotificacoes";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +22,10 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export function Header() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -29,6 +34,46 @@ export function Header() {
   const { data: notificacoes } = useNotificacoes();
   const unreadCount = useUnreadCount();
   const markAllRead = useMarkAllRead();
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchTerm.length >= 2) {
+        setIsSearching(true);
+        try {
+          const { data, error } = await supabase
+            .from("musicas" as any)
+            .select("id, title, artist, cover_url, file_url, drive_id")
+            .or(`title.ilike.%${searchTerm}%,artist.ilike.%${searchTerm}%`)
+            .limit(10);
+          
+          if (!error) {
+            setSearchResults(data || []);
+            setShowResults(true);
+          }
+        } catch (err) {
+          console.error("Search error:", err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+        setShowResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
 
   const showBack = location.pathname !== "/" && location.pathname !== "/dashboard";
 
@@ -56,12 +101,68 @@ export function Header() {
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
-        <div className="relative hidden sm:block">
+        <div className="relative hidden sm:block" ref={searchRef}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar músicas, artistas..."
-            className="w-64 border-border/50 bg-secondary pl-9 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary lg:w-80"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => searchTerm.length >= 2 && setShowResults(true)}
+            className="w-64 border-border/50 bg-secondary pl-9 pr-9 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary lg:w-80"
           />
+          {searchTerm && (
+            <button 
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+
+          {showResults && (
+            <div className="absolute top-full mt-2 w-full overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="max-h-[400px] overflow-y-auto p-2">
+                {isSearching ? (
+                  <div className="flex items-center justify-center p-4">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="space-y-1">
+                    <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Resultados</p>
+                    {searchResults.map((track) => (
+                      <button
+                        key={track.id}
+                        onClick={() => {
+                          setShowResults(false);
+                          setSearchTerm("");
+                          navigate(`/biblioteca`); 
+                        }}
+                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent"
+                      >
+                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                          {track.cover_url ? (
+                            <img src={track.cover_url} alt={track.title} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <Search className="h-4 w-4 text-muted-foreground/40" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{track.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Nenhuma música encontrada
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-3">
