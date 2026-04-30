@@ -24,7 +24,8 @@ async function getStreamUrl(fileId: string): Promise<string> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  // Use POST to stream action
+  console.log("[Player:getStreamUrl] Fetching for fileId:", fileId);
+
   const res = await fetch(`${supabaseUrl}/functions/v1/google-drive`, {
     method: "POST",
     headers: {
@@ -35,7 +36,11 @@ async function getStreamUrl(fileId: string): Promise<string> {
     body: JSON.stringify({ action: "stream", fileId }),
   });
 
-  if (!res.ok) throw new Error("Falha ao obter áudio");
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    console.error("[Player:getStreamUrl] Error:", res.status, errorData);
+    throw new Error(errorData.error || "Falha ao obter áudio");
+  }
 
   const blob = await res.blob();
   return URL.createObjectURL(blob);
