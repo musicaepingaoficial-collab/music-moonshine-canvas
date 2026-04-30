@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,8 +143,10 @@ const MusicaPage = () => {
               {isFavorite ? "Favoritado" : "Favoritar"}
             </Button>
 
-            <AddToRepertorioDialog musicaId={musica.id} title={musica.title} />
-            <span className="text-sm text-muted-foreground mt-1">Salvar em repertório</span>
+            <div className="flex items-center gap-2">
+              <AddToRepertorioDialog musicaId={musica.id} title={musica.title} />
+              <span className="text-sm text-muted-foreground">Adicionar ao repertório</span>
+            </div>
           </div>
         </div>
       </div>
