@@ -34,7 +34,10 @@ export function MaintenanceGate({ children }: MaintenanceGateProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
-... (keep existing code)
+      <div className="max-w-md text-center space-y-6">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/15">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+        </div>
         <h1 className="text-2xl font-bold text-foreground">{settings.maintenance_title}</h1>
         <p className="text-muted-foreground whitespace-pre-line">{settings.maintenance_message}</p>
         {settings.whatsapp_number && (
