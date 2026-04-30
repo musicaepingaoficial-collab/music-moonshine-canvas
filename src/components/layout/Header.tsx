@@ -101,7 +101,7 @@ export function Header() {
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
-        <div className="relative hidden sm:block" ref={searchRef}>
+        <div className="relative flex-1 sm:flex-none" ref={searchRef}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar músicas, artistas..."
