@@ -18,9 +18,9 @@ const AllRepertorios = () => {
     return (
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-foreground">Todos os repertórios</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-44 w-full rounded-xl" />
+            <Skeleton key={i} className="aspect-[2/3] w-full rounded-md" />
           ))}
         </div>
       </section>
@@ -34,24 +34,40 @@ const AllRepertorios = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Todos os repertórios</h2>
       </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {repertorios.map((rep) => (
           <Link
             key={rep.id}
             to={`/repertorio/${rep.id}`}
-            className="group relative h-44 w-full overflow-hidden rounded-xl border bg-card transition-all hover:scale-105 hover:shadow-lg"
+            className="group relative aspect-[2/3] w-full overflow-hidden rounded-md bg-card transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:z-10"
           >
             {rep.cover_url ? (
-              <img src={rep.cover_url} alt={rep.name} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+              <img 
+                src={rep.cover_url} 
+                alt={rep.name} 
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" 
+              />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary">
-                <FolderOpen className="h-10 w-10" />
+              <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                <FolderOpen className="h-12 w-12 opacity-20" />
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3">
-              <p className="text-xs font-bold text-white line-clamp-2 leading-tight">{rep.name}</p>
-              <p className="text-[10px] text-white/70">{rep.musica_count} músicas</p>
+            
+            {/* Overlay degrade estilo Netflix */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
+            
+            <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
+              <p className="text-sm font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
+                {rep.name}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] font-medium text-green-400 drop-shadow-sm">
+                  {rep.musica_count} músicas
+                </span>
+                <span className="text-[10px] border border-white/30 px-1 rounded text-white/70">
+                  HD
+                </span>
+              </div>
             </div>
           </Link>
         ))}
