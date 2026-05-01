@@ -13,7 +13,7 @@ import { Library, FolderOpen, Music2, ChevronRight } from "lucide-react";
 
 const BibliotecaPage = () => {
   const { data: categorias, isLoading: loadingCats, error: errorCats, refetch: refetchCats } = useCategorias();
-  const { data: musicas, isLoading: loadingMusicas, error: errorMusicas, refetch: refetchMusicas } = useMusicas();
+  const { data: musicas, isLoading: loadingMusicas } = useMusicas();
   const { data: repertorios, isLoading: loadingReps } = useRepertorios();
 
   console.log("[Biblioteca:render]", { cats: categorias?.length, musicas: musicas?.length, reps: repertorios?.length });
