@@ -29,6 +29,7 @@ const OfertasPage = lazy(() => import("./pages/OfertasPage"));
 const RepertorioPage = lazy(() => import("./pages/RepertorioPage"));
 const MeusRepertoriosPage = lazy(() => import("./pages/MeusRepertoriosPage"));
 const MusicaPage = lazy(() => import("./pages/MusicaPage"));
+const TodasMusicasPage = lazy(() => import("./pages/TodasMusicasPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
 const PlanosGatePage = lazy(() => import("./pages/PlanosGatePage"));
 const InstalarPage = lazy(() => import("./pages/InstalarPage"));
