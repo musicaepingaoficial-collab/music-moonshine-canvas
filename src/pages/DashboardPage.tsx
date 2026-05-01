@@ -1,7 +1,8 @@
 import { Banner } from "@/components/ui/Banner";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { AdBanner } from "@/components/ads/AdBanner";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { PdfsHighlight } from "@/components/pdfs/PdfsHighlight";
 import { ReferralBanner } from "@/components/referrals/ReferralBanner";
 import { HeroCarousel } from "@/components/promotions/HeroCarousel";
@@ -10,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRepertorios } from "@/hooks/useRepertorios";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Star } from "lucide-react";
 
 const AllRepertorios = () => {
   const { data: repertorios, isLoading } = useRepertorios();
@@ -29,13 +31,63 @@ const AllRepertorios = () => {
 
   if (!repertorios || repertorios.length === 0) return null;
 
+  const featuredReps = repertorios?.filter(r => r.featured) || [];
+  const otherReps = repertorios?.filter(r => !r.featured) || [];
+
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Todos os repertórios</h2>
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {repertorios.map((rep) => (
+    <div className="space-y-8">
+      {featuredReps.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
+            <h2 className="text-xl font-bold text-foreground">Destaques</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {featuredReps.map((rep) => (
+              <Link
+                key={rep.id}
+                to={`/repertorio/${rep.id}`}
+                className="group relative aspect-[2/3] w-full overflow-hidden rounded-md bg-card transition-all duration-300 hover:scale-[1.05] hover:shadow-2xl hover:z-10 ring-2 ring-amber-500/30"
+              >
+                {rep.cover_url ? (
+                  <img 
+                    src={rep.cover_url} 
+                    alt={rep.name} 
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                    <FolderOpen className="h-12 w-12 opacity-20" />
+                  </div>
+                )}
+                
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
+                
+                <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
+                  <p className="text-sm font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
+                    {rep.name}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-medium text-green-400 drop-shadow-sm">
+                      {rep.musica_count} músicas
+                    </span>
+                    <Badge variant="secondary" className="bg-amber-500/90 text-white text-[8px] h-4 px-1 border-0">
+                      DESTAQUE
+                    </Badge>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">Todos os repertórios</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {otherReps.map((rep) => (
           <Link
             key={rep.id}
             to={`/repertorio/${rep.id}`}
@@ -73,6 +125,7 @@ const AllRepertorios = () => {
         ))}
       </div>
     </section>
+  </div>
   );
 };
 
