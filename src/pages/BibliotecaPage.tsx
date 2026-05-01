@@ -108,9 +108,14 @@ const BibliotecaPage = () => {
       <AdBanner position="inline" />
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Todas as músicas</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">Todas as músicas</h2>
+          <Link to="/musicas" className="text-xs font-medium text-primary hover:underline flex items-center gap-1">
+            Ver todas <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
         {loadingMusicas ? (
-          <MusicGridSkeleton count={8} />
+          <MusicGridSkeleton count={6} />
         ) : (musicas?.length ?? 0) > 0 ? (
           <motion.div
             initial="hidden"
@@ -118,7 +123,7 @@ const BibliotecaPage = () => {
             variants={{ show: { transition: { staggerChildren: 0.04 } } }}
             className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
           >
-            {musicas!.map((t) => (
+            {musicas!.slice(0, 12).map((t) => (
               <motion.div
                 key={t.id}
                 variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
