@@ -197,54 +197,64 @@ const MeusRepertoriosPage = () => {
       </Dialog>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[2/3] w-full rounded-md" />
           ))}
         </div>
       ) : (repertorios?.length ?? 0) > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {repertorios!.map((rep) => (
-            <div
-              key={rep.id}
-              className="group flex items-center gap-4 rounded-xl bg-card p-4 transition-all duration-200 hover:bg-accent"
-            >
-              <Link
-                to={`/repertorio/${rep.id}`}
-                className="flex flex-1 items-center gap-4 min-w-0"
-              >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary overflow-hidden">
-                  {rep.cover_url ? (
-                    <img src={rep.cover_url} alt={rep.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <FolderOpen className="h-6 w-6" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground truncate">{rep.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {rep.musica_count} música{rep.musica_count !== 1 ? "s" : ""}
-                    {rep.total_size > 0 && ` · ${formatFileSize(rep.total_size)}`}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
+            <div key={rep.id} className="group relative aspect-[2/3] w-full overflow-hidden rounded-md bg-card transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:z-10">
+              <Link to={`/repertorio/${rep.id}`} className="absolute inset-0 z-0">
+                {rep.cover_url ? (
+                  <img
+                    src={rep.cover_url}
+                    alt={rep.name}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                    <FolderOpen className="h-12 w-12 opacity-20" />
+                  </div>
+                )}
               </Link>
-              <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                <button
-                  onClick={() => openEdit(rep)}
-                  className="rounded-full p-1.5 text-muted-foreground hover:text-primary"
-                  aria-label={`Editar ${rep.name}`}
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(rep.id, rep.name)}
-                  disabled={deleteRep.isPending}
-                  className="rounded-full p-1.5 text-muted-foreground hover:text-destructive"
-                  aria-label={`Remover ${rep.name}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+              
+              {/* Overlay degrade estilo Netflix */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-80 transition-opacity group-hover:opacity-100 pointer-events-none" />
+              
+              <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
+                <Link to={`/repertorio/${rep.id}`}>
+                  <p className="text-sm font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
+                    {rep.name}
+                  </p>
+                </Link>
+                <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-medium text-green-400 drop-shadow-sm">
+                      {rep.musica_count} músicas
+                    </span>
+                  </div>
+                  
+                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 z-20">
+                    <button
+                      onClick={(e) => { e.preventDefault(); openEdit(rep); }}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors"
+                      aria-label={`Editar ${rep.name}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.preventDefault(); handleDelete(rep.id, rep.name); }}
+                      disabled={deleteRep.isPending}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-destructive/80 text-white hover:bg-destructive transition-colors"
+                      aria-label={`Remover ${rep.name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ))}

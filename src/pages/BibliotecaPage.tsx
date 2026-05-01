@@ -33,54 +33,50 @@ const BibliotecaPage = () => {
       <section>
         <h2 className="mb-4 text-lg font-semibold text-foreground">Repertórios</h2>
         {loadingReps ? (
-          <div className="flex gap-4 overflow-hidden">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-48 w-36 shrink-0 rounded-xl" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[2/3] w-full rounded-md" />
             ))}
           </div>
         ) : (repertorios?.length ?? 0) > 0 ? (
-          <div className="relative -mx-2">
-            <div className="flex gap-4 overflow-x-auto px-2 pb-4 scrollbar-hide snap-x snap-mandatory">
-              {repertorios!.map((rep) => {
-                const sizeGB = rep.total_size ? (rep.total_size / (1024 * 1024 * 1024)).toFixed(2) : "0.00";
-                return (
-                  <Link
-                    key={rep.id}
-                    to={`/repertorio/${rep.id}`}
-                    className="group relative shrink-0 snap-start w-36 sm:w-44 rounded-xl overflow-hidden bg-card transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/10"
-                  >
-                    {/* Cover */}
-                    <div className="aspect-square w-full bg-muted relative overflow-hidden">
-                      {rep.cover_url ? (
-                        <img
-                          src={rep.cover_url}
-                          alt={rep.name}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                          <FolderOpen className="h-10 w-10 text-primary/40" />
-                        </div>
-                      )}
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      {/* Info on bottom */}
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="font-bold text-white text-sm leading-tight truncate">{rep.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[11px] text-white/70 flex items-center gap-1">
-                            <Music2 className="h-3 w-3" />
-                            {rep.musica_count}
-                          </span>
-                          <span className="text-[11px] text-white/70">{sizeGB} GB</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {repertorios!.map((rep) => (
+              <Link
+                key={rep.id}
+                to={`/repertorio/${rep.id}`}
+                className="group relative aspect-[2/3] w-full overflow-hidden rounded-md bg-card transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:z-10"
+              >
+                {rep.cover_url ? (
+                  <img
+                    src={rep.cover_url}
+                    alt={rep.name}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                    <FolderOpen className="h-12 w-12 opacity-20" />
+                  </div>
+                )}
+                
+                {/* Overlay degrade estilo Netflix */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
+                
+                <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
+                  <p className="text-sm font-bold text-white line-clamp-2 leading-tight drop-shadow-md">
+                    {rep.name}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-medium text-green-400 drop-shadow-sm">
+                      {rep.musica_count} músicas
+                    </span>
+                    <span className="text-[10px] border border-white/30 px-1 rounded text-white/70">
+                      HD
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         ) : (
           <EmptyState icon={FolderOpen} title="Nenhum repertório disponível." />
