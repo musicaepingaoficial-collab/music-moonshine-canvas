@@ -15,16 +15,16 @@ const BibliotecaPage = () => {
   const { data: categorias, isLoading: loadingCats, error: errorCats, refetch: refetchCats } = useCategorias();
   const { data: repertorios, isLoading: loadingReps } = useRepertorios();
 
-  console.log("[Biblioteca:render]", { cats: categorias?.length, musicas: musicas?.length, reps: repertorios?.length });
+  console.log("[Biblioteca:render]", { cats: categorias?.length, reps: repertorios?.length });
 
   return (
     <div className="space-y-8">
       <Banner title="Biblioteca" subtitle="Explore toda a coleção de músicas." />
 
-      {(errorCats || errorMusicas) && (
+      {errorCats && (
         <ErrorState
           message="Erro ao carregar biblioteca."
-          onRetry={() => { refetchCats(); refetchMusicas(); }}
+          onRetry={() => { refetchCats(); }}
         />
       )}
 
