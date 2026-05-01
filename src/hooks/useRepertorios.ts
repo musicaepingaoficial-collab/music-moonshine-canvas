@@ -9,6 +9,7 @@ export interface Repertorio {
   cover_url: string | null;
   user_id: string | null;
   created_at: string;
+  featured?: boolean;
 }
 
 export interface RepertorioWithCount extends Repertorio {
@@ -104,10 +105,11 @@ export function useCreateRepertorio() {
 export function useUpdateRepertorio() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ repertorioId, name, description, coverFile }: { repertorioId: string; name?: string; description?: string; coverFile?: File }) => {
+    mutationFn: async ({ repertorioId, name, description, coverFile, featured }: { repertorioId: string; name?: string; description?: string; coverFile?: File; featured?: boolean }) => {
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
       if (description !== undefined) updates.description = description;
+      if (featured !== undefined) updates.featured = featured;
 
       if (coverFile) {
         const coverUrl = await uploadRepertorioCover(coverFile, repertorioId);
