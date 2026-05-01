@@ -1,0 +1,1 @@
+ALTER TABLE public.repertorios ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT false;

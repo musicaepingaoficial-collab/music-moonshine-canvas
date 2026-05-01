@@ -12,7 +12,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder, Edit2, Check, X } from "lucide-react";
+import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder, Edit2, Check, X, Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +35,7 @@ const AdminRepertoriosPage = () => {
   const [editDesc, setEditDesc] = useState("");
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [editFeatured, setEditFeatured] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +78,7 @@ const AdminRepertoriosPage = () => {
     setEditName(r.name);
     setEditDesc(r.description || "");
     setEditCoverPreview(r.cover_url);
+    setEditFeatured(r.featured || false);
     setEditCoverFile(null);
   };
 
@@ -93,7 +95,8 @@ const AdminRepertoriosPage = () => {
         repertorioId: id,
         name: editName.trim(),
         description: editDesc.trim(),
-        coverFile: editCoverFile || undefined
+        coverFile: editCoverFile || undefined,
+        featured: editFeatured
       });
       setEditingId(null);
       toast.success("Repertório atualizado!");
@@ -198,6 +201,7 @@ const AdminRepertoriosPage = () => {
                 <TableRow>
                   <TableHead>Capa</TableHead>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Destaque</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Músicas</TableHead>
                   <TableHead>Criado</TableHead>
@@ -251,6 +255,24 @@ const AdminRepertoriosPage = () => {
                           className="h-8"
                         />
                       ) : r.name}
+                    </TableCell>
+                    <TableCell>
+                      {editingId === r.id ? (
+                        <div className="flex items-center gap-2">
+                          <Checkbox 
+                            id={`edit-featured-${r.id}`}
+                            checked={editFeatured} 
+                            onCheckedChange={(checked) => setEditFeatured(!!checked)} 
+                          />
+                          <label htmlFor={`edit-featured-${r.id}`} className="text-xs">Destaque</label>
+                        </div>
+                      ) : r.featured ? (
+                        <Badge className="bg-amber-500 hover:bg-amber-600">
+                          <Star className="mr-1 h-3 w-3 fill-current" /> Destaque
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Não</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {editingId === r.id ? (
