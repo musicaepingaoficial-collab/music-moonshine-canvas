@@ -1,7 +1,17 @@
 import { useState, useRef } from "react";
 import { useRepertorios, useCreateRepertorio, useDeleteRepertorio, useRepertorioMusicas, useAddMusicasToRepertorio, useRemoveMusicaFromRepertorio, useUpdateRepertorio } from "@/hooks/useRepertorios";
 import { useMusicas } from "@/hooks/useMusics";
-// ...
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder, Edit2, Check, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
