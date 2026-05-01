@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useUser";
 
 const menuItems = [
   { title: "Biblioteca", url: "/biblioteca", icon: Library },
+  { title: "Músicas", url: "/musicas", icon: Music },
   { title: "Meus Repertórios", url: "/repertorios", icon: FolderOpen },
   { title: "PDFs", url: "/pdfs", icon: FileText },
   { title: "Favoritos", url: "/favoritos", icon: Heart },
