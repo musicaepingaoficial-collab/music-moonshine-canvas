@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useRepertorios, useCreateRepertorio, useDeleteRepertorio, useRepertorioMusicas, useAddMusicasToRepertorio, useRemoveMusicaFromRepertorio } from "@/hooks/useRepertorios";
+import { useState, useRef } from "react";
+import { useRepertorios, useCreateRepertorio, useDeleteRepertorio, useRepertorioMusicas, useAddMusicasToRepertorio, useRemoveMusicaFromRepertorio, useUpdateRepertorio } from "@/hooks/useRepertorios";
 import { useMusicas } from "@/hooks/useMusics";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder } from "lucide-react";
+import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder, Edit2, Check, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -21,6 +21,7 @@ const AdminRepertoriosPage = () => {
   const { data: repertorios, isLoading, error, refetch } = useRepertorios();
   const createRep = useCreateRepertorio();
   const deleteRep = useDeleteRepertorio();
+  const updateRep = useUpdateRepertorio();
 
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -28,11 +29,28 @@ const AdminRepertoriosPage = () => {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<string | null>(null);
 
+  // States for editing
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setCoverFile(file);
       setCoverPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditCoverFile(file);
+      setEditCoverPreview(URL.createObjectURL(file));
     }
   };
 
@@ -54,7 +72,38 @@ const AdminRepertoriosPage = () => {
     }
   };
 
+  const handleStartEdit = (r: any) => {
+    setEditingId(r.id);
+    setEditName(r.name);
+    setEditDesc(r.description || "");
+    setEditCoverPreview(r.cover_url);
+    setEditCoverFile(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditCoverFile(null);
+    setEditCoverPreview(null);
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editName.trim()) return;
+    try {
+      await updateRep.mutateAsync({
+        repertorioId: id,
+        name: editName.trim(),
+        description: editDesc.trim(),
+        coverFile: editCoverFile || undefined
+      });
+      setEditingId(null);
+      toast.success("Repertório atualizado!");
+    } catch {
+      toast.error("Erro ao atualizar repertório.");
+    }
+  };
+
   const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este repertório?")) return;
     try {
       await deleteRep.mutateAsync(id);
       toast.success("Repertório excluído!");
@@ -97,26 +146,28 @@ const AdminRepertoriosPage = () => {
           
           <div className="flex flex-wrap items-end gap-4">
             <div className="flex-1 min-w-[200px]">
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Capa do repertório</label>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                Capa do repertório (Proporção sugerida: 2:3 ou 4:6 - estilo Netflix)
+              </label>
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   type="button"
-                  onClick={() => document.getElementById('cover-upload')?.click()}
+                  onClick={() => fileInputRef.current?.click()}
                   className="w-full justify-start h-10 border-dashed"
                 >
                   <ImageIcon className="mr-2 h-4 w-4" />
                   {coverFile ? coverFile.name : "Selecionar capa..."}
                 </Button>
                 <input
-                  id="cover-upload"
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handleFileChange}
                 />
                 {coverPreview && (
-                  <div className="h-10 w-10 rounded border overflow-hidden bg-muted">
+                  <div className="h-10 w-7 rounded border overflow-hidden bg-muted">
                     <img src={coverPreview} alt="Preview" className="h-full w-full object-cover" />
                   </div>
                 )}
@@ -157,18 +208,59 @@ const AdminRepertoriosPage = () => {
                 {repertorios!.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>
-                      {r.cover_url ? (
-                        <div className="h-10 w-10 rounded border overflow-hidden bg-muted">
+                      {editingId === r.id ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div 
+                            className="h-16 w-11 rounded border overflow-hidden bg-muted cursor-pointer relative group"
+                            onClick={() => editFileInputRef.current?.click()}
+                          >
+                            {editCoverPreview ? (
+                              <img src={editCoverPreview} alt="Edit preview" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center">
+                                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Edit2 className="h-4 w-4 text-white" />
+                            </div>
+                          </div>
+                          <input
+                            ref={editFileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleEditFileChange}
+                          />
+                        </div>
+                      ) : r.cover_url ? (
+                        <div className="h-14 w-10 rounded border overflow-hidden bg-muted">
                           <img src={r.cover_url} alt={r.name} className="h-full w-full object-cover" />
                         </div>
                       ) : (
-                        <div className="h-10 w-10 rounded border flex items-center justify-center bg-muted text-muted-foreground">
+                        <div className="h-14 w-10 rounded border flex items-center justify-center bg-muted text-muted-foreground">
                           <ImageIcon className="h-5 w-5" />
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium text-foreground">{r.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{r.description || "—"}</TableCell>
+                    <TableCell className="font-medium text-foreground">
+                      {editingId === r.id ? (
+                        <Input 
+                          value={editName} 
+                          onChange={(e) => setEditName(e.target.value)} 
+                          className="h-8"
+                        />
+                      ) : r.name}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {editingId === r.id ? (
+                        <Input 
+                          value={editDesc} 
+                          onChange={(e) => setEditDesc(e.target.value)} 
+                          className="h-8"
+                        />
+                      ) : r.description || "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{r.musica_count}</Badge>
                     </TableCell>
@@ -177,23 +269,55 @@ const AdminRepertoriosPage = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedRepId(r.id)}
-                          aria-label="Gerenciar músicas"
-                        >
-                          <Music2 className="mr-1 h-4 w-4" /> Músicas
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(r.id)}
-                          disabled={deleteRep.isPending}
-                          aria-label="Excluir repertório"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {editingId === r.id ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSaveEdit(r.id)}
+                              disabled={updateRep.isPending}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCancelEdit}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStartEdit(r)}
+                              aria-label="Editar repertório"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedRepId(r.id)}
+                              aria-label="Gerenciar músicas"
+                            >
+                              <Music2 className="mr-1 h-4 w-4" /> Músicas
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(r.id)}
+                              disabled={deleteRep.isPending}
+                              aria-label="Excluir repertório"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
