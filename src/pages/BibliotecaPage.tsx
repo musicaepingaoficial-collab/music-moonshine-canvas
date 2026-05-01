@@ -13,19 +13,18 @@ import { Library, FolderOpen, Music2, ChevronRight } from "lucide-react";
 
 const BibliotecaPage = () => {
   const { data: categorias, isLoading: loadingCats, error: errorCats, refetch: refetchCats } = useCategorias();
-  const { data: musicas, isLoading: loadingMusicas, error: errorMusicas, refetch: refetchMusicas } = useMusicas();
   const { data: repertorios, isLoading: loadingReps } = useRepertorios();
 
-  console.log("[Biblioteca:render]", { cats: categorias?.length, musicas: musicas?.length, reps: repertorios?.length });
+  console.log("[Biblioteca:render]", { cats: categorias?.length, reps: repertorios?.length });
 
   return (
     <div className="space-y-8">
       <Banner title="Biblioteca" subtitle="Explore toda a coleção de músicas." />
 
-      {(errorCats || errorMusicas) && (
+      {errorCats && (
         <ErrorState
           message="Erro ao carregar biblioteca."
-          onRetry={() => { refetchCats(); refetchMusicas(); }}
+          onRetry={() => { refetchCats(); }}
         />
       )}
 
@@ -107,35 +106,6 @@ const BibliotecaPage = () => {
 
       <AdBanner position="inline" />
 
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Todas as músicas</h2>
-          <Link to="/musicas" className="text-xs font-medium text-primary hover:underline flex items-center gap-1">
-            Ver todas <ChevronRight className="h-3 w-3" />
-          </Link>
-        </div>
-        {loadingMusicas ? (
-          <MusicGridSkeleton count={6} />
-        ) : (musicas?.length ?? 0) > 0 ? (
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-            className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
-          >
-            {musicas!.slice(0, 12).map((t) => (
-              <motion.div
-                key={t.id}
-                variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
-              >
-                <MusicCard id={t.id} title={t.title} artist={t.artist} coverUrl={t.cover_url} fileUrl={t.file_url} driveId={t.drive_id} />
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : !errorMusicas ? (
-          <EmptyState icon={Library} title="Nenhuma música disponível ainda." />
-        ) : null}
-      </section>
     </div>
   );
 };
