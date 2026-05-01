@@ -26,16 +26,16 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-const FeaturedRepertorios = () => {
+const AllRepertorios = () => {
   const { data: repertorios, isLoading } = useRepertorios();
 
   if (isLoading) {
     return (
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Repertórios em destaque</h2>
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-44 w-36 shrink-0 rounded-xl" />
+        <h2 className="text-lg font-semibold text-foreground">Todos os repertórios</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-44 w-full rounded-xl" />
           ))}
         </div>
       </section>
@@ -47,17 +47,14 @@ const FeaturedRepertorios = () => {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">Repertórios em destaque</h2>
-        <Link to="/repertorios" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-          Ver todos <ChevronRight className="h-3 w-3" />
-        </Link>
+        <h2 className="text-lg font-semibold text-foreground">Todos os repertórios</h2>
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-        {repertorios.slice(0, 8).map((rep) => (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        {repertorios.map((rep) => (
           <Link
             key={rep.id}
             to={`/repertorio/${rep.id}`}
-            className="group relative h-44 w-36 shrink-0 overflow-hidden rounded-xl border bg-card transition-all hover:scale-105 hover:shadow-lg"
+            className="group relative h-44 w-full overflow-hidden rounded-xl border bg-card transition-all hover:scale-105 hover:shadow-lg"
           >
             {rep.cover_url ? (
               <img src={rep.cover_url} alt={rep.name} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
