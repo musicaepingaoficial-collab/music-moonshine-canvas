@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRepertorios } from "@/hooks/useRepertorios";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star } from "lucide-react";
+
 
 const AllRepertorios = () => {
   const { data: repertorios, isLoading } = useRepertorios();
