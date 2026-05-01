@@ -1,12 +1,7 @@
 import { Banner } from "@/components/ui/Banner";
-import { MusicCard } from "@/components/music/MusicCard";
-import { motion } from "framer-motion";
-import { useMusicas } from "@/hooks/useMusics";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ErrorState } from "@/components/ui/ErrorState";
 import { AdBanner } from "@/components/ads/AdBanner";
-import { Music, FolderOpen, ChevronRight } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 import { PdfsHighlight } from "@/components/pdfs/PdfsHighlight";
 import { ReferralBanner } from "@/components/referrals/ReferralBanner";
 import { HeroCarousel } from "@/components/promotions/HeroCarousel";
@@ -15,16 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRepertorios } from "@/hooks/useRepertorios";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.05 } },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0 },
-};
 
 const AllRepertorios = () => {
   const { data: repertorios, isLoading } = useRepertorios();
