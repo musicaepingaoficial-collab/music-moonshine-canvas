@@ -427,19 +427,6 @@ const RepertorioPage = () => {
                         )}
                         Baixar pasta
                       </Button>
-                      
-                      {isAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveFolder(selectedFolder, displayMusicas.map((m) => m.id))}
-                          disabled={removeMultiple.isPending}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
-                        >
-                          <Trash2 className="mr-1 h-3.5 w-3.5" />
-                          Remover pasta
-                        </Button>
-                      )}
                     </div>
                   )}
                 </div>
