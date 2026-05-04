@@ -14,6 +14,7 @@ import { AddBulkToRepertorioDialog } from "@/components/music/AddBulkToRepertori
 import { toast } from "sonner";
 import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
 import { useNavigate } from "react-router-dom";
+import { usePagination } from "@/hooks/usePagination";
 
 const CategoriaPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +41,11 @@ const CategoriaPage = () => {
     : [];
 
   const showSubfolderView = !selectedSubfolder && subfolders.length > 0;
+
+  const { paginatedItems, PaginationComponent } = usePagination(
+    selectedSubfolder ? filteredTracks : !showSubfolderView ? tracks ?? [] : [],
+    24
+  );
 
   const handleBatchDownload = async (musicas: { id: string; file_size?: number | null }[], label: string) => {
     if (!musicas.length) return;
@@ -192,21 +198,24 @@ const CategoriaPage = () => {
 
       {/* Selected subfolder or no subfolders — show tracks directly */}
       {!isLoading && !error && (selectedSubfolder ? filteredTracks.length > 0 : !showSubfolderView && (tracks?.length ?? 0) > 0) && (
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-          className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
-        >
-          {(selectedSubfolder ? filteredTracks : tracks!).map((t) => (
-            <motion.div
-              key={t.id}
-              variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
-            >
-              <MusicCard id={t.id} title={t.title} artist={t.artist} coverUrl={t.cover_url} fileUrl={t.file_url} driveId={t.drive_id} />
-            </motion.div>
-          ))}
-        </motion.div>
+        <>
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+            className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+          >
+            {paginatedItems.map((t) => (
+              <motion.div
+                key={t.id}
+                variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
+              >
+                <MusicCard id={t.id} title={t.title} artist={t.artist} coverUrl={t.cover_url} fileUrl={t.file_url} driveId={t.drive_id} />
+              </motion.div>
+            ))}
+          </motion.div>
+          <PaginationComponent />
+        </>
       )}
     </div>
   );
