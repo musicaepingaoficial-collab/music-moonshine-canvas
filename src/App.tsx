@@ -132,6 +132,7 @@ const App = () => (
                 <Route path="pdfs" element={<AdminPdfsPage />} />
                 <Route path="anuncios" element={<AdminAnunciosPage />} />
                 <Route path="fornecedores" element={<AdminFornecedoresPage />} />
+                <Route path="tutoriais" element={<AdminTutoriaisPage />} />
               </Route>
               </Route>
 
