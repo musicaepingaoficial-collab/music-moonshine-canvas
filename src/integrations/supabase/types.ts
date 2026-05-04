@@ -183,6 +183,7 @@ export type Database = {
         Row: {
           artista_nome: string
           created_at: string
+          genero: string | null
           id: string
           imagem_url: string | null
           links: Json | null
@@ -192,6 +193,7 @@ export type Database = {
         Insert: {
           artista_nome: string
           created_at?: string
+          genero?: string | null
           id?: string
           imagem_url?: string | null
           links?: Json | null
@@ -201,6 +203,7 @@ export type Database = {
         Update: {
           artista_nome?: string
           created_at?: string
+          genero?: string | null
           id?: string
           imagem_url?: string | null
           links?: Json | null
