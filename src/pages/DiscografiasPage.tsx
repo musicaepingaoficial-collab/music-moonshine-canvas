@@ -30,6 +30,37 @@ export default function DiscografiasPage() {
   const { data: settings } = useSiteSettings();
   const [isBuying, setIsBuying] = useState(false);
   const navigate = useNavigate();
+  const handleBuyModule = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    setIsBuying(true);
+    try {
+      const price = settings?.discografias_valor || 0;
+      
+      if (price === 0) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ has_discografias: true } as any)
+          .eq("id", user.id);
+
+        if (error) throw error;
+        toast.success("Módulo ativado com sucesso!");
+        window.location.reload();
+      } else {
+        const msg = encodeURIComponent(`Olá, gostaria de adquirir o Módulo Discografias no valor de R$ ${price}. Meu e-mail é ${user.email}.`);
+        const phone = settings?.whatsapp_number || "5588981258499";
+        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+        toast.info("Você foi redirecionado para o WhatsApp para concluir a compra.");
+      }
+    } catch (error: any) {
+      toast.error("Erro ao processar compra: " + error.message);
+    } finally {
+      setIsBuying(false);
+    }
+  };
 
   const { data: discografias, isLoading } = useQuery({
     queryKey: ["discografias"],
