@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, MessageCircle, Save } from "lucide-react";
+import { AlertTriangle, MessageCircle, Save, Disc } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const AdminSitePage = () => {
@@ -18,6 +18,7 @@ const AdminSitePage = () => {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [discografiasValor, setDiscografiasValor] = useState("0");
 
   useEffect(() => {
     if (settings) {
@@ -25,6 +26,7 @@ const AdminSitePage = () => {
       setTitle(settings.maintenance_title);
       setMessage(settings.maintenance_message);
       setWhatsapp(settings.whatsapp_number || "");
+      setDiscografiasValor(settings.discografias_valor?.toString() || "0");
     }
   }, [settings]);
 
@@ -38,6 +40,7 @@ const AdminSitePage = () => {
           maintenance_title: title,
           maintenance_message: message,
           whatsapp_number: whatsapp || null,
+          discografias_valor: parseFloat(discografiasValor) || 0,
         },
       });
       toast({ title: "Configurações salvas", description: "As alterações foram aplicadas." });
@@ -106,6 +109,27 @@ const AdminSitePage = () => {
             <p className="text-xs text-muted-foreground">
               Formato internacional sem símbolos: 55 + DDD + número. Ex: 5588981258499.
             </p>
+          </div>
+
+          <div className="space-y-4 border-t border-border/50 pt-5">
+            <p className="text-sm font-medium text-foreground">Venda de Módulos</p>
+            <div className="space-y-2">
+              <Label htmlFor="disc-valor" className="flex items-center gap-2">
+                <Disc className="h-4 w-4" />
+                Valor do Módulo Discografias (R$)
+              </Label>
+              <Input
+                id="disc-valor"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={discografiasValor}
+                onChange={(e) => setDiscografiasValor(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Define o preço para compra avulsa do módulo pelas discografias.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-3 border-t border-border/50 pt-5">

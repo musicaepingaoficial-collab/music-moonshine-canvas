@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Disc, ExternalLink, Search, Lock } from "lucide-react";
+import { Download, Disc, ExternalLink, Search, Lock, ShoppingCart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useHasActiveSubscription } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { toast } from "sonner";
 
 interface DiscografiaLink {
   label: string;
@@ -24,8 +26,41 @@ interface Discografia {
 
 export default function DiscografiasPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { hasDiscografiasAccess, isLoading: accessLoading } = useHasActiveSubscription();
+  const { hasDiscografiasAccess, isLoading: accessLoading, user } = useHasActiveSubscription();
+  const { data: settings } = useSiteSettings();
+  const [isBuying, setIsBuying] = useState(false);
   const navigate = useNavigate();
+  const handleBuyModule = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    setIsBuying(true);
+    try {
+      const price = settings?.discografias_valor || 0;
+      
+      if (price === 0) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ has_discografias: true } as any)
+          .eq("id", user.id);
+
+        if (error) throw error;
+        toast.success("Módulo ativado com sucesso!");
+        window.location.reload();
+      } else {
+        const msg = encodeURIComponent(`Olá, gostaria de adquirir o Módulo Discografias no valor de R$ ${price}. Meu e-mail é ${user.email}.`);
+        const phone = settings?.whatsapp_number || "5588981258499";
+        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+        toast.info("Você foi redirecionado para o WhatsApp para concluir a compra.");
+      }
+    } catch (error: any) {
+      toast.error("Erro ao processar compra: " + error.message);
+    } finally {
+      setIsBuying(false);
+    }
+  };
 
   const { data: discografias, isLoading } = useQuery({
     queryKey: ["discografias"],
@@ -60,8 +95,17 @@ export default function DiscografiasPage() {
             <Button size="lg" onClick={() => navigate("/ofertas")}>
               Ver Planos Vitalícios
             </Button>
-            <Button variant="outline" size="lg" onClick={() => window.open('https://wa.me/seu-numero', '_blank')}>
-              Comprar Módulo Avulso
+            <Button 
+              variant="default" 
+              className="bg-green-600 hover:bg-green-700 text-white"
+              size="lg" 
+              onClick={handleBuyModule}
+              disabled={isBuying}
+            >
+              <ShoppingCart className="mr-2 h-5 w-5" />
+              {settings?.discografias_valor && settings.discografias_valor > 0 
+                ? `Comprar por R$ ${settings.discografias_valor}`
+                : "Adquirir Módulo"}
             </Button>
           </div>
         </div>

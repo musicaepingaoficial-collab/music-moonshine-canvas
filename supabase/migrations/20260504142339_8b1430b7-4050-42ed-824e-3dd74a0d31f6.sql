@@ -1,0 +1,2 @@
+ALTER TABLE public.site_settings ADD COLUMN discografias_valor DECIMAL(10,2) DEFAULT 0.00;
+COMMENT ON COLUMN public.site_settings.discografias_valor IS 'Valor de venda avulsa do módulo de discografias';
