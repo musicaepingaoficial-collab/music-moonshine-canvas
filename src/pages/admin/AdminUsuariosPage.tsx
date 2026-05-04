@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,18 +8,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Disc } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 interface UserWithSub {
   id: string;
   name: string;
   email: string;
+  has_discografias: boolean;
   created_at: string;
   assinaturas: { plan: string; status: string }[];
 }
 
 const AdminUsuariosPage = () => {
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
 
   const { data: users, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-users"],
@@ -27,7 +31,7 @@ const AdminUsuariosPage = () => {
       console.log("[AdminUsuarios:fetch]");
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name, email, created_at")
+        .select("id, name, email, has_discografias, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
 
@@ -41,6 +45,24 @@ const AdminUsuariosPage = () => {
         ...u,
         assinaturas: (subs ?? []).filter((s) => s.user_id === u.id),
       })) as UserWithSub[];
+    },
+  });
+
+  const toggleDiscografiasMutation = useMutation({
+    mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ has_discografias: enabled })
+        .eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("Acesso atualizado com sucesso!");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Erro ao atualizar acesso.");
     },
   });
 
@@ -96,6 +118,7 @@ const AdminUsuariosPage = () => {
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Plano</TableHead>
+                    <TableHead>Discografias</TableHead>
                     <TableHead>Cadastro</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -110,6 +133,18 @@ const AdminUsuariosPage = () => {
                         ) : (
                           <Badge variant="secondary">Free</Badge>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch 
+                            checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio")}
+                            disabled={user.assinaturas.some(s => s.plan === "vitalicio") || toggleDiscografiasMutation.isPending}
+                            onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
+                          />
+                          {user.assinaturas.some(s => s.plan === "vitalicio") && (
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold">Vitalício</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(user.created_at).toLocaleDateString("pt-BR")}

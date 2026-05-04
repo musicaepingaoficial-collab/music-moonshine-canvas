@@ -4,6 +4,7 @@ export interface Profile {
   email: string;
   avatar_url: string | null;
   whatsapp: string | null;
+  has_discografias: boolean;
   created_at: string;
   updated_at: string;
 }

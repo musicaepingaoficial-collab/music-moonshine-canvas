@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Disc, ExternalLink, Search } from "lucide-react";
+import { Download, Disc, ExternalLink, Search, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useHasActiveSubscription } from "@/hooks/useUser";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface DiscografiaLink {
   label: string;
@@ -21,6 +24,8 @@ interface Discografia {
 
 export default function DiscografiasPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const { hasDiscografiasAccess, isLoading: accessLoading } = useHasActiveSubscription();
+  const navigate = useNavigate();
 
   const { data: discografias, isLoading } = useQuery({
     queryKey: ["discografias"],
@@ -32,11 +37,37 @@ export default function DiscografiasPage() {
       if (error) throw error;
       return data as Discografia[];
     },
+    enabled: hasDiscografiasAccess === true, // Only fetch if user has access
   });
 
   const filteredDiscografias = discografias?.filter(disco => 
     disco.artista_nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (!accessLoading && hasDiscografiasAccess === false) {
+    return (
+      <div className="container mx-auto py-20 px-4 max-w-2xl text-center">
+        <div className="bg-card border border-border/50 rounded-3xl p-8 md:p-12 shadow-xl backdrop-blur-sm">
+          <div className="bg-primary/10 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Lock className="h-10 w-10 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold mb-4">Módulo Bloqueado</h1>
+          <p className="text-muted-foreground text-lg mb-8">
+            As discografias completas estão disponíveis exclusivamente para usuários com plano 
+            <span className="font-bold text-foreground"> Vitalício</span> ou que adquiriram o módulo separadamente.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" onClick={() => navigate("/ofertas")}>
+              Ver Planos Vitalícios
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => window.open('https://wa.me/seu-numero', '_blank')}>
+              Comprar Módulo Avulso
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
@@ -62,7 +93,7 @@ export default function DiscografiasPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {(isLoading || accessLoading) ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} className="overflow-hidden border-border/50">
