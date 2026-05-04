@@ -30,6 +30,7 @@ interface DiscografiaLink {
 interface Discografia {
   id: string;
   artista_nome: string;
+  genero: string | null;
   imagem_url: string | null;
   links: any; // Using any for Json compatibility
   ordem: number;
@@ -40,6 +41,7 @@ export default function AdminDiscografiasPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedDiscografia, setSelectedDiscografia] = useState<Discografia | null>(null);
   const [artistaNome, setArtistaNome] = useState("");
+  const [genero, setGenero] = useState("");
   const [imagemUrl, setImagemUrl] = useState("");
   const [links, setLinks] = useState<DiscografiaLink[]>([]);
   const [newLinkLabel, setNewLinkLabel] = useState("");
@@ -65,6 +67,7 @@ export default function AdminDiscografiasPage() {
     mutationFn: async () => {
       const payload = {
         artista_nome: artistaNome,
+        genero: genero || null,
         imagem_url: imagemUrl || null,
         links: links as any,
       };
@@ -111,6 +114,7 @@ export default function AdminDiscografiasPage() {
   const handleEdit = (discografia: Discografia) => {
     setSelectedDiscografia(discografia);
     setArtistaNome(discografia.artista_nome);
+    setGenero(discografia.genero || "");
     setImagemUrl(discografia.imagem_url || "");
     setLinks((discografia.links as DiscografiaLink[]) || []);
     setIsEditing(true);
@@ -158,6 +162,7 @@ export default function AdminDiscografiasPage() {
     setIsEditing(false);
     setSelectedDiscografia(null);
     setArtistaNome("");
+    setGenero("");
     setImagemUrl("");
     setLinks([]);
     setNewLinkLabel("");
@@ -207,6 +212,14 @@ export default function AdminDiscografiasPage() {
                    placeholder="Ex: Zé Neto e Cristiano" 
                   value={artistaNome}
                   onChange={(e) => setArtistaNome(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Gênero Musical</label>
+                <Input 
+                   placeholder="Ex: Sertanejo, Funk, Forró" 
+                  value={genero}
+                  onChange={(e) => setGenero(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -315,6 +328,7 @@ export default function AdminDiscografiasPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Artista</TableHead>
+              <TableHead>Gênero</TableHead>
               <TableHead>Foto</TableHead>
               <TableHead>Links</TableHead>
               <TableHead className="text-right">Ações</TableHead>
@@ -331,6 +345,7 @@ export default function AdminDiscografiasPage() {
               discografias.map((disco) => (
                 <TableRow key={disco.id}>
                   <TableCell className="font-medium">{disco.artista_nome}</TableCell>
+                  <TableCell>{disco.genero || "-"}</TableCell>
                   <TableCell>
                     {disco.imagem_url ? (
                       <div className="h-10 w-10 rounded-full overflow-hidden border">

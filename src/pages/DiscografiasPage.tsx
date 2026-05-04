@@ -21,6 +21,7 @@ interface DiscografiaLink {
 interface Discografia {
   id: string;
   artista_nome: string;
+  genero: string | null;
   imagem_url: string | null;
   links: any;
   ordem: number;
@@ -28,6 +29,7 @@ interface Discografia {
 
 export default function DiscografiasPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState<string | "all">("all");
   const { hasDiscografiasAccess, isLoading: accessLoading, user } = useHasActiveSubscription();
   const { data: settings } = useSiteSettings();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -54,9 +56,13 @@ export default function DiscografiasPage() {
     enabled: hasDiscografiasAccess === true, // Only fetch if user has access
   });
 
-  const filteredDiscografias = discografias?.filter(disco => 
-    disco.artista_nome.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const genres = Array.from(new Set(discografias?.map(d => d.genero).filter(Boolean))) as string[];
+
+  const filteredDiscografias = discografias?.filter(disco => {
+    const matchesSearch = disco.artista_nome.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesGenre = selectedGenre === "all" || disco.genero === selectedGenre;
+    return matchesSearch && matchesGenre;
+  });
 
   if (!accessLoading && hasDiscografiasAccess === false) {
     return (
@@ -122,7 +128,20 @@ export default function DiscografiasPage() {
           </div>
         </div>
         
-        <div className="relative w-full md:w-72">
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <div className="relative w-full sm:w-48">
+            <select
+              className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+            >
+              <option value="all">Todos os gêneros</option>
+              {genres.map(genre => (
+                <option key={genre} value={genre}>{genre}</option>
+              ))}
+            </select>
+          </div>
+          <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Buscar artista..." 
@@ -169,6 +188,7 @@ export default function DiscografiasPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
                 <div className="absolute bottom-4 left-4 right-4">
                   <h3 className="text-xl font-bold text-white truncate">{disco.artista_nome}</h3>
+                  {disco.genero && <span className="text-xs text-white/70 font-medium">{disco.genero}</span>}
                 </div>
               </div>
               <CardContent className="p-4 space-y-3">
