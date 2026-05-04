@@ -115,6 +115,53 @@ serve(async (req) => {
         return new Response("Invalid reference", { status: 400 });
       }
 
+      // Handle discografias module purchase
+      if (planSlug === "discografias") {
+        const { error: updErr } = await supabase
+          .from("profiles")
+          .update({ has_discografias: true })
+          .eq("id", userId);
+
+        if (updErr) {
+          console.error("Error updating profile has_discografias:", updErr);
+          return new Response("DB Error", { status: 500 });
+        }
+
+        // Send push notification to admin
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("name, email")
+            .eq("id", userId)
+            .maybeSingle();
+          const who = profile?.name || profile?.email || "Usuário";
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              type: "purchase",
+              title: "📀 Módulo Discografias vendido",
+              body: `${who} adquiriu o acesso vitalício às discografias!`,
+              url: "/admin/usuarios",
+            }),
+          });
+        } catch (err) {
+          console.error("[push disc purchase]", err);
+        }
+
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!userId || !planSlug) {
+        console.error("Invalid external_reference:", payment.external_reference);
+        return new Response("Invalid reference", { status: 400 });
+      }
+
       const { data: plan } = await supabase
         .from("planos")
         .select("price, duration_days, slug")
