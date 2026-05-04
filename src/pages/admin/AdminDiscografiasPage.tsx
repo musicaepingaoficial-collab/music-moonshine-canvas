@@ -210,12 +210,57 @@ export default function AdminDiscografiasPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">URL da Imagem/Foto</label>
-                <Input 
-                  placeholder="https://..." 
-                  value={imagemUrl}
-                  onChange={(e) => setImagemUrl(e.target.value)}
-                />
+                <label className="text-sm font-medium">Imagem/Foto do Artista (Quadrada)</label>
+                <div className="flex flex-col gap-4">
+                  {imagemUrl ? (
+                    <div className="relative w-32 h-32 rounded-lg overflow-hidden border bg-muted">
+                      <img src={imagemUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <Button 
+                        type="button" 
+                        variant="destructive" 
+                        size="icon" 
+                        className="absolute top-1 right-1 h-6 w-6"
+                        onClick={() => setImagemUrl("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-32 h-32 border-dashed flex flex-col gap-2"
+                        onClick={() => document.getElementById('file-upload')?.click()}
+                        disabled={uploading}
+                      >
+                        {uploading ? (
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6" />
+                            <span className="text-xs">Subir Foto</span>
+                          </>
+                        )}
+                      </Button>
+                      <div className="flex-1 space-y-2">
+                        <p className="text-xs text-muted-foreground">Recomendado: Imagem quadrada (ex: 500x500px)</p>
+                        <Input 
+                          placeholder="Ou cole a URL da imagem aqui..." 
+                          value={imagemUrl}
+                          onChange={(e) => setImagemUrl(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    id="file-upload" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                  />
+                </div>
               </div>
               
               <div className="space-y-4 pt-4 border-t">
