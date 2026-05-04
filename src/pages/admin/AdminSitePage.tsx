@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings, useUpdateSiteSettings } from "@/hooks/useSiteSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,14 @@ const AdminSitePage = () => {
           discografias_valor: parseFloat(discografiasValor) || 0,
         },
       });
+
+      // Also update the hidden 'discografias' plan price for Mercado Pago integration
+      const priceVal = parseFloat(discografiasValor) || 0;
+      await supabase
+        .from("planos")
+        .update({ price: priceVal })
+        .eq("slug", "discografias");
+
       toast({ title: "Configurações salvas", description: "As alterações foram aplicadas." });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
