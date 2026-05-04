@@ -135,5 +135,6 @@ export function useHasActiveSubscription() {
     isLoading: subLoading || adminLoading,
     isAdmin: Boolean(isAdmin),
     plan: assinatura?.plan ?? null,
+    user,
   };
 }
