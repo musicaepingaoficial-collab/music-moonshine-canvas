@@ -7,6 +7,7 @@ export interface SiteSettings {
   maintenance_title: string;
   maintenance_message: string;
   whatsapp_number: string | null;
+  discografias_valor: number;
   updated_at: string;
 }
 
