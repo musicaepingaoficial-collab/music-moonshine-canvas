@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, MessageCircle, Save } from "lucide-react";
+import { AlertTriangle, MessageCircle, Save, Disc } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const AdminSitePage = () => {
