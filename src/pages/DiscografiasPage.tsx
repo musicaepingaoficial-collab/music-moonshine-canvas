@@ -95,8 +95,17 @@ export default function DiscografiasPage() {
             <Button size="lg" onClick={() => navigate("/ofertas")}>
               Ver Planos Vitalícios
             </Button>
-            <Button variant="outline" size="lg" onClick={() => window.open('https://wa.me/seu-numero', '_blank')}>
-              Comprar Módulo Avulso
+            <Button 
+              variant="default" 
+              className="bg-green-600 hover:bg-green-700 text-white"
+              size="lg" 
+              onClick={handleBuyModule}
+              disabled={isBuying}
+            >
+              <ShoppingCart className="mr-2 h-5 w-5" />
+              {settings?.discografias_valor && settings.discografias_valor > 0 
+                ? `Comprar por R$ ${settings.discografias_valor}`
+                : "Adquirir Módulo"}
             </Button>
           </div>
         </div>
