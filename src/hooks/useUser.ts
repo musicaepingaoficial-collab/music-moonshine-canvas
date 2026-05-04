@@ -1,6 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile, Assinatura } from "@/types/database";
+// Extend profile type locally if it doesn't have has_discografias yet
+interface ExtendedProfile extends Profile {
+  has_discografias?: boolean;
+}
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
