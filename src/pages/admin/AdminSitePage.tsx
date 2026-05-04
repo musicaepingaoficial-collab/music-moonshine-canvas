@@ -40,6 +40,7 @@ const AdminSitePage = () => {
           maintenance_title: title,
           maintenance_message: message,
           whatsapp_number: whatsapp || null,
+          discografias_valor: parseFloat(discografiasValor) || 0,
         },
       });
       toast({ title: "Configurações salvas", description: "As alterações foram aplicadas." });
