@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
 import { Search, Music, X } from "lucide-react";
+import { usePagination } from "@/hooks/usePagination";
 
 const TodasMusicasPage = () => {
   const { data: musicas, isLoading, error, refetch } = useMusicas();
@@ -24,6 +25,8 @@ const TodasMusicasPage = () => {
         m.artist.toLowerCase().includes(term)
     );
   }, [musicas, searchTerm]);
+
+  const { paginatedItems, PaginationComponent } = usePagination(filteredMusicas, 24);
 
   return (
     <div className="space-y-8">
@@ -59,22 +62,25 @@ const TodasMusicasPage = () => {
 
       {isLoading ? (
         <MusicGridSkeleton count={12} />
-      ) : filteredMusicas.length > 0 ? (
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.02 } } }}
-          className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
-        >
-          {filteredMusicas.map((t) => (
-            <motion.div
-              key={t.id}
-              variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
-            >
-              <MusicCard id={t.id} title={t.title} artist={t.artist} coverUrl={t.cover_url} fileUrl={t.file_url} driveId={t.drive_id} />
-            </motion.div>
-          ))}
-        </motion.div>
+      ) : paginatedItems.length > 0 ? (
+        <>
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{ show: { transition: { staggerChildren: 0.02 } } }}
+            className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+          >
+            {paginatedItems.map((t) => (
+              <motion.div
+                key={t.id}
+                variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
+              >
+                <MusicCard id={t.id} title={t.title} artist={t.artist} coverUrl={t.cover_url} fileUrl={t.file_url} driveId={t.drive_id} />
+              </motion.div>
+            ))}
+          </motion.div>
+          <PaginationComponent />
+        </>
       ) : (
         <EmptyState 
           icon={Music} 
