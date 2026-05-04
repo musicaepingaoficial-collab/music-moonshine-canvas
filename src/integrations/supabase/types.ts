@@ -705,6 +705,7 @@ export type Database = {
       }
       site_settings: {
         Row: {
+          discografias_valor: number | null
           id: string
           maintenance_message: string
           maintenance_mode: boolean
@@ -714,6 +715,7 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          discografias_valor?: number | null
           id?: string
           maintenance_message?: string
           maintenance_mode?: boolean
@@ -723,6 +725,7 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          discografias_valor?: number | null
           id?: string
           maintenance_message?: string
           maintenance_mode?: boolean
