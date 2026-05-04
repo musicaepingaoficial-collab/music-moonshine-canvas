@@ -111,12 +111,6 @@ const MeusRepertoriosPage = () => {
     <div className="space-y-8">
       <Banner title="Repertórios" subtitle="Explore coleções de músicas organizadas." />
 
-      {isAdmin && (
-        <Button onClick={() => { resetCreate(); setCreateOpen(true); }} size="sm">
-          <Plus className="mr-1.5 h-4 w-4" />
-          Criar Repertório
-        </Button>
-      )}
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -240,25 +234,6 @@ const MeusRepertoriosPage = () => {
                     </span>
                   </div>
                   
-                  {isAdmin && (
-                    <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 z-20">
-                      <button
-                        onClick={(e) => { e.preventDefault(); openEdit(rep); }}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors"
-                        aria-label={`Editar ${rep.name}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.preventDefault(); handleDelete(rep.id, rep.name); }}
-                        disabled={deleteRep.isPending}
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-destructive/80 text-white hover:bg-destructive transition-colors"
-                        aria-label={`Remover ${rep.name}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
