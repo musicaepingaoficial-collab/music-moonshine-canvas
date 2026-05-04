@@ -40,12 +40,12 @@ const CategoriaPage = () => {
     ? tracks?.filter((t) => t.subfolder === selectedSubfolder) ?? []
     : [];
 
+  const showSubfolderView = !selectedSubfolder && subfolders.length > 0;
+
   const { paginatedItems, PaginationComponent } = usePagination(
     selectedSubfolder ? filteredTracks : !showSubfolderView ? tracks ?? [] : [],
     24
   );
-
-  const showSubfolderView = !selectedSubfolder && subfolders.length > 0;
 
   const handleBatchDownload = async (musicas: { id: string; file_size?: number | null }[], label: string) => {
     if (!musicas.length) return;
