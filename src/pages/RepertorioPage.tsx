@@ -299,35 +299,17 @@ const RepertorioPage = () => {
         <>
           {/* Header with cover */}
           <div className="flex items-start gap-5">
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleCoverChange}
-            />
-            <button
-              onClick={() => isAdmin && coverInputRef.current?.click()}
-              disabled={updateCover.isPending || !isAdmin}
-              className={`group relative flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-secondary border-2 border-dashed border-border overflow-hidden transition-colors ${isAdmin ? "hover:border-primary" : "cursor-default"}`}
-              aria-label="Alterar capa do repertÃ³rio"
+            <div className="group relative flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-secondary border-2 border-dashed border-border overflow-hidden transition-colors cursor-default"
+              aria-label="Capa do repertÃ³rio"
             >
               {repertorio?.cover_url ? (
-                <>
-                  <img src={repertorio.cover_url} alt="Capa" className="h-full w-full object-cover" />
-                  {isAdmin && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                      <Camera className="h-5 w-5 text-white" />
-                    </div>
-                  )}
-                </>
+                <img src={repertorio.cover_url} alt="Capa" className="h-full w-full object-cover" />
               ) : (
-                <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
-                  <Camera className="h-6 w-6" />
-                  <span className="text-[10px]">Adicionar capa</span>
+                <div className="flex flex-col items-center gap-1 text-muted-foreground transition-colors">
+                  <Music2 className="h-6 w-6" />
                 </div>
               )}
-            </button>
+            </div>
             <div className="flex-1 min-w-0 space-y-1 pt-1">
               <h1 className="text-2xl font-bold text-foreground truncate">
                 {repertorio?.name ?? "Carregando..."}
