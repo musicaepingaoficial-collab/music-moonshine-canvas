@@ -117,6 +117,42 @@ export default function AdminDiscografiasPage() {
     setIsOpen(true);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate if it's an image
+    if (!file.type.startsWith('image/')) {
+      toast.error("Por favor, selecione um arquivo de imagem.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('discografias')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('discografias')
+        .getPublicUrl(filePath);
+
+      setImagemUrl(publicUrl);
+      toast.success("Imagem enviada com sucesso!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Erro ao enviar imagem: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleClose = () => {
     setIsOpen(false);
     setIsEditing(false);
@@ -126,6 +162,7 @@ export default function AdminDiscografiasPage() {
     setLinks([]);
     setNewLinkLabel("");
     setNewLinkUrl("");
+    setUploading(false);
   };
 
   const handleDelete = (id: string) => {
