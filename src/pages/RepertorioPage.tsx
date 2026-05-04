@@ -109,6 +109,7 @@ const RepertorioPage = () => {
   const hasFolders = groups.some((g) => g.name !== null);
 
   const toggleFolder = (folder: string) => {
+    setSelectedFolder(folder === selectedFolder ? null : folder);
     setCollapsedFolders((prev) => {
       const next = new Set(prev);
       if (next.has(folder)) next.delete(folder);
@@ -116,6 +117,24 @@ const RepertorioPage = () => {
       return next;
     });
   };
+
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+  const displayMusicas = useMemo(() => {
+    if (!selectedFolder) {
+      return groups.find(g => g.name === null)?.musicas ?? [];
+    }
+    return groups.find(g => g.name === selectedFolder)?.musicas ?? [];
+  }, [groups, selectedFolder]);
+
+  const { paginatedItems, PaginationComponent } = usePagination(displayMusicas, 24);
+
+  // If selected folder is removed or empty, reset
+  useEffect(() => {
+    if (selectedFolder && !groups.some(g => g.name === selectedFolder)) {
+      setSelectedFolder(null);
+    }
+  }, [groups, selectedFolder]);
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -326,54 +345,70 @@ const RepertorioPage = () => {
             <MusicGridSkeleton count={6} />
           ) : (musicas?.length ?? 0) > 0 ? (
             <div className="space-y-6">
-              {groups.map((group) => {
-                if (group.name === null) {
-                  return (
-                    <div key="__loose__" className="space-y-3">
-                      {hasFolders && (
-                        <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                          <Music2 className="h-4 w-4" /> MÃºsicas avulsas
-                        </h3>
-                      )}
-                      {renderMusicGrid(group.musicas)}
-                    </div>
-                  );
-                }
+              {hasFolders && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Button
+                    variant={selectedFolder === null ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedFolder(null)}
+                    className="rounded-full"
+                  >
+                    Músicas avulsas
+                  </Button>
+                  {groups.filter(g => g.name !== null).map((group) => (
+                    <Button
+                      key={group.name}
+                      variant={selectedFolder === group.name ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedFolder(group.name)}
+                      className="rounded-full flex items-center gap-2"
+                    >
+                      <FolderOpen className="h-3.5 w-3.5" />
+                      {group.name}
+                      <span className="text-[10px] opacity-70">({group.musicas.length})</span>
+                    </Button>
+                  ))}
+                </div>
+              )}
 
-                const isCollapsed = collapsedFolders.has(group.name);
-                return (
-                  <div key={group.name} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={() => toggleFolder(group.name!)}
-                        className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
-                      >
-                        {isCollapsed ? (
-                          <ChevronRight className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                        <FolderOpen className="h-4 w-4 text-primary" />
-                        {group.name}
-                        <span className="text-xs font-normal text-muted-foreground">
-                          ({group.musicas.length})
-                        </span>
-                      </button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFolder(group.name!, group.musicas.map((m) => m.id))}
-                        disabled={removeMultiple.isPending}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="mr-1 h-3.5 w-3.5" />
-                        Remover pasta
-                      </Button>
-                    </div>
-                    {!isCollapsed && renderMusicGrid(group.musicas)}
-                  </div>
-                );
-              })}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    {selectedFolder ? (
+                      <>
+                        <FolderOpen className="h-4 w-4 text-primary" /> {selectedFolder}
+                      </>
+                    ) : (
+                      <>
+                        <Music2 className="h-4 w-4" /> Músicas avulsas
+                      </>
+                    )}
+                  </h3>
+                  {selectedFolder && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveFolder(selectedFolder, displayMusicas.map((m) => m.id))}
+                      disabled={removeMultiple.isPending}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
+                    >
+                      <Trash2 className="mr-1 h-3.5 w-3.5" />
+                      Remover pasta
+                    </Button>
+                  )}
+                </div>
+                
+                {paginatedItems.length > 0 ? (
+                  <>
+                    {renderMusicGrid(paginatedItems)}
+                    <PaginationComponent />
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground py-8 text-center italic">
+                    Nenhuma música nesta seção.
+                  </p>
+                )}
+              </div>
             </div>
           ) : (
             <EmptyState icon={Music2} title="Nenhuma mÃºsica neste repertÃ³rio ainda." />
