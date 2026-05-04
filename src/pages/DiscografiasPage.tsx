@@ -30,38 +30,15 @@ export default function DiscografiasPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const { hasDiscografiasAccess, isLoading: accessLoading, user } = useHasActiveSubscription();
   const { data: settings } = useSiteSettings();
-  const [isBuying, setIsBuying] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const handleBuyModule = async () => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
 
-    setIsBuying(true);
-    try {
-      const price = settings?.discografias_valor || 0;
-      
-      if (price === 0) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ has_discografias: true } as any)
-          .eq("id", user.id);
-
-        if (error) throw error;
-        toast.success("Módulo ativado com sucesso!");
-        window.location.reload();
-      } else {
-        const msg = encodeURIComponent(`Olá, gostaria de adquirir o Módulo Discografias no valor de R$ ${price}. Meu e-mail é ${user.email}.`);
-        const phone = settings?.whatsapp_number || "5588981258499";
-        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
-        toast.info("Você foi redirecionado para o WhatsApp para concluir a compra.");
-      }
-    } catch (error: any) {
-      toast.error("Erro ao processar compra: " + error.message);
-    } finally {
-      setIsBuying(false);
-    }
+  const handlePaymentSuccess = () => {
+    toast.success("Pagamento confirmado! Módulo liberado.");
+    setIsCheckoutOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+    window.location.reload();
   };
 
   const { data: discografias, isLoading } = useQuery({
@@ -101,16 +78,33 @@ export default function DiscografiasPage() {
               variant="default" 
               className="bg-green-600 hover:bg-green-700 text-white"
               size="lg" 
-              onClick={handleBuyModule}
-              disabled={isBuying}
+              onClick={() => setIsCheckoutOpen(true)}
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
               {settings?.discografias_valor && settings.discografias_valor > 0 
-                ? `Comprar por R$ ${settings.discografias_valor}`
+                ? `Comprar por R$ ${settings.discografias_valor.toFixed(2).replace('.', ',')}`
                 : "Adquirir Módulo"}
             </Button>
           </div>
         </div>
+
+        <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Pagamento do Módulo</DialogTitle>
+              <DialogDescription>
+                Conclua o pagamento de R$ {settings?.discografias_valor?.toFixed(2).replace('.', ',')} para liberar o acesso vitalício às discografias.
+              </DialogDescription>
+            </DialogHeader>
+            <CheckoutForm 
+              planSlug="discografias"
+              planName="Módulo Discografias"
+              planPrice={settings?.discografias_valor || 0}
+              onBack={() => setIsCheckoutOpen(false)}
+              onSuccess={handlePaymentSuccess}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
