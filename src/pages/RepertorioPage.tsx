@@ -13,9 +13,10 @@ import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, Har
 import { downloadMultipleAsParts } from "@/services/zipService";
 import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdateRepertorioCover } from "@/hooks/useRepertorios";
 import { toast } from "sonner";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import type { Musica } from "@/types/database";
 import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
+import { usePagination } from "@/hooks/usePagination";
 
 interface FolderGroup {
   name: string | null;
