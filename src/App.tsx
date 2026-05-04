@@ -35,6 +35,7 @@ const PlanosGatePage = lazy(() => import("./pages/PlanosGatePage"));
 const InstalarPage = lazy(() => import("./pages/InstalarPage"));
 const PdfsPage = lazy(() => import("./pages/PdfsPage"));
 const IndicacoesPage = lazy(() => import("./pages/IndicacoesPage"));
+const ComoBaixarPage = lazy(() => import("./pages/ComoBaixarPage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const AdminUsuariosPage = lazy(() => import("./pages/admin/AdminUsuariosPage"));
 const AdminAssinaturasPage = lazy(() => import("./pages/admin/AdminAssinaturasPage"));
@@ -49,6 +50,7 @@ const AdminNotificacoesPage = lazy(() => import("./pages/admin/AdminNotificacoes
 const AdminPdfsPage = lazy(() => import("./pages/admin/AdminPdfsPage"));
 const AdminAnunciosPage = lazy(() => import("./pages/admin/AdminAnunciosPage"));
 const AdminFornecedoresPage = lazy(() => import("./pages/admin/AdminFornecedoresPage"));
+const AdminTutoriaisPage = lazy(() => import("./pages/admin/AdminTutoriaisPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -109,6 +111,7 @@ const App = () => (
                 <Route path="/repertorios" element={<MeusRepertoriosPage />} />
                 <Route path="/pdfs" element={<PdfsPage />} />
                 <Route path="/indicacoes" element={<IndicacoesPage />} />
+                <Route path="/como-baixar" element={<ComoBaixarPage />} />
               </Route>
               </Route>
 
@@ -129,6 +132,7 @@ const App = () => (
                 <Route path="pdfs" element={<AdminPdfsPage />} />
                 <Route path="anuncios" element={<AdminAnunciosPage />} />
                 <Route path="fornecedores" element={<AdminFornecedoresPage />} />
+                <Route path="tutoriais" element={<AdminTutoriaisPage />} />
               </Route>
               </Route>
 

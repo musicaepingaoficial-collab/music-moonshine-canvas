@@ -733,6 +733,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tutoriais: {
+        Row: {
+          conteudo: string | null
+          created_at: string
+          id: string
+          titulo: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          conteudo?: string | null
+          created_at?: string
+          id?: string
+          titulo: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          conteudo?: string | null
+          created_at?: string
+          id?: string
+          titulo?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
