@@ -26,7 +26,9 @@ interface Discografia {
 
 export default function DiscografiasPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { hasDiscografiasAccess, isLoading: accessLoading } = useHasActiveSubscription();
+  const { hasDiscografiasAccess, isLoading: accessLoading, user } = useHasActiveSubscription();
+  const { data: settings } = useSiteSettings();
+  const [isBuying, setIsBuying] = useState(false);
   const navigate = useNavigate();
 
   const { data: discografias, isLoading } = useQuery({
