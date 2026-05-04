@@ -118,6 +118,7 @@ export function useAssinatura(userId?: string | null) {
  */
 export function useHasActiveSubscription() {
   const { user } = useAuth();
+  const { data: profile } = useProfile(user?.id);
   const { data: assinatura, isLoading: subLoading } = useAssinatura(user?.id);
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
 
@@ -125,8 +126,12 @@ export function useHasActiveSubscription() {
     !!assinatura &&
     (!assinatura.expires_at || new Date(assinatura.expires_at) > new Date());
 
+  const isVitalicio = assinatura?.plan === "vitalicio";
+  const hasDiscografiasAccess = Boolean(isAdmin) || isVitalicio || !!profile?.has_discografias;
+
   return {
     hasAccess: Boolean(isAdmin) || notExpired,
+    hasDiscografiasAccess,
     isLoading: subLoading || adminLoading,
     isAdmin: Boolean(isAdmin),
     plan: assinatura?.plan ?? null,

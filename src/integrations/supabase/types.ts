@@ -607,6 +607,7 @@ export type Database = {
           cpf: string | null
           created_at: string
           email: string
+          has_discografias: boolean | null
           id: string
           name: string
           updated_at: string
@@ -617,6 +618,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           email?: string
+          has_discografias?: boolean | null
           id: string
           name?: string
           updated_at?: string
@@ -627,6 +629,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           email?: string
+          has_discografias?: boolean | null
           id?: string
           name?: string
           updated_at?: string
