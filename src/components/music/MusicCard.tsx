@@ -23,7 +23,7 @@ interface MusicCardProps {
 export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, onRemove, removeDisabled }: MusicCardProps) {
   const toggleFav = useToggleFavorito();
   const [downloading, setDownloading] = useState(false);
-  const { hasAccess, isLoading: accessLoading } = useHasActiveSubscription();
+  const { hasAccess, isLoading: accessLoading, isAdmin } = useHasActiveSubscription();
   const navigate = useNavigate();
   const play = usePlayerStore((s) => s.play);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -114,9 +114,11 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, onRem
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             </button>
             
-            <div className="ml-auto">
-              <AddToRepertorioDialog musicaId={id} title={title} />
-            </div>
+            {isAdmin && (
+              <div className="ml-auto">
+                <AddToRepertorioDialog musicaId={id} title={title} />
+              </div>
+            )}
             
             {onRemove && (
               <button

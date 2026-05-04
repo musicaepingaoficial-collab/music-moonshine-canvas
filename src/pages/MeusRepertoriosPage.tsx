@@ -10,6 +10,7 @@ import { FolderOpen, Plus, ChevronRight, Trash2, Pencil, ImagePlus } from "lucid
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import type { RepertorioWithCount } from "@/hooks/useRepertorios";
+import { useHasActiveSubscription } from "@/hooks/useUser";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -23,7 +24,7 @@ const MeusRepertoriosPage = () => {
   const createRep = useCreateRepertorio();
   const deleteRep = useDeleteRepertorio();
   const updateRep = useUpdateRepertorio();
-
+  const { isAdmin } = useHasActiveSubscription();
   // Create dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -108,12 +109,14 @@ const MeusRepertoriosPage = () => {
 
   return (
     <div className="space-y-8">
-      <Banner title="Meus Repertórios" subtitle="Gerencie suas coleções de músicas." />
+      <Banner title="Repertórios" subtitle="Explore coleções de músicas organizadas." />
 
-      <Button onClick={() => { resetCreate(); setCreateOpen(true); }} size="sm">
-        <Plus className="mr-1.5 h-4 w-4" />
-        Criar Repertório
-      </Button>
+      {isAdmin && (
+        <Button onClick={() => { resetCreate(); setCreateOpen(true); }} size="sm">
+          <Plus className="mr-1.5 h-4 w-4" />
+          Criar Repertório
+        </Button>
+      )}
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -237,23 +240,25 @@ const MeusRepertoriosPage = () => {
                     </span>
                   </div>
                   
-                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 z-20">
-                    <button
-                      onClick={(e) => { e.preventDefault(); openEdit(rep); }}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors"
-                      aria-label={`Editar ${rep.name}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.preventDefault(); handleDelete(rep.id, rep.name); }}
-                      disabled={deleteRep.isPending}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-destructive/80 text-white hover:bg-destructive transition-colors"
-                      aria-label={`Remover ${rep.name}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 z-20">
+                      <button
+                        onClick={(e) => { e.preventDefault(); openEdit(rep); }}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors"
+                        aria-label={`Editar ${rep.name}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.preventDefault(); handleDelete(rep.id, rep.name); }}
+                        disabled={deleteRep.isPending}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-destructive/80 text-white hover:bg-destructive transition-colors"
+                        aria-label={`Remover ${rep.name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

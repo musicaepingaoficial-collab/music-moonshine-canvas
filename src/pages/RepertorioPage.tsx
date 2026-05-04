@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2 } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2 } from "lucide-react";
 import { downloadMultipleAsParts } from "@/services/zipService";
 import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdateRepertorioCover } from "@/hooks/useRepertorios";
 import { toast } from "sonner";
@@ -65,7 +65,7 @@ const RepertorioPage = () => {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
-  const { hasAccess } = useHasActiveSubscription();
+  const { hasAccess, isAdmin } = useHasActiveSubscription();
   const navigate = useNavigate();
   const isTrial = assinatura?.plan === "trial";
 
@@ -220,6 +220,48 @@ const RepertorioPage = () => {
     }
   };
 
+  const handleDownloadFolder = async (folder: string, tracks: Musica[]) => {
+    if (!tracks.length) return;
+    if (!hasAccess) {
+      toast.error("Assine um plano para baixar pastas.");
+      navigate("/planos");
+      return;
+    }
+    setDownloading(true);
+    setDownloadProgress(0);
+    setDownloadTotal(100);
+    setDownloadStage("preparing");
+    setDownloadPart(0);
+    setDownloadPartsTotal(0);
+    try {
+      const result = await downloadMultipleAsParts(
+        tracks.map((m) => ({ id: m.id, fileSize: m.file_size })),
+        `${repertorio?.name ?? "repertorio"}_${folder}`,
+        {
+          maxZipBytes: 300 * 1024 * 1024,
+          onProgress: (progress) => {
+            setDownloadProgress(progress.overallProgressPercent);
+            setDownloadPartsTotal(progress.partCount);
+            setDownloadPart(progress.partIndex + 1);
+            setDownloadStage(progress.stage);
+          },
+        }
+      );
+
+      if (result.failed > 0) {
+        toast.warning(
+          `${result.parts} ZIP(s) gerados para a pasta "${folder}". ${result.downloaded} arquivos incluídos e ${result.failed} falharam.`
+        );
+      } else {
+        toast.success(`Pasta "${folder}" baixada com sucesso! (${result.parts} ZIPs)`);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao baixar pasta.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const isLoading = loadingRep || loadingMusicas;
 
   const renderMusicGrid = (tracks: Musica[]) => (
@@ -241,7 +283,7 @@ const RepertorioPage = () => {
             coverUrl={t.cover_url}
             fileUrl={t.file_url}
             driveId={t.drive_id}
-            onRemove={() => handleRemoveSingle(t.id, t.title)}
+            onRemove={isAdmin ? () => handleRemoveSingle(t.id, t.title) : undefined}
             removeDisabled={removeSingle.isPending}
           />
         </motion.div>
@@ -265,17 +307,19 @@ const RepertorioPage = () => {
               onChange={handleCoverChange}
             />
             <button
-              onClick={() => coverInputRef.current?.click()}
-              disabled={updateCover.isPending}
-              className="group relative flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-secondary border-2 border-dashed border-border overflow-hidden transition-colors hover:border-primary"
+              onClick={() => isAdmin && coverInputRef.current?.click()}
+              disabled={updateCover.isPending || !isAdmin}
+              className={`group relative flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-secondary border-2 border-dashed border-border overflow-hidden transition-colors ${isAdmin ? "hover:border-primary" : "cursor-default"}`}
               aria-label="Alterar capa do repertÃ³rio"
             >
               {repertorio?.cover_url ? (
                 <>
                   <img src={repertorio.cover_url} alt="Capa" className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Camera className="h-5 w-5 text-white" />
-                  </div>
+                  {isAdmin && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Camera className="h-5 w-5 text-white" />
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
@@ -386,16 +430,35 @@ const RepertorioPage = () => {
                     )}
                   </h3>
                   {selectedFolder && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveFolder(selectedFolder, displayMusicas.map((m) => m.id))}
-                      disabled={removeMultiple.isPending}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
-                    >
-                      <Trash2 className="mr-1 h-3.5 w-3.5" />
-                      Remover pasta
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadFolder(selectedFolder, displayMusicas)}
+                        disabled={downloading || isTrial}
+                        className="h-8"
+                      >
+                        {downloading ? (
+                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Download className="mr-1 h-3.5 w-3.5" />
+                        )}
+                        Baixar pasta
+                      </Button>
+                      
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveFolder(selectedFolder, displayMusicas.map((m) => m.id))}
+                          disabled={removeMultiple.isPending}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
+                        >
+                          <Trash2 className="mr-1 h-3.5 w-3.5" />
+                          Remover pasta
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
                 
