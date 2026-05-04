@@ -31,7 +31,7 @@ interface Discografia {
   id: string;
   artista_nome: string;
   imagem_url: string | null;
-  links: DiscografiaLink[];
+  links: any; // Using any for Json compatibility
   ordem: number;
 }
 
@@ -64,7 +64,7 @@ export default function AdminDiscografiasPage() {
       const payload = {
         artista_nome: artistaNome,
         imagem_url: imagemUrl || null,
-        links: links,
+        links: links as any,
       };
 
       if (isEditing && selectedDiscografia) {
@@ -74,7 +74,7 @@ export default function AdminDiscografiasPage() {
           .eq("id", selectedDiscografia.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("discografias").insert([payload]);
+        const { error } = await supabase.from("discografias").insert([payload as any]);
         if (error) throw error;
       }
     },
@@ -110,7 +110,7 @@ export default function AdminDiscografiasPage() {
     setSelectedDiscografia(discografia);
     setArtistaNome(discografia.artista_nome);
     setImagemUrl(discografia.imagem_url || "");
-    setLinks(discografia.links || []);
+    setLinks((discografia.links as DiscografiaLink[]) || []);
     setIsEditing(true);
     setIsOpen(true);
   };
@@ -197,11 +197,13 @@ export default function AdminDiscografiasPage() {
                   </Button>
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                   {links.map((link, index) => (
                     <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-lg text-sm">
-                      <span className="truncate flex-1 font-medium">{link.label}</span>
-                      <span className="truncate flex-1 text-muted-foreground ml-2">{link.url}</span>
+                      <div className="flex flex-col truncate flex-1">
+                        <span className="font-medium">{link.label}</span>
+                        <span className="text-xs text-muted-foreground truncate">{link.url}</span>
+                      </div>
                       <Button variant="ghost" size="icon" onClick={() => removeLink(index)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -247,7 +249,7 @@ export default function AdminDiscografiasPage() {
                   <TableCell className="font-medium">{disco.artista_nome}</TableCell>
                   <TableCell>
                     {disco.imagem_url ? (
-                      <div className="h-10 w-10 rounded-full overflow-hidden">
+                      <div className="h-10 w-10 rounded-full overflow-hidden border">
                         <img src={disco.imagem_url} alt={disco.artista_nome} className="h-full w-full object-cover" />
                       </div>
                     ) : (
@@ -255,7 +257,7 @@ export default function AdminDiscografiasPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-muted-foreground">{disco.links?.length || 0} links</span>
+                    <span className="text-sm text-muted-foreground">{(disco.links as any[])?.length || 0} links</span>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(disco)}>
