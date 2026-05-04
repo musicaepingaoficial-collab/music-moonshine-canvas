@@ -44,6 +44,8 @@ export default function AdminDiscografiasPage() {
   const [links, setLinks] = useState<DiscografiaLink[]>([]);
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useState<HTMLInputElement | null>(null);
 
   const queryClient = useQueryClient();
 
