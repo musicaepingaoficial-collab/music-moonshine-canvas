@@ -18,6 +18,7 @@ const AdminSitePage = () => {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [discografiasValor, setDiscografiasValor] = useState("0");
 
   useEffect(() => {
     if (settings) {
