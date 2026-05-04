@@ -26,6 +26,7 @@ const AdminSitePage = () => {
       setTitle(settings.maintenance_title);
       setMessage(settings.maintenance_message);
       setWhatsapp(settings.whatsapp_number || "");
+      setDiscografiasValor(settings.discografias_valor?.toString() || "0");
     }
   }, [settings]);
 
