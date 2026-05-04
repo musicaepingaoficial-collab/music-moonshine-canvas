@@ -179,6 +179,36 @@ export type Database = {
         }
         Relationships: []
       }
+      discografias: {
+        Row: {
+          artista_nome: string
+          created_at: string
+          id: string
+          imagem_url: string | null
+          links: Json | null
+          ordem: number | null
+          updated_at: string
+        }
+        Insert: {
+          artista_nome: string
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          links?: Json | null
+          ordem?: number | null
+          updated_at?: string
+        }
+        Update: {
+          artista_nome?: string
+          created_at?: string
+          id?: string
+          imagem_url?: string | null
+          links?: Json | null
+          ordem?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       downloads: {
         Row: {
           created_at: string
