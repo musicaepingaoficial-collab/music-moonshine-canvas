@@ -111,6 +111,27 @@ const AdminSitePage = () => {
             </p>
           </div>
 
+          <div className="space-y-4 border-t border-border/50 pt-5">
+            <p className="text-sm font-medium text-foreground">Venda de Módulos</p>
+            <div className="space-y-2">
+              <Label htmlFor="disc-valor" className="flex items-center gap-2">
+                <Disc className="h-4 w-4" />
+                Valor do Módulo Discografias (R$)
+              </Label>
+              <Input
+                id="disc-valor"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={discografiasValor}
+                onChange={(e) => setDiscografiasValor(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Define o preço para compra avulsa do módulo pelas discografias.
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-3 border-t border-border/50 pt-5">
             <p className="text-sm font-medium text-foreground">Página de manutenção</p>
             <div className="space-y-2">
