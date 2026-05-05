@@ -131,26 +131,26 @@ interface AudioWithMeta {
   subfolder: string | null;
 }
 
-// Recursively collect ALL audio files, tracking the immediate parent folder name
+// Recursively collect ALL audio files, tracking the full path from the root folder
 async function listAllAudioRecursive(
   accessToken: string,
   folderId: string,
-  parentFolderName: string | null
+  currentPath: string
 ): Promise<AudioWithMeta[]> {
   const audioFiles = await listAudioInFolder(accessToken, folderId);
   const result: AudioWithMeta[] = audioFiles.map((f) => ({
     ...f,
-    categoryName: null, // will be set by caller
-    subfolder: parentFolderName,
+    categoryName: null,
+    subfolder: currentPath,
   }));
 
   const subfolders = await listSubfolders(accessToken, folderId);
   for (const folder of subfolders) {
-    // For nested subfolders, keep the immediate parent name (first-level subfolder)
+    const nextPath = currentPath ? `${currentPath}/${folder.name}` : folder.name;
     const subFiles = await listAllAudioRecursive(
       accessToken,
       folder.id,
-      parentFolderName ?? folder.name // if already inside a subfolder, keep the top-level subfolder name
+      nextPath
     );
     result.push(...subFiles);
   }
