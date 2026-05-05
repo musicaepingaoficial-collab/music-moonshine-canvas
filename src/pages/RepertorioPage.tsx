@@ -476,14 +476,81 @@ const RepertorioPage = () => {
                   {downloadStage === "preparing"
                     ? `Preparando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`
                     : downloadStage === "downloading"
-                    ? `Baixando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`
-                    : `Finalizando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`}
+                    ? `Baixando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}`
+                    : `Finalizando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}`}
+                  {downloadPartBytes > 0 ? ` • ~${formatFileSize(downloadPartBytes)}` : ""}
                 </span>
                 <span className="shrink-0">{Math.round((downloadProgress / downloadTotal) * 100)}%</span>
               </div>
               <Progress value={(downloadProgress / downloadTotal) * 100} className="h-1.5 sm:h-2" />
             </div>
           )}
+
+          {!downloading && failedParts.length > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-destructive">
+                {failedParts.length} parte(s) do download falharam.
+              </p>
+              <Button size="sm" variant="outline" onClick={handleRetryFailedParts}>
+                <Download className="mr-1 h-3.5 w-3.5" />
+                Tentar novamente
+              </Button>
+            </div>
+          )}
+
+          <AlertDialog
+            open={!!pendingDownload}
+            onOpenChange={(open) => !open && setPendingDownload(null)}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar download</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2 text-sm">
+                    {pendingDownload && downloadPlan && (
+                      <>
+                        <p>
+                          Você vai baixar <strong>{downloadPlan.totalItems}</strong>{" "}
+                          música(s) de {pendingDownload.label}.
+                        </p>
+                        <p>
+                          Tamanho estimado:{" "}
+                          <strong>
+                            {downloadPlan.totalKnownBytes > 0
+                              ? formatFileSize(downloadPlan.totalKnownBytes)
+                              : "—"}
+                          </strong>
+                          {downloadPlan.unknownCount > 0 &&
+                            ` (+ ${downloadPlan.unknownCount} arquivo(s) sem tamanho informado)`}
+                        </p>
+                        <p>
+                          Serão gerados{" "}
+                          <strong>{downloadPlan.partCount}</strong> arquivo(s) ZIP
+                          (máx. {formatFileSize(MAX_ZIP_BYTES)} cada).
+                        </p>
+                        <p className="text-muted-foreground">
+                          Cada ZIP é baixado separadamente — extraia um por vez.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!pendingDownload) return;
+                    const { items, name, label } = pendingDownload;
+                    setPendingDownload(null);
+                    runDownload(items, name, label);
+                  }}
+                >
+                  Baixar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {isLoading ? (
             <MusicGridSkeleton count={6} />
