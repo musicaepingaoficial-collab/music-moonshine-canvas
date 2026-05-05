@@ -9,9 +9,9 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2, Eraser } from "lucide-react";
 import { downloadMultipleAsParts } from "@/services/zipService";
-import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdateRepertorioCover } from "@/hooks/useRepertorios";
+import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdateRepertorioCover, useClearRepertorio } from "@/hooks/useRepertorios";
 import { toast } from "sonner";
 import { useMemo, useRef, useState, useEffect } from "react";
 import type { Musica } from "@/types/database";
@@ -72,6 +72,7 @@ const RepertorioPage = () => {
   const removeSingle = useRemoveMusicaFromRepertorio();
   const removeMultiple = useRemoveMusicasFromRepertorio();
   const updateCover = useUpdateRepertorioCover();
+  const clearRepertorio = useClearRepertorio();
   const queryClient = useQueryClient();
 
   const { data: repertorio, isLoading: loadingRep, error: errorRep, refetch } = useQuery({
@@ -190,6 +191,14 @@ const RepertorioPage = () => {
         onError: () => toast.error("Erro ao remover pasta"),
       }
     );
+  };
+
+  const handleClearRepertorio = () => {
+    if (!id || !confirm("Tem certeza que deseja remover TODAS as músicas deste repertório?")) return;
+    clearRepertorio.mutate(id, {
+      onSuccess: () => toast.success("Repertório limpo com sucesso"),
+      onError: () => toast.error("Erro ao limpar repertório"),
+    });
   };
 
   const handleDownloadAll = async () => {
