@@ -460,28 +460,50 @@ const RepertorioPage = () => {
           ) : (musicas?.length ?? 0) > 0 ? (
             <div className="space-y-6">
               {hasFolders && (
-                <div className="flex flex-wrap items-center justify-start gap-1.5 sm:gap-2 mb-4">
-                  <Button
-                    variant={selectedFolder === null ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedFolder(null)}
-                    className="rounded-full text-[10px] h-7 px-3 sm:text-xs sm:h-8 sm:px-4"
-                  >
-                    Avulsas
-                  </Button>
-                  {groups.filter(g => g.name !== null).map((group) => (
-                    <Button
-                      key={group.name}
-                      variant={selectedFolder === group.name ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedFolder(group.name)}
-                      className="rounded-full flex items-center gap-2 text-[10px] h-7 px-3 sm:text-xs sm:h-8 sm:px-4"
+                <div className="space-y-4 mb-6">
+                  {/* Breadcrumbs */}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto pb-2">
+                    <button 
+                      onClick={() => handleBreadcrumbClick(-1)}
+                      className={`hover:text-primary transition-colors whitespace-nowrap ${navigationPath.length === 0 ? 'text-primary font-bold' : ''}`}
                     >
-                      <FolderOpen className="h-3.5 w-3.5" />
-                      {group.name}
-                      <span className="text-[10px] opacity-70">({group.musicas.length})</span>
-                    </Button>
-                  ))}
+                      Raiz
+                    </button>
+                    {navigationPath.map((part, i) => (
+                      <div key={i} className="flex items-center gap-1">
+                        <ChevronRight className="h-3 w-3" />
+                        <button 
+                          onClick={() => handleBreadcrumbClick(i)}
+                          className={`hover:text-primary transition-colors whitespace-nowrap ${i === navigationPath.length - 1 ? 'text-primary font-bold' : ''}`}
+                        >
+                          {part}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Folder Grid */}
+                  {currentLevelFolders.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                      {currentLevelFolders.map((folderName) => (
+                        <button
+                          key={folderName}
+                          onClick={() => handleFolderClick(folderName)}
+                          className="flex flex-col items-center gap-2 p-3 rounded-xl border border-border bg-card hover:bg-accent transition-all text-center group"
+                        >
+                          <div className="relative">
+                            <FolderOpen className="h-8 w-8 text-primary/80 group-hover:scale-110 transition-transform" />
+                            <div className="absolute -top-1 -right-1 bg-primary text-[8px] text-primary-foreground rounded-full h-4 min-w-4 px-1 flex items-center justify-center font-bold">
+                              {groups.find(g => g.name === folderName)?.musicas.length || 0}
+                            </div>
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-medium truncate w-full">
+                            {folderName.split('/').pop()}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
