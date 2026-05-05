@@ -36,11 +36,20 @@ export type DownloadPartsProgress = {
   stage: DownloadStage;
 };
 
+export type FailedPart = {
+  partIndex: number;
+  partName: string;
+  ids: string[];
+  estimatedBytes: number;
+  error: string;
+};
+
 export type DownloadManyZipsResult = {
   parts: number;
   downloaded: number;
   failed: number;
   failedFiles: string[];
+  failedParts: FailedPart[];
 };
 
 type DownloadBlobOptions = {
