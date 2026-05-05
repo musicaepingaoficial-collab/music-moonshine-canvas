@@ -1,0 +1,3 @@
+ALTER TABLE public.google_drives 
+ADD COLUMN IF NOT EXISTS total_size_bytes BIGINT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS used_size_bytes BIGINT DEFAULT 0;

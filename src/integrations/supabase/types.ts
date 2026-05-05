@@ -277,7 +277,9 @@ export type Database = {
           id: string
           name: string
           status: string
+          total_size_bytes: number | null
           usage_percent: number
+          used_size_bytes: number | null
         }
         Insert: {
           created_at?: string
@@ -285,7 +287,9 @@ export type Database = {
           id?: string
           name: string
           status?: string
+          total_size_bytes?: number | null
           usage_percent?: number
+          used_size_bytes?: number | null
         }
         Update: {
           created_at?: string
@@ -293,7 +297,9 @@ export type Database = {
           id?: string
           name?: string
           status?: string
+          total_size_bytes?: number | null
           usage_percent?: number
+          used_size_bytes?: number | null
         }
         Relationships: []
       }
