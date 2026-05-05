@@ -43,7 +43,19 @@ async function getAccessToken(serviceAccount: { client_email: string; private_ke
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
   });
-  if (!res.ok) throw new Error(`Failed to get access token: ${await res.text()}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`Error getting access token from Google: ${res.status} - ${errorText}`);
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson.error === "invalid_grant") {
+        throw new Error("Erro de autenticação com o Google: A Chave da Conta de Serviço é inválida ou expirou.");
+      }
+      throw new Error(`Erro do Google: ${errorJson.error_description || errorJson.error || errorText}`);
+    } catch {
+      throw new Error(`Erro ao obter token do Google: ${res.status}`);
+    }
+  }
   const data = await res.json();
   return data.access_token;
 }
@@ -61,7 +73,17 @@ async function listSubfolders(accessToken: string, folderId: string): Promise<Ar
     url.searchParams.set("includeItemsFromAllDrives", "true");
     if (pageToken) url.searchParams.set("pageToken", pageToken);
     const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!res.ok) throw new Error(`Drive API error: ${await res.text()}`);
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`Google Drive API error listing folders (ID: ${folderId}): ${res.status} - ${errorText}`);
+      if (res.status === 404) {
+        throw new Error(`Pasta do Google Drive não encontrada (ID: ${folderId}). Verifique se o ID está correto.`);
+      }
+      if (res.status === 403) {
+        throw new Error("Acesso negado à pasta do Google Drive. Verifique se você compartilhou a pasta com o e-mail do bot.");
+      }
+      throw new Error(`Erro na API do Drive: ${res.status}`);
+    }
     const data = await res.json();
     folders.push(...(data.files || []));
     pageToken = data.nextPageToken || "";
@@ -82,7 +104,17 @@ async function listAudioInFolder(accessToken: string, folderId: string): Promise
     url.searchParams.set("includeItemsFromAllDrives", "true");
     if (pageToken) url.searchParams.set("pageToken", pageToken);
     const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!res.ok) throw new Error(`Drive API error: ${await res.text()}`);
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`Google Drive API error listing audio (ID: ${folderId}): ${res.status} - ${errorText}`);
+      if (res.status === 404) {
+        throw new Error(`Pasta não encontrada (ID: ${folderId}).`);
+      }
+      if (res.status === 403) {
+        throw new Error("Acesso negado ao listar arquivos de áudio.");
+      }
+      throw new Error(`Erro ao listar áudios: ${res.status}`);
+    }
     const data = await res.json();
     files.push(...(data.files || []).map((f: any) => ({ ...f, size: Number(f.size) || 0 })));
     pageToken = data.nextPageToken || "";
@@ -180,7 +212,15 @@ serve(async (req) => {
       });
     }
 
-    const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
+    let serviceAccount;
+    try {
+      serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
+    } catch (e) {
+      console.error("Erro ao processar GOOGLE_SERVICE_ACCOUNT_KEY:", e);
+      return new Response(JSON.stringify({ error: "Configuração da Conta de Serviço inválida (JSON corrompido)" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const { driveId, googleDriveTableId } = await req.json();
 
     if (!driveId || !googleDriveTableId) {
