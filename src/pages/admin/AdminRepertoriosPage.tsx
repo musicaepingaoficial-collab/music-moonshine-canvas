@@ -389,6 +389,7 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
   const removeMusica = useRemoveMusicaFromRepertorio();
 
   const [search, setSearch] = useState("");
+  const [folderSearch, setFolderSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data: drives } = useQuery({
