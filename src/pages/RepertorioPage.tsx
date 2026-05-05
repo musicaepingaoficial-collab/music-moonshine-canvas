@@ -361,20 +361,18 @@ const RepertorioPage = () => {
                 <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
               </Button>
             </Link>
-            {(musicas?.length ?? 0) > 0 && (
-              <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <Button
-                    onClick={handleClearRepertorio}
-                    disabled={clearRepertorio.isPending}
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:bg-destructive/10"
-                  >
-                    <Eraser className="mr-1 h-4 w-4" />
-                    Limpar
-                  </Button>
-                )}
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleClearRepertorio}
+                disabled={clearRepertorio.isPending}
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10"
+              >
+                <Eraser className="mr-1 h-4 w-4" />
+                Limpar
+              </Button>
+              {(musicas?.length ?? 0) > 0 && (
                 <Button
                   onClick={handleDownloadAll}
                   disabled={downloading || isTrial}
@@ -385,8 +383,8 @@ const RepertorioPage = () => {
                   <Download className="mr-1 h-4 w-4" />
                   {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {downloading && downloadTotal > 0 && (
