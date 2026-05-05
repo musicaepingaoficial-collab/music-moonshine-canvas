@@ -512,11 +512,11 @@ const RepertorioPage = () => {
                   <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     {selectedFolder ? (
                       <>
-                        <FolderOpen className="h-4 w-4 text-primary" /> {selectedFolder}
+                        <FolderOpen className="h-4 w-4 text-primary" /> {selectedFolder.split('/').pop()}
                       </>
                     ) : (
                       <>
-                        <Music2 className="h-4 w-4" /> Músicas avulsas
+                        <Music2 className="h-4 w-4" /> Músicas na Raiz
                       </>
                     )}
                   </h3>
