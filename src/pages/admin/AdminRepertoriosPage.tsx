@@ -340,7 +340,16 @@ const AdminRepertoriosPage = () => {
                             >
                               <Music2 className="mr-1 h-4 w-4" /> Músicas
                             </Button>
-{/* Opção limpar removida conforme solicitação do usuário */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleClear(r.id, r.name)}
+                              disabled={clearRep.isPending}
+                              className="text-destructive hover:bg-destructive/10 border-destructive/20"
+                              title="Limpar todas as músicas"
+                            >
+                              <Eraser className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="destructive"
                               size="sm"

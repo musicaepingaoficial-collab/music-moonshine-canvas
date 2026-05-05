@@ -431,18 +431,7 @@ const RepertorioPage = () => {
               </Button>
             </Link>
             <div className="flex items-center gap-2">
-              {isAdmin && (
-                <Button
-                  onClick={handleClearRepertorio}
-                  disabled={clearRepertorio.isPending}
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive hover:bg-destructive/10"
-                >
-                  <Eraser className="mr-1 h-4 w-4" />
-                  Limpar
-                </Button>
-              )}
+              {/* Botão limpar removido da tela principal do aplicativo conforme solicitado */}
               {(musicas?.length ?? 0) > 0 && (
                 <Button
                   onClick={handleDownloadAll}
