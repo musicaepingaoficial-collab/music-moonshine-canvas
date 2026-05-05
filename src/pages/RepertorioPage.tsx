@@ -137,14 +137,27 @@ const RepertorioPage = () => {
       if (g.name) {
         const parts = g.name.split('/');
         if (parts.length === 1) {
-          rootFolders.push(g.name);
+          if (!rootFolders.includes(g.name)) rootFolders.push(g.name);
         } else {
-          const parent = parts.slice(0, -1).join('/');
-          if (!children[parent]) children[parent] = [];
-          children[parent].push(g.name);
+          // Add all intermediate parents to the tree
+          for (let i = 0; i < parts.length - 1; i++) {
+            const parent = parts.slice(0, i + 1).join('/');
+            const child = parts.slice(0, i + 2).join('/');
+            
+            if (i === 0 && !rootFolders.includes(parts[0])) {
+              rootFolders.push(parts[0]);
+            }
+            
+            if (!children[parent]) children[parent] = [];
+            if (!children[parent].includes(child)) children[parent].push(child);
+          }
         }
       }
     });
+
+    // Sort folders alphabetically
+    rootFolders.sort();
+    Object.keys(children).forEach(key => children[key].sort());
 
     return { rootFolders, children };
   }, [groups]);
@@ -160,7 +173,13 @@ const RepertorioPage = () => {
   const handleFolderClick = (folderName: string) => {
     const parts = folderName.split('/');
     setNavigationPath(parts);
-    setSelectedFolder(folderName);
+    // Only select the folder if it has music in this specific path
+    const hasMusic = groups.some(g => g.name === folderName);
+    if (hasMusic) {
+      setSelectedFolder(folderName);
+    } else {
+      setSelectedFolder(null);
+    }
   };
 
   const handleBreadcrumbClick = (index: number) => {
@@ -459,64 +478,95 @@ const RepertorioPage = () => {
             <MusicGridSkeleton count={6} />
           ) : (musicas?.length ?? 0) > 0 ? (
             <div className="space-y-6">
-              {hasFolders && (
-                <div className="space-y-4 mb-6">
-                  {/* Breadcrumbs */}
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto pb-2">
-                    <button 
-                      onClick={() => handleBreadcrumbClick(-1)}
-                      className={`hover:text-primary transition-colors whitespace-nowrap ${navigationPath.length === 0 ? 'text-primary font-bold' : ''}`}
-                    >
-                      Raiz
-                    </button>
-                    {navigationPath.map((part, i) => (
-                      <div key={i} className="flex items-center gap-1">
-                        <ChevronRight className="h-3 w-3" />
-                        <button 
-                          onClick={() => handleBreadcrumbClick(i)}
-                          className={`hover:text-primary transition-colors whitespace-nowrap ${i === navigationPath.length - 1 ? 'text-primary font-bold' : ''}`}
-                        >
-                          {part}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Folder Grid */}
-                  {currentLevelFolders.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                      {currentLevelFolders.map((folderName) => (
-                        <button
-                          key={folderName}
-                          onClick={() => handleFolderClick(folderName)}
-                          className="flex flex-col items-center gap-2 p-3 rounded-xl border border-border bg-card hover:bg-accent transition-all text-center group"
-                        >
-                          <div className="relative">
-                            <FolderOpen className="h-8 w-8 text-primary/80 group-hover:scale-110 transition-transform" />
-                            <div className="absolute -top-1 -right-1 bg-primary text-[8px] text-primary-foreground rounded-full h-4 min-w-4 px-1 flex items-center justify-center font-bold">
-                              {groups.find(g => g.name === folderName)?.musicas.length || 0}
-                            </div>
-                          </div>
-                          <span className="text-[10px] sm:text-xs font-medium truncate w-full">
-                            {folderName.split('/').pop()}
-                          </span>
-                        </button>
-                      ))}
+              <div className="space-y-4 mb-6">
+                {/* Breadcrumbs */}
+                <div className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto pb-2 scrollbar-none">
+                  <button 
+                    onClick={() => handleBreadcrumbClick(-1)}
+                    className={`hover:text-primary transition-colors whitespace-nowrap flex items-center gap-1 ${navigationPath.length === 0 ? 'text-primary font-bold' : ''}`}
+                  >
+                    <FolderOpen className="h-3 w-3" />
+                    Raiz
+                  </button>
+                  {navigationPath.map((part, i) => (
+                    <div key={i} className="flex items-center gap-1 shrink-0">
+                      <ChevronRight className="h-3 w-3" />
+                      <button 
+                        onClick={() => handleBreadcrumbClick(i)}
+                        className={`hover:text-primary transition-colors whitespace-nowrap ${i === navigationPath.length - 1 ? 'text-primary font-bold' : ''}`}
+                      >
+                        {part}
+                      </button>
                     </div>
-                  )}
+                  ))}
                 </div>
-              )}
+
+                {/* Subfolders Grid */}
+                {currentLevelFolders.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                    {currentLevelFolders.map((folder) => {
+                      const folderName = folder.split('/').pop() || folder;
+                      const isSelected = selectedFolder === folder;
+                      const hasFiles = groups.some(g => g.name === folder);
+                      
+                      return (
+                        <div key={folder} className="group relative">
+                          <Button
+                            variant="outline"
+                            className={`w-full justify-start gap-2 h-auto py-3 px-3 border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all ${
+                              isSelected ? "border-primary bg-primary/10" : ""
+                            }`}
+                            onClick={() => handleFolderClick(folder)}
+                          >
+                            <FolderOpen className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`} />
+                            <div className="flex flex-col items-start min-w-0">
+                              <span className="text-sm font-medium truncate w-full text-left">
+                                {folderName}
+                              </span>
+                              {hasFiles && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {groups.find(g => g.name === folder)?.musicas.length} músicas
+                                </span>
+                              )}
+                            </div>
+                          </Button>
+                          {isAdmin && hasFiles && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-background border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFolder(folderName, groups.find(g => g.name === folder)?.musicas.map(m => m.id) || []);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
                     {selectedFolder ? (
                       <>
-                        <FolderOpen className="h-4 w-4 text-primary" /> {selectedFolder.split('/').pop()}
+                        <Music2 className="h-4 w-4 text-primary" />
+                        Músicas em {selectedFolder.split('/').pop()}
+                      </>
+                    ) : navigationPath.length === 0 ? (
+                      <>
+                        <Music2 className="h-4 w-4 text-primary" />
+                        Músicas na Raiz
                       </>
                     ) : (
                       <>
-                        <Music2 className="h-4 w-4" /> Músicas na Raiz
+                        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                        Selecione uma subpasta acima
                       </>
                     )}
                   </h3>
