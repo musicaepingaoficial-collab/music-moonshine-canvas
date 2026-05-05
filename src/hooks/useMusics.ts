@@ -6,11 +6,25 @@ export function useMusicas() {
   return useQuery<MusicaWithCategoria[]>({
     queryKey: ["musicas"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("musicas" as any) as any)
-        .select("*, categorias(*)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as MusicaWithCategoria[];
+      const allData: MusicaWithCategoria[] = [];
+      let offset = 0;
+      const limit = 1000;
+      
+      while (true) {
+        const { data, error } = await (supabase.from("musicas" as any) as any)
+          .select("*, categorias(*)")
+          .order("created_at", { ascending: false })
+          .range(offset, offset + limit - 1);
+          
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        
+        allData.push(...(data as MusicaWithCategoria[]));
+        if (data.length < limit) break;
+        offset += limit;
+      }
+      
+      return allData;
     },
   });
 }
