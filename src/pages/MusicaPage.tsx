@@ -81,9 +81,9 @@ const MusicaPage = () => {
           Voltar
         </button>
 
-        <div className="flex flex-col gap-8 md:flex-row md:items-start pb-12">
+        <div className="flex flex-col gap-6 md:gap-8 md:flex-row md:items-start pb-12">
           {/* Capa */}
-          <div className="relative aspect-square w-full max-w-[300px] shrink-0 overflow-hidden rounded-2xl bg-secondary shadow-2xl md:max-w-[350px]">
+          <div className="relative aspect-square w-full max-w-[280px] sm:max-w-[300px] shrink-0 overflow-hidden rounded-2xl bg-secondary shadow-2xl md:max-w-[350px] mx-auto md:mx-0">
             {musica.cover_url ? (
               <img
                 src={musica.cover_url}
@@ -109,14 +109,14 @@ const MusicaPage = () => {
           {/* Info */}
           <div className="flex-1 space-y-6 text-center md:text-left">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-5xl">{musica.title}</h1>
-              <p className="mt-2 text-lg text-muted-foreground md:text-xl">{musica.artist}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground md:text-5xl">{musica.title}</h1>
+              <p className="mt-1 sm:mt-2 text-base sm:text-lg text-muted-foreground md:text-xl">{musica.artist}</p>
             </div>
 
             <div className="flex flex-wrap justify-center gap-3 md:justify-start">
               <Button
                 size="lg"
-                className="gap-2 rounded-full px-8 h-12 text-base font-semibold transition-all hover:scale-105 active:scale-95"
+                className="w-full sm:w-auto gap-2 rounded-full px-8 h-12 text-base font-semibold transition-all hover:scale-105 active:scale-95"
                 onClick={handlePlay}
               >
                 <Play className="h-5 w-5 fill-current" />
@@ -126,7 +126,7 @@ const MusicaPage = () => {
               <Button
                 size="lg"
                 variant="secondary"
-                className="gap-2 rounded-full px-8 h-12 text-base font-semibold transition-all hover:scale-105 active:scale-95"
+                className="w-full sm:w-auto gap-2 rounded-full px-8 h-12 text-base font-semibold transition-all hover:scale-105 active:scale-95"
                 onClick={handleDownload}
                 disabled={downloading}
               >

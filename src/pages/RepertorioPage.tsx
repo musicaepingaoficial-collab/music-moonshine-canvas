@@ -298,26 +298,26 @@ const RepertorioPage = () => {
       ) : (
         <>
           {/* Header with cover */}
-          <div className="flex items-start gap-5">
-            <div className="group relative flex h-28 w-28 shrink-0 items-center justify-center rounded-xl bg-secondary border-2 border-dashed border-border overflow-hidden transition-colors cursor-default"
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 text-center sm:text-left">
+            <div className="group relative flex h-24 w-24 sm:h-28 sm:w-28 shrink-0 items-center justify-center rounded-xl bg-secondary border-2 border-dashed border-border overflow-hidden transition-colors cursor-default"
               aria-label="Capa do repertÃ³rio"
             >
               {repertorio?.cover_url ? (
                 <img src={repertorio.cover_url} alt="Capa" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex flex-col items-center gap-1 text-muted-foreground transition-colors">
-                  <Music2 className="h-6 w-6" />
+                  <Music2 className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
               )}
             </div>
-            <div className="flex-1 min-w-0 space-y-1 pt-1">
-              <h1 className="text-2xl font-bold text-foreground truncate">
+            <div className="flex-1 min-w-0 space-y-1 pt-1 w-full">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                 {repertorio?.name ?? "Carregando..."}
               </h1>
               <p className="text-sm text-muted-foreground">
                 {repertorio?.description ?? `${musicas?.length ?? 0} Musicas Neste Repertório`}
               </p>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+              <div className="flex items-center justify-center sm:justify-start gap-4 text-xs text-muted-foreground pt-1">
                 <span className="flex items-center gap-1">
                   <Music2 className="h-3.5 w-3.5" />
                   {musicas?.length ?? 0} Musicas
@@ -353,18 +353,18 @@ const RepertorioPage = () => {
           </div>
 
           {downloading && downloadTotal > 0 && (
-            <div className="space-y-2 rounded-lg border border-border bg-card p-4">
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>
+            <div className="space-y-2 rounded-lg border border-border bg-card p-3 sm:p-4">
+              <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground gap-2">
+                <span className="truncate">
                   {downloadStage === "preparing"
                     ? `Preparando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`
                     : downloadStage === "downloading"
                     ? `Baixando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`
                     : `Finalizando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`}
                 </span>
-                <span>{Math.round((downloadProgress / downloadTotal) * 100)}%</span>
+                <span className="shrink-0">{Math.round((downloadProgress / downloadTotal) * 100)}%</span>
               </div>
-              <Progress value={(downloadProgress / downloadTotal) * 100} className="h-2" />
+              <Progress value={(downloadProgress / downloadTotal) * 100} className="h-1.5 sm:h-2" />
             </div>
           )}
 
@@ -373,14 +373,14 @@ const RepertorioPage = () => {
           ) : (musicas?.length ?? 0) > 0 ? (
             <div className="space-y-6">
               {hasFolders && (
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap items-center justify-start gap-1.5 sm:gap-2 mb-4">
                   <Button
                     variant={selectedFolder === null ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedFolder(null)}
-                    className="rounded-full"
+                    className="rounded-full text-[10px] h-7 px-3 sm:text-xs sm:h-8 sm:px-4"
                   >
-                    Músicas avulsas
+                    Avulsas
                   </Button>
                   {groups.filter(g => g.name !== null).map((group) => (
                     <Button
@@ -388,7 +388,7 @@ const RepertorioPage = () => {
                       variant={selectedFolder === group.name ? "default" : "outline"}
                       size="sm"
                       onClick={() => setSelectedFolder(group.name)}
-                      className="rounded-full flex items-center gap-2"
+                      className="rounded-full flex items-center gap-2 text-[10px] h-7 px-3 sm:text-xs sm:h-8 sm:px-4"
                     >
                       <FolderOpen className="h-3.5 w-3.5" />
                       {group.name}
