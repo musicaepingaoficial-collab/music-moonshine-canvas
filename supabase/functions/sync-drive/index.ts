@@ -322,40 +322,6 @@ serve(async (req) => {
     for (let i = 0; i < allFiles.length; i += 200) {
       const batch = allFiles.slice(i, i + 200);
 
-      const toUpdate: Array<{ id: string; data: any }> = [];
-      const toInsert: any[] = [];
-
-      for (const f of batch) {
-        const nameWithoutExt = f.name.replace(/\.[^.]+$/, "");
-        let title = nameWithoutExt;
-        let artist = "Desconhecido";
-        if (nameWithoutExt.includes(" - ")) {
-          const parts = nameWithoutExt.split(" - ");
-          artist = parts[0].trim();
-          title = parts.slice(1).join(" - ").trim();
-        }
-
-        const categoriaId = f.categoryName ? (categoryMap[f.categoryName] || null) : null;
-
-        const record = {
-          title,
-          artist,
-          file_url: f.id,
-          drive_id: googleDriveTableId,
-          duration: 0,
-          file_size: f.size || 0,
-          categoria_id: categoriaId,
-          subfolder: f.subfolder || null,
-        };
-
-        const existingId = existingMap.get(f.id);
-        if (existingId) {
-          toUpdate.push({ id: existingId, data: record });
-        } else {
-          toInsert.push(record);
-        }
-      }
-
       // Insert/Update records in a single upsert operation for speed
       const upsertData = batch.map(f => {
         const nameWithoutExt = f.name.replace(/\.[^.]+$/, "");
@@ -367,7 +333,6 @@ serve(async (req) => {
           title = parts.slice(1).join(" - ").trim();
         }
 
-        const categoriaId = f.categoryName ? (categoryMap[f.categoryName] || null) : null;
         const existingId = existingMap.get(f.id);
 
         return {
@@ -378,7 +343,7 @@ serve(async (req) => {
           drive_id: googleDriveTableId,
           duration: 0,
           file_size: f.size || 0,
-          categoria_id: categoriaId,
+          categoria_id: null, // Categories are no longer based on folder names
           subfolder: f.subfolder || null,
         };
       });
@@ -390,11 +355,9 @@ serve(async (req) => {
           
         if (upsertErr) {
           console.error("Upsert error:", upsertErr);
-          // If upsert fails, fallback to manual logic or throw
           throw new Error(`Erro ao salvar músicas: ${upsertErr.message}`);
         }
         
-        // Count updates vs inserts for logging (approximate)
         batch.forEach(f => {
           if (existingMap.has(f.id)) updated++;
           else inserted++;
