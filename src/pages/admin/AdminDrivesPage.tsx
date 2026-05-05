@@ -310,6 +310,8 @@ const AdminDrivesPage = () => {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {drives!.map((drive, i) => {
             const usage = drive.usage_percent ?? 0;
+            const totalGB = drive.total_size_bytes ? (drive.total_size_bytes / (1024 ** 3)).toFixed(1) : "0";
+            const usedGB = drive.used_size_bytes ? (drive.used_size_bytes / (1024 ** 3)).toFixed(1) : "0";
             const isWarning = usage > 80;
             const isCritical = usage > 95;
 
@@ -332,7 +334,7 @@ const AdminDrivesPage = () => {
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Uso</span>
+                        <span className="text-muted-foreground">Uso ({usedGB}GB de {totalGB}GB)</span>
                         <span className={isCritical ? "text-destructive font-bold" : isWarning ? "text-yellow-500 font-medium" : "text-foreground"}>
                           {usage}%
                         </span>
