@@ -9,9 +9,9 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2, Eraser } from "lucide-react";
 import { downloadMultipleAsParts } from "@/services/zipService";
-import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdateRepertorioCover } from "@/hooks/useRepertorios";
+import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdateRepertorioCover, useClearRepertorio } from "@/hooks/useRepertorios";
 import { toast } from "sonner";
 import { useMemo, useRef, useState, useEffect } from "react";
 import type { Musica } from "@/types/database";
@@ -72,6 +72,7 @@ const RepertorioPage = () => {
   const removeSingle = useRemoveMusicaFromRepertorio();
   const removeMultiple = useRemoveMusicasFromRepertorio();
   const updateCover = useUpdateRepertorioCover();
+  const clearRepertorio = useClearRepertorio();
   const queryClient = useQueryClient();
 
   const { data: repertorio, isLoading: loadingRep, error: errorRep, refetch } = useQuery({
@@ -190,6 +191,14 @@ const RepertorioPage = () => {
         onError: () => toast.error("Erro ao remover pasta"),
       }
     );
+  };
+
+  const handleClearRepertorio = () => {
+    if (!id || !confirm("Tem certeza que deseja remover TODAS as músicas deste repertório?")) return;
+    clearRepertorio.mutate(id, {
+      onSuccess: () => toast.success("Repertório limpo com sucesso"),
+      onError: () => toast.error("Erro ao limpar repertório"),
+    });
   };
 
   const handleDownloadAll = async () => {
@@ -353,16 +362,30 @@ const RepertorioPage = () => {
               </Button>
             </Link>
             {(musicas?.length ?? 0) > 0 && (
-              <Button
-                onClick={handleDownloadAll}
-                disabled={downloading || isTrial}
-                size="sm"
-                title={isTrial ? "DisponÃ­vel apenas para assinantes" : undefined}
-                aria-label="Baixar repertÃ³rio completo"
-              >
-                <Download className="mr-1 h-4 w-4" />
-                {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
-              </Button>
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <Button
+                    onClick={handleClearRepertorio}
+                    disabled={clearRepertorio.isPending}
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10"
+                  >
+                    <Eraser className="mr-1 h-4 w-4" />
+                    Limpar
+                  </Button>
+                )}
+                <Button
+                  onClick={handleDownloadAll}
+                  disabled={downloading || isTrial}
+                  size="sm"
+                  title={isTrial ? "DisponÃ­vel apenas para assinantes" : undefined}
+                  aria-label="Baixar repertÃ³rio completo"
+                >
+                  <Download className="mr-1 h-4 w-4" />
+                  {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
+                </Button>
+              </div>
             )}
           </div>
 
