@@ -35,6 +35,10 @@ function groupBySubfolder(musicas: Musica[]): FolderGroup[] {
   const sorted = [...map.entries()].sort((a, b) => {
     if (a[0] === null) return 1;
     if (b[0] === null) return -1;
+    // Sort by depth (number of slashes) first, then alphabetically
+    const depthA = (a[0].match(/\//g) || []).length;
+    const depthB = (b[0].match(/\//g) || []).length;
+    if (depthA !== depthB) return depthA - depthB;
     return a[0].localeCompare(b[0]);
   });
   for (const [name, musicas] of sorted) {
