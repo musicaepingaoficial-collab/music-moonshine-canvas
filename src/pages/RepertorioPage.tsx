@@ -137,14 +137,27 @@ const RepertorioPage = () => {
       if (g.name) {
         const parts = g.name.split('/');
         if (parts.length === 1) {
-          rootFolders.push(g.name);
+          if (!rootFolders.includes(g.name)) rootFolders.push(g.name);
         } else {
-          const parent = parts.slice(0, -1).join('/');
-          if (!children[parent]) children[parent] = [];
-          children[parent].push(g.name);
+          // Add all intermediate parents to the tree
+          for (let i = 0; i < parts.length - 1; i++) {
+            const parent = parts.slice(0, i + 1).join('/');
+            const child = parts.slice(0, i + 2).join('/');
+            
+            if (i === 0 && !rootFolders.includes(parts[0])) {
+              rootFolders.push(parts[0]);
+            }
+            
+            if (!children[parent]) children[parent] = [];
+            if (!children[parent].includes(child)) children[parent].push(child);
+          }
         }
       }
     });
+
+    // Sort folders alphabetically
+    rootFolders.sort();
+    Object.keys(children).forEach(key => children[key].sort());
 
     return { rootFolders, children };
   }, [groups]);
@@ -160,7 +173,13 @@ const RepertorioPage = () => {
   const handleFolderClick = (folderName: string) => {
     const parts = folderName.split('/');
     setNavigationPath(parts);
-    setSelectedFolder(folderName);
+    // Only select the folder if it has music in this specific path
+    const hasMusic = groups.some(g => g.name === folderName);
+    if (hasMusic) {
+      setSelectedFolder(folderName);
+    } else {
+      setSelectedFolder(null);
+    }
   };
 
   const handleBreadcrumbClick = (index: number) => {
