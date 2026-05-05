@@ -10,7 +10,17 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
 import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2, Eraser } from "lucide-react";
-import { downloadMultipleAsParts } from "@/services/zipService";
+import { downloadMultipleAsParts, planZipParts, type FailedPart, type DownloadArchiveItem } from "@/services/zipService";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdateRepertorioCover, useClearRepertorio } from "@/hooks/useRepertorios";
 import { toast } from "sonner";
 import { useMemo, useRef, useState, useEffect } from "react";
