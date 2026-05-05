@@ -372,6 +372,7 @@ const RepertorioPage = () => {
             <MusicGridSkeleton count={6} />
           ) : (musicas?.length ?? 0) > 0 ? (
             <div className="space-y-6">
+              {hasFolders && (
                 <div className="flex flex-wrap items-center justify-start gap-1.5 sm:gap-2 mb-4">
                   <Button
                     variant={selectedFolder === null ? "default" : "outline"}
