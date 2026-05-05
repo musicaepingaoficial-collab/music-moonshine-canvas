@@ -251,32 +251,10 @@ serve(async (req) => {
       console.warn("Could not fetch drive quota:", e);
     }
 
-    // === STEP 1: Scan Drive ===
-    const rootFolders = await listSubfolders(accessToken, driveId);
-    const rootAudioFiles = await listAudioInFolder(accessToken, driveId);
+    // === STEP 1: Scan Drive Recursively starting from the root ===
+    const allFiles: AudioWithMeta[] = await listAllAudioRecursive(accessToken, driveId, "");
 
-    console.log(`Found ${rootFolders.length} root folders and ${rootAudioFiles.length} loose audio files`);
-
-    const allFiles: AudioWithMeta[] = [];
-
-    for (const f of rootAudioFiles) {
-      allFiles.push({ ...f, size: f.size || 0, categoryName: null, subfolder: null });
-    }
-
-    for (const folder of rootFolders) {
-      const directFiles = await listAudioInFolder(accessToken, folder.id);
-      for (const f of directFiles) {
-        allFiles.push({ ...f, size: f.size || 0, categoryName: folder.name, subfolder: null });
-      }
-
-      const subfolders = await listSubfolders(accessToken, folder.id);
-      for (const sub of subfolders) {
-        const subFiles = await listAllAudioRecursive(accessToken, sub.id, sub.name);
-        for (const f of subFiles) {
-          allFiles.push({ ...f, categoryName: folder.name, subfolder: f.subfolder });
-        }
-      }
-    }
+    console.log(`Total audio files found: ${allFiles.length}`);
 
     console.log(`Total audio files found: ${allFiles.length}`);
 
