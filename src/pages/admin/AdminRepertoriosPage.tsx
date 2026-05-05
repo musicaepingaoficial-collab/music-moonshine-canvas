@@ -396,6 +396,15 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
   });
 
   const repMusicaIds = new Set((repMusicas ?? []).map((m) => m.id));
+  const drivesInRep = new Set((repMusicas ?? []).map((m) => m.drive_id).filter(Boolean));
+  
+  const foldersInRep = new Set();
+  (repMusicas ?? []).forEach(m => {
+    if (m.drive_id && m.subfolder) {
+      foldersInRep.add(`${m.drive_id}|${m.subfolder}`);
+    }
+  });
+
   const available = (allMusicas ?? []).filter(
     (m) =>
       !repMusicaIds.has(m.id) &&
@@ -562,8 +571,9 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
                 ) : (
                   folders?.map((f, i) => {
                     const drive = drives?.find(d => d.id === f.drive_id);
+                    const isAlreadyIn = foldersInRep.has(`${f.drive_id}|${f.subfolder}`);
                     return (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                      <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${isAlreadyIn ? 'bg-muted opacity-60' : 'bg-card/50'}`}>
                         <div className="flex items-center gap-3 overflow-hidden">
                           <Folder className="h-5 w-5 text-primary shrink-0" />
                           <div className="overflow-hidden">
@@ -572,12 +582,13 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
                           </div>
                         </div>
                         <Button 
-                          variant="outline" 
+                          variant={isAlreadyIn ? "ghost" : "outline"} 
                           size="sm" 
-                          onClick={() => addAllFromFolder(f.drive_id, f.subfolder)}
-                          disabled={addMusicas.isPending}
+                          onClick={() => !isAlreadyIn && addAllFromFolder(f.drive_id, f.subfolder)}
+                          disabled={addMusicas.isPending || isAlreadyIn}
                         >
-                          <Plus className="h-4 w-4 mr-1" /> Adicionar Tudo
+                          {isAlreadyIn ? <Check className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+                          {isAlreadyIn ? "Já adicionada" : "Adicionar Tudo"}
                         </Button>
                       </div>
                     );
@@ -591,22 +602,26 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
                 {drives?.length === 0 ? (
                   <EmptyState icon={HardDrive} title="Nenhum drive encontrado" />
                 ) : (
-                  drives?.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
-                      <div className="flex items-center gap-3">
-                        <HardDrive className="h-5 w-5 text-primary" />
-                        <span className="font-medium text-sm">{d.name}</span>
+                  drives?.map((d) => {
+                    const isAlreadyIn = drivesInRep.has(d.id);
+                    return (
+                      <div key={d.id} className={`flex items-center justify-between p-3 rounded-lg border ${isAlreadyIn ? 'bg-muted opacity-60' : 'bg-card/50'}`}>
+                        <div className="flex items-center gap-3">
+                          <HardDrive className="h-5 w-5 text-primary" />
+                          <span className="font-medium text-sm">{d.name}</span>
+                        </div>
+                        <Button 
+                          variant={isAlreadyIn ? "ghost" : "outline"}
+                          size="sm" 
+                          onClick={() => !isAlreadyIn && addAllFromDrive(d.id)}
+                          disabled={addMusicas.isPending || isAlreadyIn}
+                        >
+                          {isAlreadyIn ? <Check className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+                          {isAlreadyIn ? "Já adicionado" : "Adicionar Tudo"}
+                        </Button>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => addAllFromDrive(d.id)}
-                        disabled={addMusicas.isPending}
-                      >
-                        <Plus className="h-4 w-4 mr-1" /> Adicionar Tudo
-                      </Button>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </TabsContent>
