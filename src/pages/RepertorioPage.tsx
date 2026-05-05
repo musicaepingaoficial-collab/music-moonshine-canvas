@@ -519,19 +519,7 @@ const RepertorioPage = () => {
                               )}
                             </div>
                           </Button>
-                          {isAdmin && hasFiles && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-background border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveFolder(folderName, groups.find(g => g.name === folder)?.musicas.map(m => m.id) || []);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
+                          {/* Botão de excluir pasta removido conforme solicitação */}
                         </div>
                       );
                     })}
