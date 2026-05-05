@@ -37,15 +37,14 @@ export function MusicPlayer() {
     <AnimatePresence>
       {currentTrack && (
         <motion.div
-          initial={{ y: 80, opacity: 0 }}
+          initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
+          exit={{ y: 100, opacity: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="player-bar fixed bottom-0 left-0 right-0 z-50 flex h-20 items-center px-4 md:px-6"
+          className="player-bar fixed bottom-0 left-0 right-0 z-[60] flex h-24 md:h-20 flex-col md:flex-row items-center px-4 py-2 md:py-0 md:px-6 border-t border-border/40 bg-background/95 backdrop-blur-lg"
         >
-          {/* Track info */}
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-secondary">
+          <div className="flex w-full md:w-auto min-w-0 md:flex-1 items-center gap-3">
+            <div className="h-10 w-10 md:h-12 md:w-12 shrink-0 overflow-hidden rounded-md bg-secondary">
               {currentTrack.cover_url ? (
                 <img
                   src={currentTrack.cover_url}
@@ -55,23 +54,40 @@ export function MusicPlayer() {
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                  <Play className="h-5 w-5" />
+                  <Play className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
               )}
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs md:text-sm font-medium text-foreground">
                 {currentTrack.title}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-[10px] md:text-xs text-muted-foreground">
                 {currentTrack.artist}
               </p>
             </div>
+            <div className="flex items-center gap-2 md:hidden">
+              <button
+                onClick={handlePlayPause}
+                disabled={isLoading}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-background"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : isPlaying ? (
+                  <Pause className="h-3.5 w-3.5" fill="currentColor" />
+                ) : (
+                  <Play className="h-3.5 w-3.5 translate-x-0.5" fill="currentColor" />
+                )}
+              </button>
+              <button onClick={close} className="text-muted-foreground p-1">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex flex-1 flex-col items-center gap-1">
-            <div className="flex items-center gap-4">
+          <div className="flex w-full md:flex-1 flex-col items-center gap-0.5 md:gap-1 mt-1 md:mt-0">
+            <div className="hidden md:flex items-center gap-4">
               <button
                 onClick={previous}
                 className="text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring rounded-full p-1"
@@ -145,14 +161,7 @@ export function MusicPlayer() {
             </button>
           </div>
 
-          {/* Close button on mobile */}
-          <button
-            onClick={close}
-            className="ml-2 text-muted-foreground transition-all duration-200 hover:text-foreground rounded-full p-1 md:hidden"
-            aria-label="Fechar reprodutor"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {/* Remove duplicate close button on mobile as it's now in track info flex */}
         </motion.div>
       )}
     </AnimatePresence>

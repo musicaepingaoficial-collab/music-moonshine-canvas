@@ -116,15 +116,15 @@ export default function DiscografiasPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-xl">
-            <Disc className="h-6 w-6 text-primary" />
+    <div className="container mx-auto py-4 sm:py-8 px-2 sm:px-4 max-w-6xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-3 bg-primary/10 rounded-xl">
+            <Disc className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Discografias</h1>
-            <p className="text-muted-foreground">Baixe álbuns completos de seus artistas favoritos</p>
+            <h1 className="text-xl sm:text-3xl font-bold">Discografias</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Baixe álbuns completos dos artistas</p>
           </div>
         </div>
         

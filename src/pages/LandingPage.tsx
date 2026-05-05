@@ -156,10 +156,10 @@ export default function LandingPage() {
                 <Zap className="h-3.5 w-3.5" />
                 Mais de 100 mil músicas atualizadas
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight">
                 Packs de músicas
-                <br />
-                <span className="bg-gradient-to-r from-primary via-emerald-400 to-primary bg-clip-text text-transparent">
+                <br className="hidden sm:block" />
+                <span className="bg-gradient-to-r from-primary via-emerald-400 to-primary bg-clip-text text-transparent ml-1 sm:ml-0">
                   separados em playlists.
                 </span>
               </h1>
