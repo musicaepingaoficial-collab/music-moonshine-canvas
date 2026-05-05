@@ -376,7 +376,7 @@ const RepertorioPage = () => {
                 <div className="flex flex-wrap items-center justify-start gap-1.5 sm:gap-2 mb-4">
                   <Button
                     variant={selectedFolder === null ? "default" : "outline"}
-                    size="xs"
+                    size="sm"
                     onClick={() => setSelectedFolder(null)}
                     className="rounded-full text-[10px] h-7 px-3 sm:text-xs sm:h-8 sm:px-4"
                   >
@@ -386,7 +386,7 @@ const RepertorioPage = () => {
                     <Button
                       key={group.name}
                       variant={selectedFolder === group.name ? "default" : "outline"}
-                      size="xs"
+                      size="sm"
                       onClick={() => setSelectedFolder(group.name)}
                       className="rounded-full flex items-center gap-2 text-[10px] h-7 px-3 sm:text-xs sm:h-8 sm:px-4"
                     >
