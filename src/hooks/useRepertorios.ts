@@ -210,6 +210,22 @@ export function useRemoveMusicaFromRepertorio() {
     },
   });
 }
+export function useClearRepertorio() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (repertorioId: string) => {
+      const { error } = await db
+        .from("repertorio_musicas")
+        .delete()
+        .eq("repertorio_id", repertorioId);
+      if (error) throw error;
+    },
+    onSuccess: (_, repertorioId) => {
+      qc.invalidateQueries({ queryKey: ["repertorio-musicas", repertorioId] });
+      qc.invalidateQueries({ queryKey: ["repertorios"] });
+    },
+  });
+}
 
 export function useRemoveMusicasFromRepertorio() {
   const qc = useQueryClient();
