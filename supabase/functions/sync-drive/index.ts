@@ -320,9 +320,9 @@ serve(async (req) => {
     let inserted = 0;
     let removed = 0;
 
-    // 4a: Update existing + Insert new
-    for (let i = 0; i < allFiles.length; i += 100) {
-      const batch = allFiles.slice(i, i + 100);
+    // 4a: Update existing + Insert new using batch upsert
+    for (let i = 0; i < allFiles.length; i += 200) {
+      const batch = allFiles.slice(i, i + 200);
 
       const toUpdate: Array<{ id: string; data: any }> = [];
       const toInsert: any[] = [];
@@ -358,26 +358,49 @@ serve(async (req) => {
         }
       }
 
-      // Update existing records in parallel batches
-      if (toUpdate.length > 0) {
-        await Promise.all(toUpdate.map(async (item) => {
-          const { error: upErr } = await supabase
-            .from("musicas")
-            .update(item.data)
-            .eq("id", item.id);
-          if (upErr) console.error("Update error:", upErr);
-          else updated++;
-        }));
-      }
-
-      // Insert new records
-      if (toInsert.length > 0) {
-        const { error: insErr } = await supabase.from("musicas").insert(toInsert);
-        if (insErr) {
-          console.error("Insert error:", insErr);
-          throw new Error(`Erro ao inserir músicas: ${insErr.message}`);
+      // Insert/Update records in a single upsert operation for speed
+      const upsertData = batch.map(f => {
+        const nameWithoutExt = f.name.replace(/\.[^.]+$/, "");
+        let title = nameWithoutExt;
+        let artist = "Desconhecido";
+        if (nameWithoutExt.includes(" - ")) {
+          const parts = nameWithoutExt.split(" - ");
+          artist = parts[0].trim();
+          title = parts.slice(1).join(" - ").trim();
         }
-        inserted += toInsert.length;
+
+        const categoriaId = f.categoryName ? (categoryMap[f.categoryName] || null) : null;
+        const existingId = existingMap.get(f.id);
+
+        return {
+          ...(existingId ? { id: existingId } : {}),
+          title,
+          artist,
+          file_url: f.id,
+          drive_id: googleDriveTableId,
+          duration: 0,
+          file_size: f.size || 0,
+          categoria_id: categoriaId,
+          subfolder: f.subfolder || null,
+        };
+      });
+
+      if (upsertData.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from("musicas")
+          .upsert(upsertData, { onConflict: 'file_url' });
+          
+        if (upsertErr) {
+          console.error("Upsert error:", upsertErr);
+          // If upsert fails, fallback to manual logic or throw
+          throw new Error(`Erro ao salvar músicas: ${upsertErr.message}`);
+        }
+        
+        // Count updates vs inserts for logging (approximate)
+        batch.forEach(f => {
+          if (existingMap.has(f.id)) updated++;
+          else inserted++;
+        });
       }
     }
 
