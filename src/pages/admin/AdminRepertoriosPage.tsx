@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useRepertorios, useCreateRepertorio, useDeleteRepertorio, useRepertorioMusicas, useAddMusicasToRepertorio, useRemoveMusicaFromRepertorio, useUpdateRepertorio } from "@/hooks/useRepertorios";
+import { useRepertorios, useCreateRepertorio, useDeleteRepertorio, useRepertorioMusicas, useAddMusicasToRepertorio, useRemoveMusicaFromRepertorio, useUpdateRepertorio, useClearRepertorio } from "@/hooks/useRepertorios";
 import { useMusicas } from "@/hooks/useMusics";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder, Edit2, Check, X, Star } from "lucide-react";
+import { Plus, Trash2, Music2, FolderOpen, Search, Image as ImageIcon, HardDrive, Folder, Edit2, Check, X, Star, Eraser } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ const AdminRepertoriosPage = () => {
   const createRep = useCreateRepertorio();
   const deleteRep = useDeleteRepertorio();
   const updateRep = useUpdateRepertorio();
+  const clearRep = useClearRepertorio();
 
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -112,6 +113,16 @@ const AdminRepertoriosPage = () => {
       toast.success("Repertório excluído!");
     } catch {
       toast.error("Erro ao excluir.");
+    }
+  };
+
+  const handleClear = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja limpar TODAS as músicas do repertório "${name}"?`)) return;
+    try {
+      await clearRep.mutateAsync(id);
+      toast.success("Repertório limpo!");
+    } catch {
+      toast.error("Erro ao limpar.");
     }
   };
 
@@ -328,6 +339,16 @@ const AdminRepertoriosPage = () => {
                               aria-label="Gerenciar músicas"
                             >
                               <Music2 className="mr-1 h-4 w-4" /> Músicas
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleClear(r.id, r.name)}
+                              disabled={clearRep.isPending}
+                              className="text-destructive hover:bg-destructive/10 border-destructive/20"
+                              title="Limpar todas as músicas"
+                            >
+                              <Eraser className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="destructive"
