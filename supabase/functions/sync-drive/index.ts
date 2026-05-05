@@ -231,6 +231,26 @@ serve(async (req) => {
 
     const accessToken = await getAccessToken(serviceAccount);
 
+    // === NEW: Get Storage Quota / Drive Info ===
+    let totalSizeBytes = 0;
+    let usedSizeBytes = 0;
+    try {
+      // If it's a Shared Drive, we might need a different API, but usually 'about' works for the user/SA
+      // However, for Shared Drives, we might need specific Drive info
+      const aboutUrl = new URL("https://www.googleapis.com/drive/v3/about");
+      aboutUrl.searchParams.set("fields", "storageQuota, driveThemes");
+      const aboutRes = await fetch(aboutUrl.toString(), { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (aboutRes.ok) {
+        const aboutData = await aboutRes.json();
+        if (aboutData.storageQuota) {
+          totalSizeBytes = Number(aboutData.storageQuota.limit) || 0;
+          usedSizeBytes = Number(aboutData.storageQuota.usage) || 0;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch drive quota:", e);
+    }
+
     // === STEP 1: Scan Drive ===
     const rootFolders = await listSubfolders(accessToken, driveId);
     const rootAudioFiles = await listAudioInFolder(accessToken, driveId);
@@ -423,7 +443,17 @@ serve(async (req) => {
 
     console.log(`Sync complete: ${updated} updated, ${inserted} inserted, ${removed} removed`);
 
-    // === STEP 5: Clean orphan categories (Skip for now to save time/resources if needed, or run)
+    // Update Drive stats in DB
+    const usagePercent = totalSizeBytes > 0 ? Math.round((usedSizeBytes / totalSizeBytes) * 100) : 0;
+    await supabase
+      .from("google_drives")
+      .update({ 
+        usage_percent: usagePercent,
+        total_size_bytes: totalSizeBytes,
+        used_size_bytes: usedSizeBytes,
+        status: "online"
+      })
+      .eq("id", googleDriveTableId);
     // await cleanOrphanCategories(supabase);
 
     return new Response(JSON.stringify({
