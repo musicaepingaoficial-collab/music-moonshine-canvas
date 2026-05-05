@@ -287,89 +287,94 @@ const RepertorioPage = () => {
     });
   };
 
-  const handleDownloadAll = async () => {
+  const MAX_ZIP_BYTES = 700 * 1024 * 1024;
+
+  const runDownload = async (
+    items: DownloadArchiveItem[],
+    name: string,
+    contextLabel: string
+  ) => {
+    setDownloading(true);
+    setDownloadProgress(0);
+    setDownloadTotal(100);
+    setDownloadStage("preparing");
+    setDownloadPart(0);
+    setDownloadPartsTotal(0);
+    setDownloadPartBytes(0);
+    setFailedParts([]);
+    try {
+      const result = await downloadMultipleAsParts(items, name, {
+        maxZipBytes: MAX_ZIP_BYTES,
+        onProgress: (progress) => {
+          setDownloadProgress(progress.overallProgressPercent);
+          setDownloadPartsTotal(progress.partCount);
+          setDownloadPart(progress.partIndex + 1);
+          setDownloadStage(progress.stage);
+          setDownloadPartBytes(progress.partEstimatedBytes ?? 0);
+        },
+      });
+
+      if (result.failedParts.length > 0) {
+        setFailedParts(result.failedParts);
+        toast.warning(
+          `${result.parts} ZIP(s) gerados para ${contextLabel}. ${result.failedParts.length} parte(s) falharam — você pode tentar novamente.`
+        );
+      } else if (result.failed > 0) {
+        toast.warning(
+          `${result.parts} ZIP(s) gerados. ${result.downloaded} arquivo(s) incluídos e ${result.failed} falharam.`
+        );
+      } else {
+        toast.success(
+          `${result.parts} ZIP(s) baixados com sucesso! Extraia cada ZIP separadamente.`
+        );
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Erro ao baixar ${contextLabel}.`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDownloadAll = () => {
     if (!musicas?.length) return;
     if (!hasAccess) {
       toast.error("Assine um plano para baixar repertórios.");
       navigate("/planos");
       return;
     }
-    setDownloading(true);
-    setDownloadProgress(0);
-    setDownloadTotal(100);
-    setDownloadStage("preparing");
-    setDownloadPart(0);
-    setDownloadPartsTotal(0);
-    try {
-      const result = await downloadMultipleAsParts(
-        musicas.map((m) => ({ id: m.id, fileSize: m.file_size })),
-        repertorio?.name ?? "repertorio",
-        {
-          maxZipBytes: 300 * 1024 * 1024,
-          onProgress: (progress) => {
-            setDownloadProgress(progress.overallProgressPercent);
-            setDownloadPartsTotal(progress.partCount);
-            setDownloadPart(progress.partIndex + 1);
-            setDownloadStage(progress.stage);
-          },
-        }
-      );
-
-      if (result.failed > 0) {
-        toast.warning(
-          `${result.parts} ZIP(s) gerados. ${result.downloaded} arquivo(s) incluidos e ${result.failed} falharam. Extraia cada ZIP separadamente.`
-        );
-      } else {
-        toast.success(`${result.parts} ZIP(s) baixados com sucesso! Extraia cada ZIP separadamente.`);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao baixar repertorio.");
-    } finally {
-      setDownloading(false);
-    }
+    setPendingDownload({
+      items: musicas.map((m) => ({ id: m.id, fileSize: m.file_size })),
+      name: repertorio?.name ?? "repertorio",
+      label: "o repertório completo",
+    });
   };
 
-  const handleDownloadFolder = async (folder: string, tracks: Musica[]) => {
+  const handleDownloadFolder = (folder: string, tracks: Musica[]) => {
     if (!tracks.length) return;
     if (!hasAccess) {
       toast.error("Assine um plano para baixar pastas.");
       navigate("/planos");
       return;
     }
-    setDownloading(true);
-    setDownloadProgress(0);
-    setDownloadTotal(100);
-    setDownloadStage("preparing");
-    setDownloadPart(0);
-    setDownloadPartsTotal(0);
-    try {
-      const result = await downloadMultipleAsParts(
-        tracks.map((m) => ({ id: m.id, fileSize: m.file_size })),
-        `${repertorio?.name ?? "repertorio"}_${folder}`,
-        {
-          maxZipBytes: 300 * 1024 * 1024,
-          onProgress: (progress) => {
-            setDownloadProgress(progress.overallProgressPercent);
-            setDownloadPartsTotal(progress.partCount);
-            setDownloadPart(progress.partIndex + 1);
-            setDownloadStage(progress.stage);
-          },
-        }
-      );
-
-      if (result.failed > 0) {
-        toast.warning(
-          `${result.parts} ZIP(s) gerados para a pasta "${folder}". ${result.downloaded} arquivos incluídos e ${result.failed} falharam.`
-        );
-      } else {
-        toast.success(`Pasta "${folder}" baixada com sucesso! (${result.parts} ZIPs)`);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao baixar pasta.");
-    } finally {
-      setDownloading(false);
-    }
+    setPendingDownload({
+      items: tracks.map((m) => ({ id: m.id, fileSize: m.file_size })),
+      name: `${repertorio?.name ?? "repertorio"}_${folder}`,
+      label: `a pasta "${folder.split("/").pop()}"`,
+    });
   };
+
+  const handleRetryFailedParts = async () => {
+    if (!failedParts.length) return;
+    const items: DownloadArchiveItem[] = failedParts.flatMap((p) =>
+      p.ids.map((id) => ({ id, fileSize: null }))
+    );
+    await runDownload(items, repertorio?.name ?? "repertorio", "as partes que falharam");
+  };
+
+  const downloadPlan = useMemo(() => {
+    if (!pendingDownload) return null;
+    return planZipParts(pendingDownload.items, MAX_ZIP_BYTES);
+  }, [pendingDownload]);
 
   const isLoading = loadingRep || loadingMusicas;
 
