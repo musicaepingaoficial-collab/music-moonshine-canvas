@@ -389,6 +389,7 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
   const removeMusica = useRemoveMusicaFromRepertorio();
 
   const [search, setSearch] = useState("");
+  const [folderSearch, setFolderSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data: drives } = useQuery({
@@ -587,10 +588,19 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
 
             <TabsContent value="pastas" className="flex-1 overflow-y-auto pr-2 m-0">
               <div className="space-y-2">
-                {folders?.length === 0 ? (
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Filtrar pastas..."
+                    value={folderSearch}
+                    onChange={(e) => setFolderSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {folders?.filter(f => f.subfolder.toLowerCase().includes(folderSearch.toLowerCase())).length === 0 ? (
                   <EmptyState icon={Folder} title="Nenhuma pasta encontrada" />
                 ) : (
-                  folders?.map((f, i) => {
+                  folders?.filter(f => f.subfolder.toLowerCase().includes(folderSearch.toLowerCase())).map((f, i) => {
                     const drive = drives?.find(d => d.id === f.drive_id);
                     const isAlreadyIn = foldersInRep.has(`${f.drive_id}|${f.subfolder}`);
                     return (
@@ -598,7 +608,7 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
                         <div className="flex items-center gap-3 overflow-hidden">
                           <Folder className="h-5 w-5 text-primary shrink-0" />
                           <div className="overflow-hidden">
-                            <p className="font-medium text-sm truncate">{f.subfolder}</p>
+                            <p className="font-medium text-sm truncate" title={f.subfolder}>{f.subfolder}</p>
                             <p className="text-xs text-muted-foreground truncate">{drive?.name || "Drive Desconhecido"}</p>
                           </div>
                         </div>

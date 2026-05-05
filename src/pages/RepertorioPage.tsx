@@ -35,6 +35,10 @@ function groupBySubfolder(musicas: Musica[]): FolderGroup[] {
   const sorted = [...map.entries()].sort((a, b) => {
     if (a[0] === null) return 1;
     if (b[0] === null) return -1;
+    // Sort by depth (number of slashes) first, then alphabetically
+    const depthA = (a[0].match(/\//g) || []).length;
+    const depthB = (b[0].match(/\//g) || []).length;
+    if (depthA !== depthB) return depthA - depthB;
     return a[0].localeCompare(b[0]);
   });
   for (const [name, musicas] of sorted) {
@@ -123,6 +127,52 @@ const RepertorioPage = () => {
 
   const groups = useMemo(() => groupBySubfolder(musicas ?? []), [musicas]);
   const hasFolders = groups.some((g) => g.name !== null);
+
+  // Group folders by their parent folder for hierarchical navigation
+  const folderTree = useMemo(() => {
+    const rootFolders: string[] = [];
+    const children: Record<string, string[]> = {};
+
+    groups.forEach(g => {
+      if (g.name) {
+        const parts = g.name.split('/');
+        if (parts.length === 1) {
+          rootFolders.push(g.name);
+        } else {
+          const parent = parts.slice(0, -1).join('/');
+          if (!children[parent]) children[parent] = [];
+          children[parent].push(g.name);
+        }
+      }
+    });
+
+    return { rootFolders, children };
+  }, [groups]);
+
+  const [navigationPath, setNavigationPath] = useState<string[]>([]);
+  
+  const currentLevelFolders = useMemo(() => {
+    if (navigationPath.length === 0) return folderTree.rootFolders;
+    const currentPath = navigationPath.join('/');
+    return folderTree.children[currentPath] || [];
+  }, [folderTree, navigationPath]);
+
+  const handleFolderClick = (folderName: string) => {
+    const parts = folderName.split('/');
+    setNavigationPath(parts);
+    setSelectedFolder(folderName);
+  };
+
+  const handleBreadcrumbClick = (index: number) => {
+    if (index === -1) {
+      setNavigationPath([]);
+      setSelectedFolder(null);
+    } else {
+      const newPath = navigationPath.slice(0, index + 1);
+      setNavigationPath(newPath);
+      setSelectedFolder(newPath.join('/'));
+    }
+  };
 
   const toggleFolder = (folder: string) => {
     setSelectedFolder(folder === selectedFolder ? null : folder);
@@ -410,28 +460,50 @@ const RepertorioPage = () => {
           ) : (musicas?.length ?? 0) > 0 ? (
             <div className="space-y-6">
               {hasFolders && (
-                <div className="flex flex-wrap items-center justify-start gap-1.5 sm:gap-2 mb-4">
-                  <Button
-                    variant={selectedFolder === null ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedFolder(null)}
-                    className="rounded-full text-[10px] h-7 px-3 sm:text-xs sm:h-8 sm:px-4"
-                  >
-                    Avulsas
-                  </Button>
-                  {groups.filter(g => g.name !== null).map((group) => (
-                    <Button
-                      key={group.name}
-                      variant={selectedFolder === group.name ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedFolder(group.name)}
-                      className="rounded-full flex items-center gap-2 text-[10px] h-7 px-3 sm:text-xs sm:h-8 sm:px-4"
+                <div className="space-y-4 mb-6">
+                  {/* Breadcrumbs */}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto pb-2">
+                    <button 
+                      onClick={() => handleBreadcrumbClick(-1)}
+                      className={`hover:text-primary transition-colors whitespace-nowrap ${navigationPath.length === 0 ? 'text-primary font-bold' : ''}`}
                     >
-                      <FolderOpen className="h-3.5 w-3.5" />
-                      {group.name}
-                      <span className="text-[10px] opacity-70">({group.musicas.length})</span>
-                    </Button>
-                  ))}
+                      Raiz
+                    </button>
+                    {navigationPath.map((part, i) => (
+                      <div key={i} className="flex items-center gap-1">
+                        <ChevronRight className="h-3 w-3" />
+                        <button 
+                          onClick={() => handleBreadcrumbClick(i)}
+                          className={`hover:text-primary transition-colors whitespace-nowrap ${i === navigationPath.length - 1 ? 'text-primary font-bold' : ''}`}
+                        >
+                          {part}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Folder Grid */}
+                  {currentLevelFolders.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                      {currentLevelFolders.map((folderName) => (
+                        <button
+                          key={folderName}
+                          onClick={() => handleFolderClick(folderName)}
+                          className="flex flex-col items-center gap-2 p-3 rounded-xl border border-border bg-card hover:bg-accent transition-all text-center group"
+                        >
+                          <div className="relative">
+                            <FolderOpen className="h-8 w-8 text-primary/80 group-hover:scale-110 transition-transform" />
+                            <div className="absolute -top-1 -right-1 bg-primary text-[8px] text-primary-foreground rounded-full h-4 min-w-4 px-1 flex items-center justify-center font-bold">
+                              {groups.find(g => g.name === folderName)?.musicas.length || 0}
+                            </div>
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-medium truncate w-full">
+                            {folderName.split('/').pop()}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -440,11 +512,11 @@ const RepertorioPage = () => {
                   <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     {selectedFolder ? (
                       <>
-                        <FolderOpen className="h-4 w-4 text-primary" /> {selectedFolder}
+                        <FolderOpen className="h-4 w-4 text-primary" /> {selectedFolder.split('/').pop()}
                       </>
                     ) : (
                       <>
-                        <Music2 className="h-4 w-4" /> Músicas avulsas
+                        <Music2 className="h-4 w-4" /> Músicas na Raiz
                       </>
                     )}
                   </h3>

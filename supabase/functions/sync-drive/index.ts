@@ -131,26 +131,26 @@ interface AudioWithMeta {
   subfolder: string | null;
 }
 
-// Recursively collect ALL audio files, tracking the immediate parent folder name
+// Recursively collect ALL audio files, tracking the full path from the root folder
 async function listAllAudioRecursive(
   accessToken: string,
   folderId: string,
-  parentFolderName: string | null
+  currentPath: string
 ): Promise<AudioWithMeta[]> {
   const audioFiles = await listAudioInFolder(accessToken, folderId);
   const result: AudioWithMeta[] = audioFiles.map((f) => ({
     ...f,
-    categoryName: null, // will be set by caller
-    subfolder: parentFolderName,
+    categoryName: null,
+    subfolder: currentPath,
   }));
 
   const subfolders = await listSubfolders(accessToken, folderId);
   for (const folder of subfolders) {
-    // For nested subfolders, keep the immediate parent name (first-level subfolder)
+    const nextPath = currentPath ? `${currentPath}/${folder.name}` : folder.name;
     const subFiles = await listAllAudioRecursive(
       accessToken,
       folder.id,
-      parentFolderName ?? folder.name // if already inside a subfolder, keep the top-level subfolder name
+      nextPath
     );
     result.push(...subFiles);
   }
@@ -251,32 +251,10 @@ serve(async (req) => {
       console.warn("Could not fetch drive quota:", e);
     }
 
-    // === STEP 1: Scan Drive ===
-    const rootFolders = await listSubfolders(accessToken, driveId);
-    const rootAudioFiles = await listAudioInFolder(accessToken, driveId);
+    // === STEP 1: Scan Drive Recursively starting from the root ===
+    const allFiles: AudioWithMeta[] = await listAllAudioRecursive(accessToken, driveId, "");
 
-    console.log(`Found ${rootFolders.length} root folders and ${rootAudioFiles.length} loose audio files`);
-
-    const allFiles: AudioWithMeta[] = [];
-
-    for (const f of rootAudioFiles) {
-      allFiles.push({ ...f, size: f.size || 0, categoryName: null, subfolder: null });
-    }
-
-    for (const folder of rootFolders) {
-      const directFiles = await listAudioInFolder(accessToken, folder.id);
-      for (const f of directFiles) {
-        allFiles.push({ ...f, size: f.size || 0, categoryName: folder.name, subfolder: null });
-      }
-
-      const subfolders = await listSubfolders(accessToken, folder.id);
-      for (const sub of subfolders) {
-        const subFiles = await listAllAudioRecursive(accessToken, sub.id, sub.name);
-        for (const f of subFiles) {
-          allFiles.push({ ...f, categoryName: folder.name, subfolder: f.subfolder });
-        }
-      }
-    }
+    console.log(`Total audio files found: ${allFiles.length}`);
 
     console.log(`Total audio files found: ${allFiles.length}`);
 
@@ -344,40 +322,6 @@ serve(async (req) => {
     for (let i = 0; i < allFiles.length; i += 200) {
       const batch = allFiles.slice(i, i + 200);
 
-      const toUpdate: Array<{ id: string; data: any }> = [];
-      const toInsert: any[] = [];
-
-      for (const f of batch) {
-        const nameWithoutExt = f.name.replace(/\.[^.]+$/, "");
-        let title = nameWithoutExt;
-        let artist = "Desconhecido";
-        if (nameWithoutExt.includes(" - ")) {
-          const parts = nameWithoutExt.split(" - ");
-          artist = parts[0].trim();
-          title = parts.slice(1).join(" - ").trim();
-        }
-
-        const categoriaId = f.categoryName ? (categoryMap[f.categoryName] || null) : null;
-
-        const record = {
-          title,
-          artist,
-          file_url: f.id,
-          drive_id: googleDriveTableId,
-          duration: 0,
-          file_size: f.size || 0,
-          categoria_id: categoriaId,
-          subfolder: f.subfolder || null,
-        };
-
-        const existingId = existingMap.get(f.id);
-        if (existingId) {
-          toUpdate.push({ id: existingId, data: record });
-        } else {
-          toInsert.push(record);
-        }
-      }
-
       // Insert/Update records in a single upsert operation for speed
       const upsertData = batch.map(f => {
         const nameWithoutExt = f.name.replace(/\.[^.]+$/, "");
@@ -389,7 +333,6 @@ serve(async (req) => {
           title = parts.slice(1).join(" - ").trim();
         }
 
-        const categoriaId = f.categoryName ? (categoryMap[f.categoryName] || null) : null;
         const existingId = existingMap.get(f.id);
 
         return {
@@ -400,7 +343,7 @@ serve(async (req) => {
           drive_id: googleDriveTableId,
           duration: 0,
           file_size: f.size || 0,
-          categoria_id: categoriaId,
+          categoria_id: null, // Categories are no longer based on folder names
           subfolder: f.subfolder || null,
         };
       });
@@ -412,11 +355,9 @@ serve(async (req) => {
           
         if (upsertErr) {
           console.error("Upsert error:", upsertErr);
-          // If upsert fails, fallback to manual logic or throw
           throw new Error(`Erro ao salvar músicas: ${upsertErr.message}`);
         }
         
-        // Count updates vs inserts for logging (approximate)
         batch.forEach(f => {
           if (existingMap.has(f.id)) updated++;
           else inserted++;
