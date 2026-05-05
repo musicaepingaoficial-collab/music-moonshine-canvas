@@ -2,9 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const DOWNLOAD_BATCH_SIZE = 20;
-const DEFAULT_MAX_ZIP_BYTES = 1024 * 1024 * 1024;
+const DEFAULT_MAX_ZIP_BYTES = 700 * 1024 * 1024;
 const DEFAULT_ESTIMATED_FILE_BYTES = 8 * 1024 * 1024;
-const MAX_IDS_PER_ZIP_PART = 180;
+const MAX_IDS_PER_ZIP_PART = 400;
+const ARCHIVE_MAX_ATTEMPTS = 3;
 
 type DownloadFile = {
   id: string;
@@ -35,11 +36,20 @@ export type DownloadPartsProgress = {
   stage: DownloadStage;
 };
 
+export type FailedPart = {
+  partIndex: number;
+  partName: string;
+  ids: string[];
+  estimatedBytes: number;
+  error: string;
+};
+
 export type DownloadManyZipsResult = {
   parts: number;
   downloaded: number;
   failed: number;
   failedFiles: string[];
+  failedParts: FailedPart[];
 };
 
 type DownloadBlobOptions = {
@@ -218,15 +228,40 @@ export async function downloadMultiple(
   onProgress?.(0, 100, "preparing");
 
   const headers = await getJsonHeaders();
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/download-archive`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ musicaIds, archiveName }),
-  });
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || "Falha ao gerar ZIP no servidor");
+  let lastError: unknown = null;
+  let response: Response | null = null;
+
+  for (let attempt = 1; attempt <= ARCHIVE_MAX_ATTEMPTS; attempt++) {
+    try {
+      response = await fetch(`${SUPABASE_URL}/functions/v1/download-archive`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ musicaIds, archiveName }),
+      });
+
+      if (response.ok) break;
+
+      const status = response.status;
+      const err = await response.json().catch(() => ({}));
+      const message = err.error || `Falha ao gerar ZIP (HTTP ${status})`;
+      lastError = new Error(message);
+      response = null;
+
+      if (!shouldRetry(status) || attempt === ARCHIVE_MAX_ATTEMPTS) {
+        throw lastError;
+      }
+    } catch (error) {
+      lastError = error;
+      if (attempt === ARCHIVE_MAX_ATTEMPTS) throw error;
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 600 * attempt));
+  }
+
+  if (!response) {
+    if (lastError instanceof Error) throw lastError;
+    throw new Error("Falha ao gerar ZIP no servidor");
   }
 
   onProgress?.(1, 100, "downloading");
@@ -247,10 +282,19 @@ type ZipPart = {
   estimatedBytes: number;
 };
 
-function estimateItemSizeBytes(item: DownloadArchiveItem) {
+function estimateItemSizeBytes(item: DownloadArchiveItem, fallbackBytes: number) {
   const raw = Number(item.fileSize ?? 0);
   if (Number.isFinite(raw) && raw > 0) return raw;
-  return DEFAULT_ESTIMATED_FILE_BYTES;
+  return fallbackBytes;
+}
+
+function computeFallbackBytes(items: DownloadArchiveItem[]) {
+  const known = items
+    .map((it) => Number(it.fileSize ?? 0))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (known.length === 0) return DEFAULT_ESTIMATED_FILE_BYTES;
+  const avg = known.reduce((s, n) => s + n, 0) / known.length;
+  return Math.max(1024 * 1024, Math.round(avg));
 }
 
 function splitItemsIntoZipParts(
@@ -259,9 +303,10 @@ function splitItemsIntoZipParts(
 ): ZipPart[] {
   const parts: ZipPart[] = [];
   let current: ZipPart = { ids: [], estimatedBytes: 0 };
+  const fallbackBytes = computeFallbackBytes(items);
 
   for (const item of items) {
-    const size = estimateItemSizeBytes(item);
+    const size = estimateItemSizeBytes(item, fallbackBytes);
     const wouldOverflowSize = current.estimatedBytes + size > maxZipBytes;
     const wouldOverflowCount = current.ids.length >= MAX_IDS_PER_ZIP_PART;
 
@@ -281,6 +326,27 @@ function splitItemsIntoZipParts(
   return parts;
 }
 
+export function planZipParts(
+  items: DownloadArchiveItem[],
+  maxZipBytes = DEFAULT_MAX_ZIP_BYTES
+) {
+  const filtered = items.filter((it) => !!it.id);
+  const parts = splitItemsIntoZipParts(filtered, maxZipBytes);
+  const totalKnownBytes = filtered.reduce(
+    (s, it) => s + (Number(it.fileSize) > 0 ? Number(it.fileSize) : 0),
+    0
+  );
+  const unknownCount = filtered.filter(
+    (it) => !(Number(it.fileSize) > 0)
+  ).length;
+  return {
+    partCount: parts.length,
+    totalKnownBytes,
+    unknownCount,
+    totalItems: filtered.length,
+  };
+}
+
 function buildPartArchiveName(baseName: string | undefined, partIndex: number, totalParts: number) {
   const safeBase = sanitizeFileName(baseName || "repertorio") || "repertorio";
   const left = String(partIndex + 1).padStart(2, "0");
@@ -293,7 +359,7 @@ export async function downloadMultipleAsParts(
   archiveName?: string,
   options?: {
     maxZipBytes?: number;
-    onProgress?: (progress: DownloadPartsProgress) => void;
+    onProgress?: (progress: DownloadPartsProgress & { partEstimatedBytes?: number }) => void;
   }
 ): Promise<DownloadManyZipsResult> {
   const filteredItems = items.filter((item) => !!item.id);
@@ -309,6 +375,7 @@ export async function downloadMultipleAsParts(
   let downloaded = 0;
   let failed = 0;
   const failedFiles: string[] = [];
+  const failedParts: FailedPart[] = [];
 
   for (let partIndex = 0; partIndex < parts.length; partIndex++) {
     const part = parts[partIndex];
@@ -320,24 +387,39 @@ export async function downloadMultipleAsParts(
       partProgressPercent: 0,
       overallProgressPercent: Math.round((partIndex / parts.length) * 100),
       stage: "preparing",
+      partEstimatedBytes: part.estimatedBytes,
     });
 
-    const result = await downloadMultiple(part.ids, partName, (progress, total, stage) => {
-      const partProgressPercent = total > 0 ? Math.round((progress / total) * 100) : 0;
-      const overallProgressPercent = Math.round(((partIndex + partProgressPercent / 100) / parts.length) * 100);
-      options?.onProgress?.({
-        partIndex,
-        partCount: parts.length,
-        partProgressPercent,
-        overallProgressPercent,
-        stage: stage ?? "downloading",
+    try {
+      const result = await downloadMultiple(part.ids, partName, (progress, total, stage) => {
+        const partProgressPercent = total > 0 ? Math.round((progress / total) * 100) : 0;
+        const overallProgressPercent = Math.round(((partIndex + partProgressPercent / 100) / parts.length) * 100);
+        options?.onProgress?.({
+          partIndex,
+          partCount: parts.length,
+          partProgressPercent,
+          overallProgressPercent,
+          stage: stage ?? "downloading",
+          partEstimatedBytes: part.estimatedBytes,
+        });
       });
-    });
 
-    downloaded += result.downloaded;
-    failed += result.failed;
-    if (result.failedFiles.length > 0) {
-      failedFiles.push(...result.failedFiles);
+      downloaded += result.downloaded;
+      failed += result.failed;
+      if (result.failedFiles.length > 0) {
+        failedFiles.push(...result.failedFiles);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao baixar parte";
+      console.error(`[downloadMultipleAsParts] part ${partIndex + 1} failed`, error);
+      failed += part.ids.length;
+      failedParts.push({
+        partIndex,
+        partName,
+        ids: part.ids,
+        estimatedBytes: part.estimatedBytes,
+        error: message,
+      });
     }
   }
 
@@ -346,5 +428,6 @@ export async function downloadMultipleAsParts(
     downloaded,
     failed,
     failedFiles,
+    failedParts,
   };
 }

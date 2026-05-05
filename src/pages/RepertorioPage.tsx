@@ -10,7 +10,17 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
 import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2, Eraser } from "lucide-react";
-import { downloadMultipleAsParts } from "@/services/zipService";
+import { downloadMultipleAsParts, planZipParts, type FailedPart, type DownloadArchiveItem } from "@/services/zipService";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useRemoveMusicaFromRepertorio, useRemoveMusicasFromRepertorio, useUpdateRepertorioCover, useClearRepertorio } from "@/hooks/useRepertorios";
 import { toast } from "sonner";
 import { useMemo, useRef, useState, useEffect } from "react";
@@ -65,6 +75,13 @@ const RepertorioPage = () => {
   const [downloadStage, setDownloadStage] = useState<"preparing" | "downloading" | "saving">("preparing");
   const [downloadPart, setDownloadPart] = useState(0);
   const [downloadPartsTotal, setDownloadPartsTotal] = useState(0);
+  const [downloadPartBytes, setDownloadPartBytes] = useState(0);
+  const [pendingDownload, setPendingDownload] = useState<{
+    items: DownloadArchiveItem[];
+    name: string;
+    label: string;
+  } | null>(null);
+  const [failedParts, setFailedParts] = useState<FailedPart[]>([]);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -270,89 +287,94 @@ const RepertorioPage = () => {
     });
   };
 
-  const handleDownloadAll = async () => {
+  const MAX_ZIP_BYTES = 700 * 1024 * 1024;
+
+  const runDownload = async (
+    items: DownloadArchiveItem[],
+    name: string,
+    contextLabel: string
+  ) => {
+    setDownloading(true);
+    setDownloadProgress(0);
+    setDownloadTotal(100);
+    setDownloadStage("preparing");
+    setDownloadPart(0);
+    setDownloadPartsTotal(0);
+    setDownloadPartBytes(0);
+    setFailedParts([]);
+    try {
+      const result = await downloadMultipleAsParts(items, name, {
+        maxZipBytes: MAX_ZIP_BYTES,
+        onProgress: (progress) => {
+          setDownloadProgress(progress.overallProgressPercent);
+          setDownloadPartsTotal(progress.partCount);
+          setDownloadPart(progress.partIndex + 1);
+          setDownloadStage(progress.stage);
+          setDownloadPartBytes(progress.partEstimatedBytes ?? 0);
+        },
+      });
+
+      if (result.failedParts.length > 0) {
+        setFailedParts(result.failedParts);
+        toast.warning(
+          `${result.parts} ZIP(s) gerados para ${contextLabel}. ${result.failedParts.length} parte(s) falharam — você pode tentar novamente.`
+        );
+      } else if (result.failed > 0) {
+        toast.warning(
+          `${result.parts} ZIP(s) gerados. ${result.downloaded} arquivo(s) incluídos e ${result.failed} falharam.`
+        );
+      } else {
+        toast.success(
+          `${result.parts} ZIP(s) baixados com sucesso! Extraia cada ZIP separadamente.`
+        );
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Erro ao baixar ${contextLabel}.`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDownloadAll = () => {
     if (!musicas?.length) return;
     if (!hasAccess) {
       toast.error("Assine um plano para baixar repertórios.");
       navigate("/planos");
       return;
     }
-    setDownloading(true);
-    setDownloadProgress(0);
-    setDownloadTotal(100);
-    setDownloadStage("preparing");
-    setDownloadPart(0);
-    setDownloadPartsTotal(0);
-    try {
-      const result = await downloadMultipleAsParts(
-        musicas.map((m) => ({ id: m.id, fileSize: m.file_size })),
-        repertorio?.name ?? "repertorio",
-        {
-          maxZipBytes: 300 * 1024 * 1024,
-          onProgress: (progress) => {
-            setDownloadProgress(progress.overallProgressPercent);
-            setDownloadPartsTotal(progress.partCount);
-            setDownloadPart(progress.partIndex + 1);
-            setDownloadStage(progress.stage);
-          },
-        }
-      );
-
-      if (result.failed > 0) {
-        toast.warning(
-          `${result.parts} ZIP(s) gerados. ${result.downloaded} arquivo(s) incluidos e ${result.failed} falharam. Extraia cada ZIP separadamente.`
-        );
-      } else {
-        toast.success(`${result.parts} ZIP(s) baixados com sucesso! Extraia cada ZIP separadamente.`);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao baixar repertorio.");
-    } finally {
-      setDownloading(false);
-    }
+    setPendingDownload({
+      items: musicas.map((m) => ({ id: m.id, fileSize: m.file_size })),
+      name: repertorio?.name ?? "repertorio",
+      label: "o repertório completo",
+    });
   };
 
-  const handleDownloadFolder = async (folder: string, tracks: Musica[]) => {
+  const handleDownloadFolder = (folder: string, tracks: Musica[]) => {
     if (!tracks.length) return;
     if (!hasAccess) {
       toast.error("Assine um plano para baixar pastas.");
       navigate("/planos");
       return;
     }
-    setDownloading(true);
-    setDownloadProgress(0);
-    setDownloadTotal(100);
-    setDownloadStage("preparing");
-    setDownloadPart(0);
-    setDownloadPartsTotal(0);
-    try {
-      const result = await downloadMultipleAsParts(
-        tracks.map((m) => ({ id: m.id, fileSize: m.file_size })),
-        `${repertorio?.name ?? "repertorio"}_${folder}`,
-        {
-          maxZipBytes: 300 * 1024 * 1024,
-          onProgress: (progress) => {
-            setDownloadProgress(progress.overallProgressPercent);
-            setDownloadPartsTotal(progress.partCount);
-            setDownloadPart(progress.partIndex + 1);
-            setDownloadStage(progress.stage);
-          },
-        }
-      );
-
-      if (result.failed > 0) {
-        toast.warning(
-          `${result.parts} ZIP(s) gerados para a pasta "${folder}". ${result.downloaded} arquivos incluídos e ${result.failed} falharam.`
-        );
-      } else {
-        toast.success(`Pasta "${folder}" baixada com sucesso! (${result.parts} ZIPs)`);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao baixar pasta.");
-    } finally {
-      setDownloading(false);
-    }
+    setPendingDownload({
+      items: tracks.map((m) => ({ id: m.id, fileSize: m.file_size })),
+      name: `${repertorio?.name ?? "repertorio"}_${folder}`,
+      label: `a pasta "${folder.split("/").pop()}"`,
+    });
   };
+
+  const handleRetryFailedParts = async () => {
+    if (!failedParts.length) return;
+    const items: DownloadArchiveItem[] = failedParts.flatMap((p) =>
+      p.ids.map((id) => ({ id, fileSize: null }))
+    );
+    await runDownload(items, repertorio?.name ?? "repertorio", "as partes que falharam");
+  };
+
+  const downloadPlan = useMemo(() => {
+    if (!pendingDownload) return null;
+    return planZipParts(pendingDownload.items, MAX_ZIP_BYTES);
+  }, [pendingDownload]);
 
   const isLoading = loadingRep || loadingMusicas;
 
@@ -454,14 +476,81 @@ const RepertorioPage = () => {
                   {downloadStage === "preparing"
                     ? `Preparando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`
                     : downloadStage === "downloading"
-                    ? `Baixando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`
-                    : `Finalizando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`}
+                    ? `Baixando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}`
+                    : `Finalizando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}`}
+                  {downloadPartBytes > 0 ? ` • ~${formatFileSize(downloadPartBytes)}` : ""}
                 </span>
                 <span className="shrink-0">{Math.round((downloadProgress / downloadTotal) * 100)}%</span>
               </div>
               <Progress value={(downloadProgress / downloadTotal) * 100} className="h-1.5 sm:h-2" />
             </div>
           )}
+
+          {!downloading && failedParts.length > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-destructive">
+                {failedParts.length} parte(s) do download falharam.
+              </p>
+              <Button size="sm" variant="outline" onClick={handleRetryFailedParts}>
+                <Download className="mr-1 h-3.5 w-3.5" />
+                Tentar novamente
+              </Button>
+            </div>
+          )}
+
+          <AlertDialog
+            open={!!pendingDownload}
+            onOpenChange={(open) => !open && setPendingDownload(null)}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar download</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2 text-sm">
+                    {pendingDownload && downloadPlan && (
+                      <>
+                        <p>
+                          Você vai baixar <strong>{downloadPlan.totalItems}</strong>{" "}
+                          música(s) de {pendingDownload.label}.
+                        </p>
+                        <p>
+                          Tamanho estimado:{" "}
+                          <strong>
+                            {downloadPlan.totalKnownBytes > 0
+                              ? formatFileSize(downloadPlan.totalKnownBytes)
+                              : "—"}
+                          </strong>
+                          {downloadPlan.unknownCount > 0 &&
+                            ` (+ ${downloadPlan.unknownCount} arquivo(s) sem tamanho informado)`}
+                        </p>
+                        <p>
+                          Serão gerados{" "}
+                          <strong>{downloadPlan.partCount}</strong> arquivo(s) ZIP
+                          (máx. {formatFileSize(MAX_ZIP_BYTES)} cada).
+                        </p>
+                        <p className="text-muted-foreground">
+                          Cada ZIP é baixado separadamente — extraia um por vez.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!pendingDownload) return;
+                    const { items, name, label } = pendingDownload;
+                    setPendingDownload(null);
+                    runDownload(items, name, label);
+                  }}
+                >
+                  Baixar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {isLoading ? (
             <MusicGridSkeleton count={6} />
