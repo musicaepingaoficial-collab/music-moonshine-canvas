@@ -2,9 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const DOWNLOAD_BATCH_SIZE = 20;
-const DEFAULT_MAX_ZIP_BYTES = 1024 * 1024 * 1024;
+const DEFAULT_MAX_ZIP_BYTES = 700 * 1024 * 1024;
 const DEFAULT_ESTIMATED_FILE_BYTES = 8 * 1024 * 1024;
-const MAX_IDS_PER_ZIP_PART = 180;
+const MAX_IDS_PER_ZIP_PART = 400;
+const ARCHIVE_MAX_ATTEMPTS = 3;
 
 type DownloadFile = {
   id: string;

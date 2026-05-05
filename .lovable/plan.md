@@ -1,60 +1,72 @@
-## Problema
+## Objetivo
 
-A identificação de super admin falha intermitentemente. Investigação mostrou três causas:
+Tornar o download de repertório (completo e por pasta) mais confiável, usando o tamanho real dos arquivos para dividir os ZIPs em o menor número possível de partes sem estourar limites do navegador / edge function.
 
-### 1. Duas implementações concorrentes da mesma query
-- `src/hooks/useUser.ts` → `useIsAdmin()` usa queryKey `["is-admin", userId]` com `staleTime: 5 min` e retorna `Boolean(data)`.
-- `src/components/auth/AdminRoute.tsx` reimplementa a query inline com a **mesma queryKey** `["is-admin", user?.id]`, mas **sem staleTime** e sem tratamento robusto.
+## Diagnóstico
 
-Como o React Query deduplica por chave, qual versão "ganha" depende de qual monta primeiro. Se o `AdminRoute` montar primeiro (ex.: navegação direta para `/admin`), a versão sem `staleTime` é cacheada e qualquer flicker de rede faz `isAdmin` voltar a `false`.
+Hoje em `src/services/zipService.ts` + `RepertorioPage.tsx`:
 
-### 2. Erros de RPC silenciosamente viram `false`
-Em ambas as implementações:
-```ts
-if (error) return false;
-```
-Quando há um erro transitório (rede, token expirando, refresh em andamento), o usuário é tratado como **não-admin** e redirecionado. Isso explica os "momentos" em que o sistema não identifica o admin.
+- Cada parte ZIP é limitada a `300 MB` (passado em `maxZipBytes`) e até `180 IDs`.
+- Se a música não tem `file_size` no banco, é estimada em `8 MB` fixo — gera partes mal calibradas (muitas pequenas ou uma estourando).
+- Não há retry da parte inteira se a edge function falhar, e a barra de progresso é estimativa.
+- Edge `download-archive` aceita até `500 arquivos` e `2 GB` por chamada, mas no cliente forçamos 300 MB (conservador).
+- Sem feedback claro de tamanho total / nº de partes antes de iniciar; usuário não entende por que vêm vários ZIPs.
 
-### 3. Race condition com sessão
-`useIsAdmin` é chamado com `user?.id` logo após `useAuth`. Em alguns ciclos, a query dispara antes do token ser totalmente propagado, causando falha de RLS na RPC.
+## Mudanças
 
-## Plano de correção
+### 1. Garantir `file_size` real para cada música
 
-### A. Centralizar `useIsAdmin` (uma fonte da verdade)
-Arquivo: `src/components/auth/AdminRoute.tsx`
-- Remover a query inline.
-- Importar e usar `useIsAdmin` de `@/hooks/useUser`.
+- No `useQuery` de `repertorio-musicas` em `RepertorioPage.tsx` já trazemos `musicas(*)`, então `file_size` está disponível. Onde estiver `0/null`, marcar como "desconhecido" e tratar separadamente (ver passo 3).
+- Adicionar utilitário `getKnownAndUnknownSizes(musicas)` para somar bytes conhecidos e contar desconhecidos.
 
-### B. Tornar `useIsAdmin` resiliente
-Arquivo: `src/hooks/useUser.ts`
-- Em vez de engolir erro como `false`, **lançar** o erro para que o React Query faça retry.
-- Adicionar `retry: 2` e `retryDelay` exponencial.
-- Manter `staleTime: 5 min` e adicionar `gcTime: 10 min`.
-- Garantir `enabled: !!userId` (já existe).
-- Distinguir "carregando/erro" de "definitivamente não-admin": expor também `isError` para os consumidores que quiserem tratar.
+### 2. Mostrar resumo antes do download
 
-### C. Esperar a sessão estar pronta
-Arquivo: `src/hooks/useUser.ts`
-- No `useAuth`, só considerar `loading=false` após o primeiro `onAuthStateChange` confirmar (já está perto disso).
-- Em `ProtectedRoute` e `AdminRoute`: enquanto `useIsAdmin` estiver em `isLoading` **ou** `isFetching` na primeira vez, mostrar o loader em vez de redirecionar. Não redirecionar com base em `isAdmin === false` se a query ainda não foi bem-sucedida pelo menos uma vez.
+- Em "Baixar tudo" e "Baixar pasta", abrir um pequeno diálogo de confirmação com:
+  - Total de músicas
+  - Tamanho total (ou "≈ X MB + N arquivos sem tamanho")
+  - Nº estimado de ZIPs que serão gerados
+  - Aviso: "Cada ZIP é baixado separadamente, extraia individualmente"
+- Botão Confirmar / Cancelar.
 
-### D. Invalidação após login
-Arquivo: `src/hooks/useUser.ts`
-- No listener `onAuthStateChange`, ao detectar `SIGNED_IN` ou `TOKEN_REFRESHED`, invalidar `["is-admin"]` e `["assinatura"]` para forçar recarregar com o novo token.
+### 3. Particionamento mais inteligente em `zipService.ts`
 
-### E. (Opcional, recomendado) Verificar via `user_roles` direto como fallback
-Se a RPC `has_role` falhar, fazer fallback para `select` em `user_roles` filtrando por `user_id` e `role='admin'` (a policy "Users can view own roles" permite). Isso elimina pontos únicos de falha.
+- Aumentar `DEFAULT_MAX_ZIP_BYTES` para `700 MB` (margem segura abaixo do limite de 2 GB do edge e confortável p/ navegador). Manter override por chamada.
+- Para itens sem `file_size`:
+  - Buscar em batch (RPC simples ou select já existente) e fallback para média dos itens conhecidos do mesmo repertório (em vez de 8 MB fixo).
+- Adicionar `MIN_FILES_PER_PART = 1` e remover `MAX_IDS_PER_ZIP_PART` rígido (ou subir p/ 400) — deixar o limite ser por bytes, não por contagem, para gerar o mínimo de partes.
+- Garantir que nenhum item ultrapasse o limite sozinho (se um arquivo > maxZipBytes, vira sua própria parte e loga aviso).
 
-## Arquivos alterados
+### 4. Retry e robustez no download de cada parte
 
-- `src/hooks/useUser.ts` — endurecer `useIsAdmin` (retry, não engolir erros, invalidação no auth change, fallback opcional).
-- `src/components/auth/AdminRoute.tsx` — usar `useIsAdmin` central; não redirecionar enquanto a query ainda não teve sucesso.
-- `src/components/auth/ProtectedRoute.tsx` — mesma regra de "esperar sucesso" antes de tratar como não-admin para o gate de assinatura.
+- Em `downloadMultiple` (chama `download-archive`):
+  - Adicionar retry automático (até 3x) com backoff em 408/429/5xx, similar ao já feito em `fetchDriveFileWithRetry`.
+  - Em caso de falha definitiva de uma parte, continuar as demais e retornar a parte falhada na lista, em vez de abortar tudo.
+- Em `downloadMultipleAsParts`:
+  - Coletar partes que falharam e oferecer botão "Tentar novamente as partes que falharam" no toast/UI.
 
-Sem mudanças de banco de dados.
+### 5. UI/UX no `RepertorioPage.tsx`
 
-## Resultado esperado
+- Barra de progresso já existe; adicionar:
+  - Texto "Parte X de Y — ~ZZ MB" usando soma de bytes da parte atual.
+  - Após concluir: toast com nº de ZIPs, tamanho total real baixado e quais partes (se houver) falharam, com botão de retry.
+- Botão "Baixar pasta" só aparece para pastas com músicas (já é o caso); incluir tooltip com tamanho da pasta.
 
-- Admin deixa de ser ocasionalmente redirecionado para `/dashboard` ou `/planos`.
-- Erros transitórios fazem retry em vez de "rebaixar" o usuário.
-- Uma única queryKey `["is-admin", userId]` em todo o app, com cache estável.
+### 6. Edge function `download-archive`
+
+- Sem mudanças estruturais. Apenas confirmar:
+  - Header `Content-Length` é enviado quando possível (para progresso real). Se não, manter estimativa.
+  - Logar `bytesReceived` por arquivo para depurar futuros erros.
+
+## Detalhes técnicos
+
+- Arquivos tocados:
+  - `src/services/zipService.ts` — particionamento, retry, novos tipos de retorno (`failedParts`).
+  - `src/pages/RepertorioPage.tsx` — diálogo de confirmação, exibição de tamanho por parte, retry.
+  - `src/components/ui/` — possível novo `ConfirmDownloadDialog` reutilizável.
+  - `supabase/functions/download-archive/index.ts` — apenas pequenos ajustes de log/headers, sem mudança de schema.
+- Sem alterações em banco / RLS.
+
+## Fora de escopo
+
+- Streaming progressivo real do ZIP (mantemos blob completo).
+- Reorganização da estrutura de pastas/Drive.
