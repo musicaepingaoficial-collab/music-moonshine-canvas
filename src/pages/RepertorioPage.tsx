@@ -128,6 +128,52 @@ const RepertorioPage = () => {
   const groups = useMemo(() => groupBySubfolder(musicas ?? []), [musicas]);
   const hasFolders = groups.some((g) => g.name !== null);
 
+  // Group folders by their parent folder for hierarchical navigation
+  const folderTree = useMemo(() => {
+    const rootFolders: string[] = [];
+    const children: Record<string, string[]> = {};
+
+    groups.forEach(g => {
+      if (g.name) {
+        const parts = g.name.split('/');
+        if (parts.length === 1) {
+          rootFolders.push(g.name);
+        } else {
+          const parent = parts.slice(0, -1).join('/');
+          if (!children[parent]) children[parent] = [];
+          children[parent].push(g.name);
+        }
+      }
+    });
+
+    return { rootFolders, children };
+  }, [groups]);
+
+  const [navigationPath, setNavigationPath] = useState<string[]>([]);
+  
+  const currentLevelFolders = useMemo(() => {
+    if (navigationPath.length === 0) return folderTree.rootFolders;
+    const currentPath = navigationPath.join('/');
+    return folderTree.children[currentPath] || [];
+  }, [folderTree, navigationPath]);
+
+  const handleFolderClick = (folderName: string) => {
+    const parts = folderName.split('/');
+    setNavigationPath(parts);
+    setSelectedFolder(folderName);
+  };
+
+  const handleBreadcrumbClick = (index: number) => {
+    if (index === -1) {
+      setNavigationPath([]);
+      setSelectedFolder(null);
+    } else {
+      const newPath = navigationPath.slice(0, index + 1);
+      setNavigationPath(newPath);
+      setSelectedFolder(newPath.join('/'));
+    }
+  };
+
   const toggleFolder = (folder: string) => {
     setSelectedFolder(folder === selectedFolder ? null : folder);
     setCollapsedFolders((prev) => {
