@@ -321,8 +321,8 @@ serve(async (req) => {
     let removed = 0;
 
     // 4a: Update existing + Insert new
-    for (let i = 0; i < allFiles.length; i += 50) {
-      const batch = allFiles.slice(i, i + 50);
+    for (let i = 0; i < allFiles.length; i += 100) {
+      const batch = allFiles.slice(i, i + 100);
 
       const toUpdate: Array<{ id: string; data: any }> = [];
       const toInsert: any[] = [];
@@ -358,14 +358,16 @@ serve(async (req) => {
         }
       }
 
-      // Update existing records one by one (preserves their IDs and repertorio links)
-      for (const item of toUpdate) {
-        const { error: upErr } = await supabase
-          .from("musicas")
-          .update(item.data)
-          .eq("id", item.id);
-        if (upErr) console.error("Update error:", upErr);
-        else updated++;
+      // Update existing records in parallel batches
+      if (toUpdate.length > 0) {
+        await Promise.all(toUpdate.map(async (item) => {
+          const { error: upErr } = await supabase
+            .from("musicas")
+            .update(item.data)
+            .eq("id", item.id);
+          if (upErr) console.error("Update error:", upErr);
+          else updated++;
+        }));
       }
 
       // Insert new records
@@ -398,8 +400,8 @@ serve(async (req) => {
 
     console.log(`Sync complete: ${updated} updated, ${inserted} inserted, ${removed} removed`);
 
-    // === STEP 5: Clean orphan categories ===
-    await cleanOrphanCategories(supabase);
+    // === STEP 5: Clean orphan categories (Skip for now to save time/resources if needed, or run)
+    // await cleanOrphanCategories(supabase);
 
     return new Response(JSON.stringify({
       message: `Sincronização concluída: ${updated} atualizadas, ${inserted} novas, ${removed} removidas.`,
