@@ -75,6 +75,13 @@ const RepertorioPage = () => {
   const [downloadStage, setDownloadStage] = useState<"preparing" | "downloading" | "saving">("preparing");
   const [downloadPart, setDownloadPart] = useState(0);
   const [downloadPartsTotal, setDownloadPartsTotal] = useState(0);
+  const [downloadPartBytes, setDownloadPartBytes] = useState(0);
+  const [pendingDownload, setPendingDownload] = useState<{
+    items: DownloadArchiveItem[];
+    name: string;
+    label: string;
+  } | null>(null);
+  const [failedParts, setFailedParts] = useState<FailedPart[]>([]);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
