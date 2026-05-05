@@ -8,11 +8,11 @@ import { InstallBanner } from "@/components/pwa/InstallBanner";
 export function AppLayout() {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full overflow-x-hidden">
         <AppSidebar />
-        <div className="flex flex-1 flex-col pb-20">
+        <div className="flex flex-1 flex-col pb-24 md:pb-20">
           <Header />
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden">
             <Outlet />
           </main>
         </div>
