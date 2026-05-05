@@ -91,12 +91,26 @@ const RepertorioPage = () => {
   const { data: musicas, isLoading: loadingMusicas } = useQuery<Musica[]>({
     queryKey: ["repertorio-musicas", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("repertorio_musicas")
-        .select("musica_id, musicas(*)")
-        .eq("repertorio_id", id!);
-      if (error) throw error;
-      return (data ?? []).map((rm: any) => rm.musicas as Musica);
+      const allMusicas: Musica[] = [];
+      let offset = 0;
+      const limit = 1000;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("repertorio_musicas")
+          .select("musica_id, musicas(*)")
+          .eq("repertorio_id", id!)
+          .range(offset, offset + limit - 1);
+          
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allMusicas.push(...(data as any[]).map((rm) => rm.musicas as Musica));
+        if (data.length < limit) break;
+        offset += limit;
+      }
+
+      return allMusicas;
     },
     enabled: !!id,
   });

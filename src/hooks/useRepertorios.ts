@@ -44,15 +44,21 @@ export function useRepertorios() {
 
       const withCounts = await Promise.all(
         (data ?? []).map(async (r: Repertorio) => {
-          const { data: rmData } = await db
+          const { count } = await db
             .from("repertorio_musicas")
-            .select("musica_id, musicas(file_size)")
+            .select("*", { count: "exact", head: true })
             .eq("repertorio_id", r.id);
-          const count = rmData?.length ?? 0;
-          const totalSize = (rmData ?? []).reduce((sum: number, rm: any) => {
+            
+          const { data: sizeData } = await db
+            .from("repertorio_musicas")
+            .select("musicas(file_size)")
+            .eq("repertorio_id", r.id);
+            
+          const totalSize = (sizeData ?? []).reduce((sum: number, rm: any) => {
             return sum + (rm.musicas?.file_size || 0);
           }, 0);
-          return { ...r, musica_count: count, total_size: totalSize } as RepertorioWithCount;
+          
+          return { ...r, musica_count: count ?? 0, total_size: totalSize } as RepertorioWithCount;
         })
       );
       return withCounts;
@@ -65,12 +71,26 @@ export function useRepertorioMusicas(repertorioId: string | undefined) {
     queryKey: ["repertorio-musicas", repertorioId],
     queryFn: async () => {
       if (!repertorioId) return [];
-      const { data, error } = await db
-        .from("repertorio_musicas")
-        .select("musica_id, musicas(*)")
-        .eq("repertorio_id", repertorioId);
-      if (error) throw error;
-      return (data ?? []).map((rm: any) => rm.musicas as Musica);
+      const allMusicas: Musica[] = [];
+      let offset = 0;
+      const limit = 1000;
+
+      while (true) {
+        const { data, error } = await db
+          .from("repertorio_musicas")
+          .select("musica_id, musicas(*)")
+          .eq("repertorio_id", repertorioId)
+          .range(offset, offset + limit - 1);
+          
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allMusicas.push(...(data as any[]).map((rm) => rm.musicas as Musica));
+        if (data.length < limit) break;
+        offset += limit;
+      }
+
+      return allMusicas;
     },
     enabled: !!repertorioId,
   });
