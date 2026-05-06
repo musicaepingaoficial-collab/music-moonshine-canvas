@@ -464,6 +464,17 @@ serve(async (req) => {
             successIds.push(musica.id);
           }
 
+          if (timeoutReached) {
+            const timeoutEntry = new ZipPassThrough(`${archiveRoot}/_AVISO_PARCIAL.txt`);
+            zip.add(timeoutEntry);
+            timeoutEntry.push(
+              encoder.encode(
+                "ATENCAO: Este ZIP esta incompleto porque o tempo limite do servidor foi atingido. Tente baixar o repertorio em partes menores se necessario."
+              ),
+              true
+            );
+          }
+
           if (failedFiles.length > 0) {
             const failedEntry = new ZipPassThrough(`${archiveRoot}/_falhas.txt`);
             zip.add(failedEntry);
