@@ -265,10 +265,16 @@ export async function downloadMultiple(
   }
 
   onProgress?.(1, 100, "downloading");
-  const blob = await response.blob();
+  let blob: Blob;
+  try {
+    blob = await response.blob();
+  } catch (error) {
+    console.error("[zipService:downloadMultiple] Failed to read blob", error);
+    throw new Error("Falha ao receber os dados do arquivo do servidor. Tente reduzir o tamanho do download.");
+  }
+
   onProgress?.(99, 100, "saving");
   await downloadBlob(blob, fallbackName, { revokeDelayMs: 60000 });
-
   onProgress?.(100, 100, "saving");
   return {
     downloaded: musicaIds.length,
