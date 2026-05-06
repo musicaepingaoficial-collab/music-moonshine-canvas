@@ -440,7 +440,9 @@ serve(async (req) => {
         }
 
         if (timeoutReached) {
-          await zipWriter.add("_AVISO_PARCIAL.txt", new TextEncoder().encode("ZIP incompleto devido ao limite de tempo do servidor.").readable);
+          const timeoutMsg = "ZIP incompleto devido ao limite de tempo do servidor.";
+          const timeoutBlob = new Blob([timeoutMsg], { type: "text/plain" });
+          await zipWriter.add("_AVISO_PARCIAL.txt", timeoutBlob.stream());
         }
 
         if (failedFiles.length > 0) {
