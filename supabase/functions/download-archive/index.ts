@@ -415,10 +415,19 @@ serve(async (req) => {
         });
 
         (async () => {
+          const startTime = Date.now();
+          const SOFT_TIMEOUT_MS = 50000; // 50s limit for 60s hard timeout
+          console.log(`[DownloadArchive] Starting ZIP generation for ${validMusicas.length} files. Total estimated size: ${estimatedBytes} bytes`);
           const successIds: string[] = [];
           const failedFiles: string[] = [];
+          let timeoutReached = false;
 
           for (const musica of validMusicas) {
+            if (Date.now() - startTime > SOFT_TIMEOUT_MS) {
+              console.warn(`[DownloadArchive] Soft timeout reached. Finalizing ZIP.`);
+              timeoutReached = true;
+              break;
+            }
             const driveResponse = await fetch(
               `https://www.googleapis.com/drive/v3/files/${musica.file_url}?alt=media`,
               { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -437,7 +446,11 @@ serve(async (req) => {
               : `${archiveRoot}/${fileName}`;
 
             const zipEntry = new ZipPassThrough(zipPath);
+            // @ts-ignore: level exists on ZipPassThrough in some versions or can be set
+            zipEntry.level = 0; 
             zip.add(zipEntry);
+
+            console.log(`[DownloadArchive] Processing: ${fileName} (${zipPath})`);
 
             const reader = driveResponse.body.getReader();
             while (true) {
@@ -449,6 +462,17 @@ serve(async (req) => {
             }
             zipEntry.push(new Uint8Array(0), true);
             successIds.push(musica.id);
+          }
+
+          if (timeoutReached) {
+            const timeoutEntry = new ZipPassThrough(`${archiveRoot}/_AVISO_PARCIAL.txt`);
+            zip.add(timeoutEntry);
+            timeoutEntry.push(
+              encoder.encode(
+                "ATENCAO: Este ZIP esta incompleto porque o tempo limite do servidor foi atingido. Tente baixar o repertorio em partes menores se necessario."
+              ),
+              true
+            );
           }
 
           if (failedFiles.length > 0) {
@@ -481,6 +505,7 @@ serve(async (req) => {
             );
           }
 
+          console.log(`[DownloadArchive] Finished processing files. Success: ${successIds.length}, Failed: ${failedFiles.length}`);
           zip.end();
         })().catch((error) => {
           console.error("[DownloadArchive:streamError]", error);

@@ -287,7 +287,7 @@ const RepertorioPage = () => {
     });
   };
 
-  const MAX_ZIP_BYTES = 700 * 1024 * 1024;
+  const MAX_ZIP_BYTES = 400 * 1024 * 1024; // Reduzido para evitar timeout de 60s na Edge Function
 
   const runDownload = async (
     items: DownloadArchiveItem[],

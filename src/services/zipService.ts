@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const DOWNLOAD_BATCH_SIZE = 20;
-const DEFAULT_MAX_ZIP_BYTES = 700 * 1024 * 1024;
+const DEFAULT_MAX_ZIP_BYTES = 400 * 1024 * 1024; // Reduzido de 700MB para 400MB para evitar timeout de 60s
 const DEFAULT_ESTIMATED_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IDS_PER_ZIP_PART = 400;
 const ARCHIVE_MAX_ATTEMPTS = 3;
@@ -265,10 +265,16 @@ export async function downloadMultiple(
   }
 
   onProgress?.(1, 100, "downloading");
-  const blob = await response.blob();
+  let blob: Blob;
+  try {
+    blob = await response.blob();
+  } catch (error) {
+    console.error("[zipService:downloadMultiple] Failed to read blob", error);
+    throw new Error("Falha ao receber os dados do arquivo do servidor. Tente reduzir o tamanho do download.");
+  }
+
   onProgress?.(99, 100, "saving");
   await downloadBlob(blob, fallbackName, { revokeDelayMs: 60000 });
-
   onProgress?.(100, 100, "saving");
   return {
     downloaded: musicaIds.length,
