@@ -298,51 +298,114 @@ export async function downloadMultiple(
   const filesQueue = [...validFiles];
   const inflight = new Map<string, Promise<{ name: string; input: Response } | null>>();
 
-  async function fetchOne(file: DownloadFile): Promise<{ name: string; input: Response } | null> {
+  /**
+   * Lê o body de um Response com timeout entre chunks.
+   * Se ficar mais de STREAM_IDLE_TIMEOUT_MS sem receber bytes, lança erro
+   * (provavelmente o computador hibernou ou a conexão caiu).
+   */
+  async function readBodyWithIdleTimeout(
+    response: Response,
+    onChunk: (bytes: number) => void
+  ): Promise<Uint8Array> {
+    const reader = response.body!.getReader();
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+
     try {
-      const response = await fetchDriveStream(file.url!, headers);
-      const contentType = response.headers.get("content-type");
-      const name = buildZipPath(file, contentType, usedNames);
-      const lengthHeader = response.headers.get("content-length");
-      const length = lengthHeader ? Number(lengthHeader) : 0;
-
-      // Wraps the body to track bytes for progress
-      const reader = response.body!.getReader();
-      const trackedStream = new ReadableStream<Uint8Array>({
-        async pull(controller) {
-          const { done, value } = await reader.read();
-          if (done) {
-            controller.close();
-            return;
-          }
-          if (value) {
-            bytesDownloaded += value.byteLength;
-            controller.enqueue(value);
-            onProgress?.({
-              downloaded,
-              total,
-              bytesDownloaded,
-              totalBytes: 0,
-              stage: "downloading",
-              currentFile: name,
-            });
-          }
-        },
-        cancel() {
-          reader.cancel();
-        },
-      });
-
-      const wrappedHeaders = new Headers(response.headers);
-      if (length) wrappedHeaders.set("content-length", String(length));
-      const wrapped = new Response(trackedStream, { headers: wrappedHeaders });
-      return { name, input: wrapped };
-    } catch (error) {
-      console.error(`[zipService] Falha ao baixar ${file.artist} - ${file.title}`, error);
-      failedFiles.push(`${file.artist} - ${file.title}`);
-      return null;
+      while (true) {
+        let timeoutId: any;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error("STREAM_IDLE_TIMEOUT")),
+            STREAM_IDLE_TIMEOUT_MS
+          );
+        });
+        let result: ReadableStreamReadResult<Uint8Array>;
+        try {
+          result = await Promise.race([reader.read(), timeoutPromise]);
+        } finally {
+          clearTimeout(timeoutId);
+        }
+        if (result.done) break;
+        if (result.value) {
+          chunks.push(result.value);
+          totalBytes += result.value.byteLength;
+          onChunk(result.value.byteLength);
+        }
+      }
+    } catch (err) {
+      try { await reader.cancel(); } catch { /* ignore */ }
+      throw err;
     }
+
+    const merged = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const c of chunks) {
+      merged.set(c, offset);
+      offset += c.byteLength;
+    }
+    return merged;
   }
+
+  async function fetchOne(file: DownloadFile): Promise<{ name: string; input: Response } | null> {
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= FILE_RETRY_ATTEMPTS; attempt++) {
+      // Marcador de bytes para esta tentativa, para revertermos o progresso em caso de falha
+      let attemptBytes = 0;
+      try {
+        // Se o navegador estiver offline, espera voltar (com limite)
+        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+          await waitForOnline(STREAM_IDLE_TIMEOUT_MS);
+        }
+
+        const response = await fetchDriveStream(file.url!, headers);
+        const contentType = response.headers.get("content-type");
+        // Só registra o nome na primeira tentativa bem-sucedida
+        const name = (file as any).__zipName || buildZipPath(file, contentType, usedNames);
+        (file as any).__zipName = name;
+
+        const buffer = await readBodyWithIdleTimeout(response, (chunkBytes) => {
+          attemptBytes += chunkBytes;
+          bytesDownloaded += chunkBytes;
+          onProgress?.({
+            downloaded,
+            total,
+            bytesDownloaded,
+            totalBytes: 0,
+            stage: "downloading",
+            currentFile: name,
+          });
+        });
+
+        const wrappedHeaders = new Headers();
+        if (contentType) wrappedHeaders.set("content-type", contentType);
+        wrappedHeaders.set("content-length", String(buffer.byteLength));
+        const wrapped = new Response(buffer, { headers: wrappedHeaders });
+        return { name, input: wrapped };
+      } catch (error) {
+        lastError = error;
+        // Reverte os bytes contabilizados nesta tentativa
+        bytesDownloaded -= attemptBytes;
+        const isLast = attempt === FILE_RETRY_ATTEMPTS;
+        console.warn(
+          `[zipService] Tentativa ${attempt}/${FILE_RETRY_ATTEMPTS} falhou para ${file.artist} - ${file.title}`,
+          error
+        );
+        if (!isLast) {
+          // Espera proporcional + extra se offline
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            await waitForOnline(STREAM_IDLE_TIMEOUT_MS);
+          } else {
+            await new Promise((r) => setTimeout(r, 1000 * attempt));
+          }
+        }
+      }
+    }
+    console.error(`[zipService] Desistindo de ${file.artist} - ${file.title}`, lastError);
+    failedFiles.push(`${file.artist} - ${file.title}`);
+    return null;
+  }
+
 
   // Generator que entrega arquivos prontos para o client-zip, mantendo CONCURRENT_DOWNLOADS em voo
   async function* fileGenerator(): AsyncGenerator<{ name: string; input: Response }> {
