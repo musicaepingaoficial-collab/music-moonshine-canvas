@@ -301,6 +301,20 @@ const RepertorioPage = () => {
     name: string,
     contextLabel: string
   ) => {
+    // IMPORTANTE: abrir o seletor "Salvar como…" ANTES de qualquer await,
+    // senão o navegador rejeita por falta de user activation.
+    let fileHandle: any = null;
+    if (hasFileSystemAccess()) {
+      try {
+        const picked = await pickZipDestination(name);
+        if (picked === "cancelled") return;
+        fileHandle = picked;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao abrir seletor.");
+        return;
+      }
+    }
+
     setDownloading(true);
     setDownloadDone(0);
     setDownloadTotal(items.length);
@@ -317,7 +331,8 @@ const RepertorioPage = () => {
           setDownloadBytes(progress.bytesDownloaded);
           setDownloadStage(progress.stage);
           if (progress.currentFile) setDownloadCurrentFile(progress.currentFile);
-        }
+        },
+        fileHandle
       );
 
       if (result.failed > 0) {
