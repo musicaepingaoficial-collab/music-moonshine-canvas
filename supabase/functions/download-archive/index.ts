@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encode as base64url } from "https://deno.land/std@0.168.0/encoding/base64url.ts";
-import { Zip, ZipPassThrough } from "https://esm.sh/fflate@0.8.2?target=deno";
+import * as zip from "https://deno.land/x/zipjs@v2.7.34/index.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
