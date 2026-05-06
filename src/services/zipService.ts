@@ -276,6 +276,9 @@ export async function downloadMultiple(
   const finalFileName = buildArchiveFileName(archiveName);
   const headers = await getJsonHeaders();
 
+  // Solicita Wake Lock para impedir que tela/sistema durma durante o download
+  await requestWakeLock();
+
   onProgress?.({
     downloaded: 0,
     total: musicaIds.length,
