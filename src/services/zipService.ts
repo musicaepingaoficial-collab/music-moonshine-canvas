@@ -2,9 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const DOWNLOAD_BATCH_SIZE = 20;
-const DEFAULT_MAX_ZIP_BYTES = 250 * 1024 * 1024; // Reduzido para 250MB para garantir estabilidade máxima
+const DEFAULT_MAX_ZIP_BYTES = 100 * 1024 * 1024; // Reduzido drasticamente para 100MB para evitar estouro de CPU na Edge Function
 const DEFAULT_ESTIMATED_FILE_BYTES = 8 * 1024 * 1024;
-const MAX_IDS_PER_ZIP_PART = 400;
+const MAX_IDS_PER_ZIP_PART = 100; // Reduzido para 100 músicas por parte
 const ARCHIVE_MAX_ATTEMPTS = 3;
 
 type DownloadFile = {
