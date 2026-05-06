@@ -9,7 +9,7 @@ import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Music, Folder, ArrowLeft, Download, ListPlus } from "lucide-react";
-import { downloadMultiple } from "@/services/zipService";
+import { downloadMultiple, hasFileSystemAccess, pickZipDestination } from "@/services/zipService";
 import { AddBulkToRepertorioDialog } from "@/components/music/AddBulkToRepertorioDialog";
 import { toast } from "sonner";
 import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
