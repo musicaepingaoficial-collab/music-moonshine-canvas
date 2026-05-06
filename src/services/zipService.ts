@@ -1,11 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import { downloadZip } from "client-zip";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const DOWNLOAD_BATCH_SIZE = 20;
-const DEFAULT_MAX_ZIP_BYTES = 40 * 1024 * 1024; // Reduzido drasticamente para 40MB para evitar CPU Time Exceeded na Edge Function
-const DEFAULT_ESTIMATED_FILE_BYTES = 8 * 1024 * 1024;
-const MAX_IDS_PER_ZIP_PART = 50; // Reduzido para 50 músicas por parte
-const ARCHIVE_MAX_ATTEMPTS = 3;
+const DOWNLOAD_BATCH_SIZE = 20; // Limite da edge function `download`
+const CONCURRENT_DOWNLOADS = 4; // Quantos arquivos baixar em paralelo do Drive
+const FETCH_RETRY_ATTEMPTS = 3;
 
 type DownloadFile = {
   id: string;
@@ -28,34 +27,6 @@ export type DownloadArchiveItem = {
   fileSize?: number | null;
 };
 
-export type DownloadPartsProgress = {
-  partIndex: number;
-  partCount: number;
-  partProgressPercent: number;
-  overallProgressPercent: number;
-  stage: DownloadStage;
-};
-
-export type FailedPart = {
-  partIndex: number;
-  partName: string;
-  ids: string[];
-  estimatedBytes: number;
-  error: string;
-};
-
-export type DownloadManyZipsResult = {
-  parts: number;
-  downloaded: number;
-  failed: number;
-  failedFiles: string[];
-  failedParts: FailedPart[];
-};
-
-type DownloadBlobOptions = {
-  revokeDelayMs?: number;
-};
-
 function sanitizeFileName(value: string) {
   return value
     .normalize("NFD")
@@ -63,6 +34,14 @@ function sanitizeFileName(value: string) {
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function sanitizeFolderPath(value: string) {
+  return value
+    .split("/")
+    .map((segment) => sanitizeFileName(segment))
+    .filter(Boolean)
+    .join("/");
 }
 
 function getExtension(contentType: string | null) {
@@ -79,54 +58,44 @@ function buildArchiveFileName(name?: string) {
   return `${safeName}.zip`;
 }
 
-async function downloadBlob(blob: Blob, fileName: string, options: DownloadBlobOptions = {}) {
-  if (!blob || blob.size === 0) {
-    throw new Error("Arquivo gerado vazio");
-  }
-
-  const { revokeDelayMs = 5000 } = options;
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = fileName;
-  anchor.rel = "noopener";
-  anchor.style.display = "none";
-  document.body.appendChild(anchor);
-
-  try {
-    anchor.click();
-    await new Promise((resolve) => window.setTimeout(resolve, 150));
-  } finally {
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), revokeDelayMs);
-  }
-}
-
-export async function saveBlobAsFile(blob: Blob, fileName: string) {
-  await downloadBlob(blob, fileName);
-}
-
 function buildTrackFileName(file: DownloadFile, contentType: string | null) {
   const baseName = sanitizeFileName(`${file.artist} - ${file.title}`) || "musica";
   return `${baseName}${getExtension(contentType)}`;
 }
 
+function buildZipPath(file: DownloadFile, contentType: string | null, usedNames: Set<string>) {
+  const fileName = buildTrackFileName(file, contentType);
+  const folder = file.subfolder ? sanitizeFolderPath(file.subfolder) : "";
+  let candidate = folder ? `${folder}/${fileName}` : fileName;
+
+  if (!usedNames.has(candidate)) {
+    usedNames.add(candidate);
+    return candidate;
+  }
+
+  const dotIdx = candidate.lastIndexOf(".");
+  const base = dotIdx > 0 ? candidate.slice(0, dotIdx) : candidate;
+  const ext = dotIdx > 0 ? candidate.slice(dotIdx) : "";
+  let i = 2;
+  while (usedNames.has(`${base} (${i})${ext}`)) i++;
+  candidate = `${base} (${i})${ext}`;
+  usedNames.add(candidate);
+  return candidate;
+}
+
+async function getSessionAccessToken() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Nao autenticado");
+  return session.access_token;
+}
+
 async function getJsonHeaders() {
   const token = await getSessionAccessToken();
-
   return {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
     apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
   };
-}
-
-async function getSessionAccessToken() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) throw new Error("Nao autenticado");
-  return session.access_token;
 }
 
 async function requestDownloadBatch(musicaIds: string[], headers: Record<string, string>): Promise<DownloadFile[]> {
@@ -138,306 +107,280 @@ async function requestDownloadBatch(musicaIds: string[], headers: Record<string,
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || "Falha no download");
+    throw new Error(err.error || "Falha ao preparar download");
   }
 
   const data = await response.json();
   const files = data.files ?? [];
-  if (!files.length) throw new Error("Nenhum arquivo encontrado");
   return files;
 }
 
-async function fetchDriveFile(fileId: string, headers: Record<string, string>) {
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/google-drive`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ action: "stream", fileId }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    const error = new Error(err.error || "Falha ao baixar arquivo");
-    (error as Error & { statusCode?: number }).statusCode = response.status;
-    throw error;
+async function requestAllDownloadFiles(musicaIds: string[], headers: Record<string, string>) {
+  const allFiles: DownloadFile[] = [];
+  for (let index = 0; index < musicaIds.length; index += DOWNLOAD_BATCH_SIZE) {
+    const batchIds = musicaIds.slice(index, index + DOWNLOAD_BATCH_SIZE);
+    const batchFiles = await requestDownloadBatch(batchIds, headers);
+    allFiles.push(...batchFiles);
   }
+  return allFiles;
+}
 
+async function fetchDriveStream(fileId: string, headers: Record<string, string>): Promise<Response> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= FETCH_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/google-drive`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action: "stream", fileId }),
+      });
+      if (response.ok && response.body) return response;
+      const status = response.status;
+      const errText = await response.text().catch(() => "");
+      lastError = new Error(`HTTP ${status} ${errText}`);
+      if (status < 500 && status !== 408 && status !== 429) break;
+    } catch (error) {
+      lastError = error;
+    }
+    await new Promise((r) => setTimeout(r, 400 * attempt));
+  }
+  if (lastError instanceof Error) throw lastError;
+  throw new Error("Falha ao baixar arquivo do Drive");
+}
+
+async function fetchDriveBlob(fileId: string, headers: Record<string, string>) {
+  const response = await fetchDriveStream(fileId, headers);
   return {
     blob: await response.blob(),
     contentType: response.headers.get("content-type"),
   };
 }
 
-function shouldRetry(statusCode?: number) {
-  if (!statusCode) return true;
-  return statusCode === 408 || statusCode === 429 || statusCode >= 500;
+async function downloadBlob(blob: Blob, fileName: string, revokeDelayMs = 5000) {
+  if (!blob || blob.size === 0) throw new Error("Arquivo gerado vazio");
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = fileName;
+  anchor.rel = "noopener";
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  try {
+    anchor.click();
+    await new Promise((r) => window.setTimeout(r, 150));
+  } finally {
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), revokeDelayMs);
+  }
 }
 
-async function fetchDriveFileWithRetry(fileId: string, headers: Record<string, string>, maxAttempts = 3) {
-  let lastError: unknown = null;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fetchDriveFile(fileId, headers);
-    } catch (error: any) {
-      lastError = error;
-      const statusCode = Number(error?.statusCode);
-      const isLastAttempt = attempt === maxAttempts;
-
-      if (isLastAttempt || !shouldRetry(statusCode)) {
-        break;
-      }
-
-      const waitMs = 300 * attempt;
-      await new Promise((resolve) => window.setTimeout(resolve, waitMs));
-    }
-  }
-
-  if (lastError instanceof Error) throw lastError;
-  throw new Error("Falha ao baixar arquivo");
-}
-
-async function requestAllDownloadFiles(musicaIds: string[], headers: Record<string, string>) {
-  const allFiles: DownloadFile[] = [];
-
-  for (let index = 0; index < musicaIds.length; index += DOWNLOAD_BATCH_SIZE) {
-    const batchIds = musicaIds.slice(index, index + DOWNLOAD_BATCH_SIZE);
-    const batchFiles = await requestDownloadBatch(batchIds, headers);
-    allFiles.push(...batchFiles);
-  }
-
-  return allFiles;
+export async function saveBlobAsFile(blob: Blob, fileName: string) {
+  await downloadBlob(blob, fileName);
 }
 
 export async function downloadSingle(musicaId: string): Promise<void> {
   const headers = await getJsonHeaders();
   const files = await requestAllDownloadFiles([musicaId], headers);
   const file = files[0];
-
   if (!file?.url) throw new Error("URL de download nao encontrada");
 
-  const { blob, contentType } = await fetchDriveFileWithRetry(file.url, headers);
-  await downloadBlob(blob, buildTrackFileName(file, contentType), { revokeDelayMs: 3000 });
+  const { blob, contentType } = await fetchDriveBlob(file.url, headers);
+  await downloadBlob(blob, buildTrackFileName(file, contentType), 3000);
 }
 
+// Detecta se o navegador suporta File System Access API (Chrome/Edge/Opera)
+function hasFileSystemAccess(): boolean {
+  return typeof (window as any).showSaveFilePicker === "function";
+}
+
+type ProgressCallback = (info: {
+  downloaded: number;
+  total: number;
+  bytesDownloaded: number;
+  totalBytes: number;
+  stage: DownloadStage;
+  currentFile?: string;
+}) => void;
+
+/**
+ * Baixa múltiplas músicas como um único ZIP gerado no navegador.
+ * Suporta repertórios de qualquer tamanho usando streaming.
+ */
 export async function downloadMultiple(
   musicaIds: string[],
   archiveName?: string,
-  onProgress?: (downloaded: number, total: number, stage?: DownloadStage) => void
+  onProgress?: ProgressCallback
 ): Promise<DownloadMultipleResult> {
-  const fallbackName = buildArchiveFileName(archiveName);
-  onProgress?.(0, 100, "preparing");
+  if (!musicaIds.length) throw new Error("Nenhuma musica selecionada");
 
+  const finalFileName = buildArchiveFileName(archiveName);
   const headers = await getJsonHeaders();
 
-  let lastError: unknown = null;
-  let response: Response | null = null;
+  onProgress?.({
+    downloaded: 0,
+    total: musicaIds.length,
+    bytesDownloaded: 0,
+    totalBytes: 0,
+    stage: "preparing",
+  });
 
-  for (let attempt = 1; attempt <= ARCHIVE_MAX_ATTEMPTS; attempt++) {
-    try {
-      response = await fetch(`${SUPABASE_URL}/functions/v1/download-archive`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ musicaIds, archiveName }),
-      });
+  // 1. Pega URLs de todas as músicas (em batches por causa do limite da edge function)
+  const files = await requestAllDownloadFiles(musicaIds, headers);
+  const validFiles = files.filter((f) => !!f.url);
+  if (!validFiles.length) throw new Error("Nenhum arquivo disponivel para download");
 
-      if (response.ok) break;
-
-      const status = response.status;
-      const err = await response.json().catch(() => ({}));
-      const message = err.error || `Falha ao gerar ZIP (HTTP ${status})`;
-      lastError = new Error(message);
-      response = null;
-
-      if (!shouldRetry(status) || attempt === ARCHIVE_MAX_ATTEMPTS) {
-        throw lastError;
-      }
-    } catch (error) {
-      lastError = error;
-      if (attempt === ARCHIVE_MAX_ATTEMPTS) throw error;
-    }
-
-    await new Promise((resolve) => window.setTimeout(resolve, 600 * attempt));
-  }
-
-  if (!response) {
-    if (lastError instanceof Error) throw lastError;
-    throw new Error("Falha ao gerar ZIP no servidor");
-  }
-
-  onProgress?.(1, 100, "downloading");
-  let blob: Blob;
-  try {
-    blob = await response.blob();
-    if (!blob || blob.size === 0) {
-      throw new Error("O servidor retornou um arquivo vazio.");
-    }
-  } catch (error: any) {
-    console.error("[zipService:downloadMultiple] Failed to read blob", error);
-    const msg = error?.message || "Erro de rede ou tempo limite atingido";
-    throw new Error(`Falha ao receber os dados: ${msg}. Tente novamente ou reduza o tamanho do download.`);
-  }
-
-  onProgress?.(99, 100, "saving");
-  await downloadBlob(blob, fallbackName, { revokeDelayMs: 60000 });
-  onProgress?.(100, 100, "saving");
-  return {
-    downloaded: musicaIds.length,
-    failed: 0,
-    failedFiles: [],
-  };
-}
-
-type ZipPart = {
-  ids: string[];
-  estimatedBytes: number;
-};
-
-function estimateItemSizeBytes(item: DownloadArchiveItem, fallbackBytes: number) {
-  const raw = Number(item.fileSize ?? 0);
-  if (Number.isFinite(raw) && raw > 0) return raw;
-  return fallbackBytes;
-}
-
-function computeFallbackBytes(items: DownloadArchiveItem[]) {
-  const known = items
-    .map((it) => Number(it.fileSize ?? 0))
-    .filter((n) => Number.isFinite(n) && n > 0);
-  if (known.length === 0) return DEFAULT_ESTIMATED_FILE_BYTES;
-  const avg = known.reduce((s, n) => s + n, 0) / known.length;
-  return Math.max(1024 * 1024, Math.round(avg));
-}
-
-function splitItemsIntoZipParts(
-  items: DownloadArchiveItem[],
-  maxZipBytes = DEFAULT_MAX_ZIP_BYTES
-): ZipPart[] {
-  const parts: ZipPart[] = [];
-  let current: ZipPart = { ids: [], estimatedBytes: 0 };
-  const fallbackBytes = computeFallbackBytes(items);
-
-  for (const item of items) {
-    const size = estimateItemSizeBytes(item, fallbackBytes);
-    const wouldOverflowSize = current.estimatedBytes + size > maxZipBytes;
-    const wouldOverflowCount = current.ids.length >= MAX_IDS_PER_ZIP_PART;
-
-    if (current.ids.length > 0 && (wouldOverflowSize || wouldOverflowCount)) {
-      parts.push(current);
-      current = { ids: [], estimatedBytes: 0 };
-    }
-
-    current.ids.push(item.id);
-    current.estimatedBytes += size;
-  }
-
-  if (current.ids.length > 0) {
-    parts.push(current);
-  }
-
-  return parts;
-}
-
-export function planZipParts(
-  items: DownloadArchiveItem[],
-  maxZipBytes = DEFAULT_MAX_ZIP_BYTES
-) {
-  const filtered = items.filter((it) => !!it.id);
-  const parts = splitItemsIntoZipParts(filtered, maxZipBytes);
-  const totalKnownBytes = filtered.reduce(
-    (s, it) => s + (Number(it.fileSize) > 0 ? Number(it.fileSize) : 0),
-    0
-  );
-  const unknownCount = filtered.filter(
-    (it) => !(Number(it.fileSize) > 0)
-  ).length;
-  return {
-    partCount: parts.length,
-    totalKnownBytes,
-    unknownCount,
-    totalItems: filtered.length,
-  };
-}
-
-function buildPartArchiveName(baseName: string | undefined, partIndex: number, totalParts: number) {
-  const safeBase = sanitizeFileName(baseName || "repertorio") || "repertorio";
-  const left = String(partIndex + 1).padStart(2, "0");
-  const right = String(totalParts).padStart(2, "0");
-  return `${safeBase} - parte ${left} de ${right}`;
-}
-
-export async function downloadMultipleAsParts(
-  items: DownloadArchiveItem[],
-  archiveName?: string,
-  options?: {
-    maxZipBytes?: number;
-    onProgress?: (progress: DownloadPartsProgress & { partEstimatedBytes?: number }) => void;
-  }
-): Promise<DownloadManyZipsResult> {
-  const filteredItems = items.filter((item) => !!item.id);
-  if (!filteredItems.length) {
-    throw new Error("Nenhum arquivo disponivel para download");
-  }
-
-  const parts = splitItemsIntoZipParts(filteredItems, options?.maxZipBytes ?? DEFAULT_MAX_ZIP_BYTES);
-  if (!parts.length) {
-    throw new Error("Nao foi possivel preparar os arquivos para download");
-  }
-
+  const total = validFiles.length;
   let downloaded = 0;
-  let failed = 0;
+  let bytesDownloaded = 0;
   const failedFiles: string[] = [];
-  const failedParts: FailedPart[] = [];
+  const usedNames = new Set<string>();
 
-  for (let partIndex = 0; partIndex < parts.length; partIndex++) {
-    const part = parts[partIndex];
-    const partName = buildPartArchiveName(archiveName, partIndex, parts.length);
+  // Tenta usar File System Access API para escrever ZIP direto no disco (sem usar memória)
+  let writableStream: WritableStream<Uint8Array> | null = null;
+  let fileHandle: any = null;
 
-    options?.onProgress?.({
-      partIndex,
-      partCount: parts.length,
-      partProgressPercent: 0,
-      overallProgressPercent: Math.round((partIndex / parts.length) * 100),
-      stage: "preparing",
-      partEstimatedBytes: part.estimatedBytes,
-    });
-
+  if (hasFileSystemAccess()) {
     try {
-      const result = await downloadMultiple(part.ids, partName, (progress, total, stage) => {
-        const partProgressPercent = total > 0 ? Math.round((progress / total) * 100) : 0;
-        const overallProgressPercent = Math.round(((partIndex + partProgressPercent / 100) / parts.length) * 100);
-        options?.onProgress?.({
-          partIndex,
-          partCount: parts.length,
-          partProgressPercent,
-          overallProgressPercent,
-          stage: stage ?? "downloading",
-          partEstimatedBytes: part.estimatedBytes,
-        });
+      fileHandle = await (window as any).showSaveFilePicker({
+        suggestedName: finalFileName,
+        types: [{ description: "Arquivo ZIP", accept: { "application/zip": [".zip"] } }],
       });
-
-      downloaded += result.downloaded;
-      failed += result.failed;
-      if (result.failedFiles.length > 0) {
-        failedFiles.push(...result.failedFiles);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao baixar parte";
-      console.error(`[downloadMultipleAsParts] part ${partIndex + 1} failed`, error);
-      failed += part.ids.length;
-      failedParts.push({
-        partIndex,
-        partName,
-        ids: part.ids,
-        estimatedBytes: part.estimatedBytes,
-        error: message,
-      });
+      writableStream = await fileHandle.createWritable();
+    } catch (err: any) {
+      // Usuário cancelou o seletor de arquivo
+      if (err?.name === "AbortError") throw new Error("Download cancelado");
+      // Outro erro -> cai pro fallback
+      writableStream = null;
     }
   }
 
+  // 2. Cria um async iterable que baixa as músicas com concorrência controlada
+  const filesQueue = [...validFiles];
+  const inflight = new Map<string, Promise<{ name: string; input: Response } | null>>();
+
+  async function fetchOne(file: DownloadFile): Promise<{ name: string; input: Response } | null> {
+    try {
+      const response = await fetchDriveStream(file.url!, headers);
+      const contentType = response.headers.get("content-type");
+      const name = buildZipPath(file, contentType, usedNames);
+      const lengthHeader = response.headers.get("content-length");
+      const length = lengthHeader ? Number(lengthHeader) : 0;
+
+      // Wraps the body to track bytes for progress
+      const reader = response.body!.getReader();
+      const trackedStream = new ReadableStream<Uint8Array>({
+        async pull(controller) {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.close();
+            return;
+          }
+          if (value) {
+            bytesDownloaded += value.byteLength;
+            controller.enqueue(value);
+            onProgress?.({
+              downloaded,
+              total,
+              bytesDownloaded,
+              totalBytes: 0,
+              stage: "downloading",
+              currentFile: name,
+            });
+          }
+        },
+        cancel() {
+          reader.cancel();
+        },
+      });
+
+      const wrappedHeaders = new Headers(response.headers);
+      if (length) wrappedHeaders.set("content-length", String(length));
+      const wrapped = new Response(trackedStream, { headers: wrappedHeaders });
+      return { name, input: wrapped };
+    } catch (error) {
+      console.error(`[zipService] Falha ao baixar ${file.artist} - ${file.title}`, error);
+      failedFiles.push(`${file.artist} - ${file.title}`);
+      return null;
+    }
+  }
+
+  // Generator que entrega arquivos prontos para o client-zip, mantendo CONCURRENT_DOWNLOADS em voo
+  async function* fileGenerator(): AsyncGenerator<{ name: string; input: Response }> {
+    const promises: Array<Promise<{ name: string; input: Response } | null>> = [];
+
+    function fillPool() {
+      while (promises.length < CONCURRENT_DOWNLOADS && filesQueue.length > 0) {
+        const next = filesQueue.shift()!;
+        promises.push(fetchOne(next));
+      }
+    }
+
+    fillPool();
+
+    while (promises.length > 0) {
+      // Pega o próximo na ordem (mantém ordem original)
+      const result = await promises.shift()!;
+      if (result) {
+        yield result;
+        downloaded++;
+        onProgress?.({
+          downloaded,
+          total,
+          bytesDownloaded,
+          totalBytes: 0,
+          stage: "downloading",
+          currentFile: result.name,
+        });
+      }
+      fillPool();
+    }
+  }
+
+  onProgress?.({
+    downloaded: 0,
+    total,
+    bytesDownloaded: 0,
+    totalBytes: 0,
+    stage: "downloading",
+  });
+
+  // 3. Gera o ZIP com client-zip (sem compressão = level 0, igual ao anterior)
+  const zipResponse = downloadZip(fileGenerator() as any, {
+    metadata: undefined as any,
+  });
+
+  if (writableStream) {
+    // Caminho premium: streaming direto pro disco
+    try {
+      await zipResponse.body!.pipeTo(writableStream);
+      onProgress?.({
+        downloaded,
+        total,
+        bytesDownloaded,
+        totalBytes: 0,
+        stage: "saving",
+      });
+    } catch (err) {
+      try { await writableStream.abort(); } catch { /* ignore */ }
+      throw err;
+    }
+  } else {
+    // Fallback: tudo em memória (Firefox/Safari) — limite prático ~2GB
+    onProgress?.({
+      downloaded,
+      total,
+      bytesDownloaded,
+      totalBytes: 0,
+      stage: "saving",
+    });
+    const blob = await zipResponse.blob();
+    if (!blob || blob.size === 0) throw new Error("ZIP gerado vazio");
+    await downloadBlob(blob, finalFileName, 60000);
+  }
+
   return {
-    parts: parts.length,
     downloaded,
-    failed,
+    failed: failedFiles.length,
     failedFiles,
-    failedParts,
   };
 }
