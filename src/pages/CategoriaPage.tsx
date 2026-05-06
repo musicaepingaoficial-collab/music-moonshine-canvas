@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Banner } from "@/components/ui/Banner";
 import { MusicCard } from "@/components/music/MusicCard";
@@ -74,6 +74,17 @@ const CategoriaPage = () => {
     }
   };
 
+  // Avisa se o usuário tentar fechar a aba durante o download
+  useEffect(() => {
+    if (!downloading) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [downloading]);
+
   const categoryName = id ? id.charAt(0).toUpperCase() + id.slice(1) : "Categoria";
 
   return (
@@ -139,6 +150,12 @@ const CategoriaPage = () => {
 
       {!isLoading && !error && (tracks?.length ?? 0) === 0 && (
         <EmptyState icon={Music} title="Nenhuma música nesta categoria." />
+      )}
+
+      {downloading && (
+        <p className="text-xs text-muted-foreground rounded-md border border-border bg-card p-3">
+          ⚠️ Mantenha esta aba aberta e o computador ligado até o download concluir. Se o PC hibernar, o download será interrompido.
+        </p>
       )}
 
       {/* Subfolder navigation view */}

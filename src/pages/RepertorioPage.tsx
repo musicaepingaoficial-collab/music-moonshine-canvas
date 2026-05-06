@@ -236,6 +236,17 @@ const RepertorioPage = () => {
     }
   }, [groups, selectedFolder]);
 
+  // Avisa o usuário se ele tentar fechar a aba durante um download
+  useEffect(() => {
+    if (!downloading) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [downloading]);
+
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !id) return;
@@ -478,6 +489,9 @@ const RepertorioPage = () => {
                 value={downloadTotal > 0 ? (downloadDone / downloadTotal) * 100 : 0}
                 className="h-1.5 sm:h-2"
               />
+              <p className="text-[10px] sm:text-xs text-muted-foreground/80">
+                ⚠️ Mantenha esta aba aberta e o computador ligado até o download concluir. Se o PC hibernar, o download será interrompido.
+              </p>
             </div>
           )}
 
