@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
 import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2, Eraser } from "lucide-react";
-import { downloadMultiple, type DownloadArchiveItem } from "@/services/zipService";
+import { downloadMultiple, hasFileSystemAccess, pickZipDestination, type DownloadArchiveItem } from "@/services/zipService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -301,6 +301,20 @@ const RepertorioPage = () => {
     name: string,
     contextLabel: string
   ) => {
+    // IMPORTANTE: abrir o seletor "Salvar como…" ANTES de qualquer await,
+    // senão o navegador rejeita por falta de user activation.
+    let fileHandle: any = null;
+    if (hasFileSystemAccess()) {
+      try {
+        const picked = await pickZipDestination(name);
+        if (picked === "cancelled") return;
+        fileHandle = picked;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao abrir seletor.");
+        return;
+      }
+    }
+
     setDownloading(true);
     setDownloadDone(0);
     setDownloadTotal(items.length);
@@ -317,7 +331,8 @@ const RepertorioPage = () => {
           setDownloadBytes(progress.bytesDownloaded);
           setDownloadStage(progress.stage);
           if (progress.currentFile) setDownloadCurrentFile(progress.currentFile);
-        }
+        },
+        fileHandle
       );
 
       if (result.failed > 0) {

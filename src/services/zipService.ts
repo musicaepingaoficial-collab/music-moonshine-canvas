@@ -229,8 +229,37 @@ export async function downloadSingle(musicaId: string): Promise<void> {
 }
 
 // Detecta se o navegador suporta File System Access API (Chrome/Edge/Opera)
-function hasFileSystemAccess(): boolean {
+export function hasFileSystemAccess(): boolean {
   return typeof (window as any).showSaveFilePicker === "function";
+}
+
+/**
+ * Abre o seletor "Salvar como…" do navegador. DEVE ser chamado SINCRONAMENTE
+ * dentro do handler de clique do usuário — qualquer await antes invalida a
+ * "user activation" e o navegador rejeita com SecurityError.
+ *
+ * Retorna:
+ *   - FileSystemFileHandle: usuário escolheu local
+ *   - null: navegador não suporta (vai pro fallback de blob)
+ *   - "cancelled": usuário cancelou o diálogo
+ */
+export async function pickZipDestination(
+  suggestedName: string
+): Promise<any | null | "cancelled"> {
+  if (!hasFileSystemAccess()) return null;
+  try {
+    const handle = await (window as any).showSaveFilePicker({
+      suggestedName: buildArchiveFileName(suggestedName),
+      types: [{ description: "Arquivo ZIP", accept: { "application/zip": [".zip"] } }],
+    });
+    return handle;
+  } catch (err: any) {
+    if (err?.name === "AbortError") return "cancelled";
+    console.error("[zipService] showSaveFilePicker falhou", err);
+    throw new Error(
+      "Não foi possível abrir o seletor de arquivo. Clique em Baixar novamente."
+    );
+  }
 }
 
 /** Aguarda o navegador voltar a ficar online, com timeout. */
@@ -269,7 +298,8 @@ type ProgressCallback = (info: {
 export async function downloadMultiple(
   musicaIds: string[],
   archiveName?: string,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  fileHandle?: any | null
 ): Promise<DownloadMultipleResult> {
   if (!musicaIds.length) throw new Error("Nenhuma musica selecionada");
 
@@ -290,7 +320,10 @@ export async function downloadMultiple(
   // 1. Pega URLs de todas as músicas (em batches por causa do limite da edge function)
   const files = await requestAllDownloadFiles(musicaIds, headers);
   const validFiles = files.filter((f) => !!f.url);
-  if (!validFiles.length) throw new Error("Nenhum arquivo disponivel para download");
+  if (!validFiles.length) {
+    await releaseWakeLock();
+    throw new Error("Nenhum arquivo disponivel para download");
+  }
 
   const total = validFiles.length;
   let downloaded = 0;
@@ -298,24 +331,14 @@ export async function downloadMultiple(
   const failedFiles: string[] = [];
   const usedNames = new Set<string>();
 
-  // Tenta usar File System Access API para escrever ZIP direto no disco (sem usar memória)
+  // O fileHandle deve vir já obtido do clique do usuário (ver pickZipDestination).
+  // Se não veio, cai no fallback de blob (memória).
   let writableStream: WritableStream<Uint8Array> | null = null;
-  let fileHandle: any = null;
-
-  if (hasFileSystemAccess()) {
+  if (fileHandle) {
     try {
-      fileHandle = await (window as any).showSaveFilePicker({
-        suggestedName: finalFileName,
-        types: [{ description: "Arquivo ZIP", accept: { "application/zip": [".zip"] } }],
-      });
       writableStream = await fileHandle.createWritable();
-    } catch (err: any) {
-      // Usuário cancelou o seletor de arquivo
-      if (err?.name === "AbortError") {
-        await releaseWakeLock();
-        throw new Error("Download cancelado");
-      }
-      // Outro erro -> cai pro fallback
+    } catch (err) {
+      console.error("[zipService] createWritable falhou, usando fallback", err);
       writableStream = null;
     }
   }

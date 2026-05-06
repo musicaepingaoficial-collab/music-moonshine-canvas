@@ -9,7 +9,7 @@ import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Music, Folder, ArrowLeft, Download, ListPlus } from "lucide-react";
-import { downloadMultiple } from "@/services/zipService";
+import { downloadMultiple, hasFileSystemAccess, pickZipDestination } from "@/services/zipService";
 import { AddBulkToRepertorioDialog } from "@/components/music/AddBulkToRepertorioDialog";
 import { toast } from "sonner";
 import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
@@ -54,11 +54,25 @@ const CategoriaPage = () => {
       navigate("/planos");
       return;
     }
+    // Abrir seletor "Salvar como…" antes de qualquer await que invalide a user activation
+    let fileHandle: any = null;
+    if (hasFileSystemAccess()) {
+      try {
+        const picked = await pickZipDestination(label);
+        if (picked === "cancelled") return;
+        fileHandle = picked;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao abrir seletor.");
+        return;
+      }
+    }
     setDownloading(true);
     try {
       const result = await downloadMultiple(
         musicas.map((m) => m.id),
-        label
+        label,
+        undefined,
+        fileHandle
       );
       if (result.failed > 0) {
         toast.warning(
