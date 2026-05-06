@@ -415,6 +415,7 @@ serve(async (req) => {
         });
 
         (async () => {
+          console.log(`[DownloadArchive] Starting ZIP generation for ${validMusicas.length} files. Total estimated size: ${estimatedBytes} bytes`);
           const successIds: string[] = [];
           const failedFiles: string[] = [];
 
