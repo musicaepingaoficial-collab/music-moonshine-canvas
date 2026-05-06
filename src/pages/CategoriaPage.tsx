@@ -9,7 +9,7 @@ import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Music, Folder, ArrowLeft, Download, ListPlus } from "lucide-react";
-import { downloadMultipleAsParts } from "@/services/zipService";
+import { downloadMultiple } from "@/services/zipService";
 import { AddBulkToRepertorioDialog } from "@/components/music/AddBulkToRepertorioDialog";
 import { toast } from "sonner";
 import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
@@ -56,17 +56,16 @@ const CategoriaPage = () => {
     }
     setDownloading(true);
     try {
-      const result = await downloadMultipleAsParts(
-        musicas.map((m) => ({ id: m.id, fileSize: m.file_size })),
-        label,
-        { maxZipBytes: 300 * 1024 * 1024 }
+      const result = await downloadMultiple(
+        musicas.map((m) => m.id),
+        label
       );
       if (result.failed > 0) {
         toast.warning(
-          `${result.parts} ZIP(s) de "${label}" gerados. ${result.downloaded} arquivo(s) incluidos e ${result.failed} falharam. Extraia cada ZIP separadamente.`
+          `ZIP de "${label}" baixado com ${result.downloaded} arquivo(s). ${result.failed} falharam.`
         );
       } else {
-        toast.success(`${result.parts} ZIP(s) de "${label}" baixados com sucesso! Extraia cada ZIP separadamente.`);
+        toast.success(`ZIP de "${label}" baixado com sucesso! (${result.downloaded} musicas)`);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao preparar download.");

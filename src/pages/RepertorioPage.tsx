@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
 import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2, Eraser } from "lucide-react";
-import { downloadMultipleAsParts, planZipParts, type FailedPart, type DownloadArchiveItem } from "@/services/zipService";
+import { downloadMultiple, type DownloadArchiveItem } from "@/services/zipService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,18 +70,16 @@ function formatFileSize(bytes: number): string {
 const RepertorioPage = () => {
   const { id } = useParams<{ id: string }>();
   const [downloading, setDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadDone, setDownloadDone] = useState(0);
   const [downloadTotal, setDownloadTotal] = useState(0);
+  const [downloadBytes, setDownloadBytes] = useState(0);
   const [downloadStage, setDownloadStage] = useState<"preparing" | "downloading" | "saving">("preparing");
-  const [downloadPart, setDownloadPart] = useState(0);
-  const [downloadPartsTotal, setDownloadPartsTotal] = useState(0);
-  const [downloadPartBytes, setDownloadPartBytes] = useState(0);
+  const [downloadCurrentFile, setDownloadCurrentFile] = useState<string>("");
   const [pendingDownload, setPendingDownload] = useState<{
     items: DownloadArchiveItem[];
     name: string;
     label: string;
   } | null>(null);
-  const [failedParts, setFailedParts] = useState<FailedPart[]>([]);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -287,49 +285,40 @@ const RepertorioPage = () => {
     });
   };
 
-  const MAX_ZIP_BYTES = 100 * 1024 * 1024; // Reduzido para evitar erro de CPU no servidor
-
   const runDownload = async (
     items: DownloadArchiveItem[],
     name: string,
     contextLabel: string
   ) => {
     setDownloading(true);
-    setDownloadProgress(0);
-    setDownloadTotal(100);
+    setDownloadDone(0);
+    setDownloadTotal(items.length);
+    setDownloadBytes(0);
     setDownloadStage("preparing");
-    setDownloadPart(0);
-    setDownloadPartsTotal(0);
-    setDownloadPartBytes(0);
-    setFailedParts([]);
+    setDownloadCurrentFile("");
     try {
-      const result = await downloadMultipleAsParts(items, name, {
-        maxZipBytes: MAX_ZIP_BYTES,
-        onProgress: (progress) => {
-          setDownloadProgress(progress.overallProgressPercent);
-          setDownloadPartsTotal(progress.partCount);
-          setDownloadPart(progress.partIndex + 1);
+      const result = await downloadMultiple(
+        items.map((it) => it.id),
+        name,
+        (progress) => {
+          setDownloadDone(progress.downloaded);
+          setDownloadTotal(progress.total);
+          setDownloadBytes(progress.bytesDownloaded);
           setDownloadStage(progress.stage);
-          setDownloadPartBytes(progress.partEstimatedBytes ?? 0);
-        },
-      });
+          if (progress.currentFile) setDownloadCurrentFile(progress.currentFile);
+        }
+      );
 
-      if (result.failedParts.length > 0) {
-        setFailedParts(result.failedParts);
+      if (result.failed > 0) {
         toast.warning(
-          `${result.parts} ZIP(s) gerados para ${contextLabel}. ${result.failedParts.length} parte(s) falharam — você pode tentar novamente.`
-        );
-      } else if (result.failed > 0) {
-        toast.warning(
-          `${result.parts} ZIP(s) gerados. ${result.downloaded} arquivo(s) incluídos e ${result.failed} falharam.`
+          `ZIP gerado com ${result.downloaded} arquivo(s). ${result.failed} falharam.`
         );
       } else {
-        toast.success(
-          `${result.parts} ZIP(s) baixados com sucesso! Extraia cada ZIP separadamente.`
-        );
+        toast.success(`Download concluido! ${result.downloaded} musicas em um unico ZIP.`);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `Erro ao baixar ${contextLabel}.`);
+      const msg = error instanceof Error ? error.message : `Erro ao baixar ${contextLabel}.`;
+      if (msg !== "Download cancelado") toast.error(msg);
     } finally {
       setDownloading(false);
     }
@@ -363,17 +352,18 @@ const RepertorioPage = () => {
     });
   };
 
-  const handleRetryFailedParts = async () => {
-    if (!failedParts.length) return;
-    const items: DownloadArchiveItem[] = failedParts.flatMap((p) =>
-      p.ids.map((id) => ({ id, fileSize: null }))
-    );
-    await runDownload(items, repertorio?.name ?? "repertorio", "as partes que falharam");
-  };
-
   const downloadPlan = useMemo(() => {
     if (!pendingDownload) return null;
-    return planZipParts(pendingDownload.items, MAX_ZIP_BYTES);
+    const totalKnownBytes = pendingDownload.items.reduce(
+      (s, it) => s + (Number(it.fileSize) > 0 ? Number(it.fileSize) : 0),
+      0
+    );
+    const unknownCount = pendingDownload.items.filter((it) => !(Number(it.fileSize) > 0)).length;
+    return {
+      totalItems: pendingDownload.items.length,
+      totalKnownBytes,
+      unknownCount,
+    };
   }, [pendingDownload]);
 
   const isLoading = loadingRep || loadingMusicas;
@@ -469,32 +459,25 @@ const RepertorioPage = () => {
             </div>
           </div>
 
-          {downloading && downloadTotal > 0 && (
+          {downloading && (
             <div className="space-y-2 rounded-lg border border-border bg-card p-3 sm:p-4">
               <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground gap-2">
                 <span className="truncate">
                   {downloadStage === "preparing"
-                    ? `Preparando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`
+                    ? "Preparando download..."
                     : downloadStage === "downloading"
-                    ? `Baixando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}`
-                    : `Finalizando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}`}
-                  {downloadPartBytes > 0 ? ` • ~${formatFileSize(downloadPartBytes)}` : ""}
+                    ? `Baixando ${downloadDone}/${downloadTotal}${downloadCurrentFile ? ` • ${downloadCurrentFile}` : ""}`
+                    : "Finalizando ZIP..."}
+                  {downloadBytes > 0 ? ` • ${formatFileSize(downloadBytes)}` : ""}
                 </span>
-                <span className="shrink-0">{Math.round((downloadProgress / downloadTotal) * 100)}%</span>
+                <span className="shrink-0">
+                  {downloadTotal > 0 ? Math.round((downloadDone / downloadTotal) * 100) : 0}%
+                </span>
               </div>
-              <Progress value={(downloadProgress / downloadTotal) * 100} className="h-1.5 sm:h-2" />
-            </div>
-          )}
-
-          {!downloading && failedParts.length > 0 && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 sm:p-4">
-              <p className="text-xs sm:text-sm text-destructive">
-                {failedParts.length} parte(s) do download falharam.
-              </p>
-              <Button size="sm" variant="outline" onClick={handleRetryFailedParts}>
-                <Download className="mr-1 h-3.5 w-3.5" />
-                Tentar novamente
-              </Button>
+              <Progress
+                value={downloadTotal > 0 ? (downloadDone / downloadTotal) * 100 : 0}
+                className="h-1.5 sm:h-2"
+              />
             </div>
           )}
 
@@ -523,13 +506,9 @@ const RepertorioPage = () => {
                           {downloadPlan.unknownCount > 0 &&
                             ` (+ ${downloadPlan.unknownCount} arquivo(s) sem tamanho informado)`}
                         </p>
-                        <p>
-                          Serão gerados{" "}
-                          <strong>{downloadPlan.partCount}</strong> arquivo(s) ZIP
-                          (máx. {formatFileSize(MAX_ZIP_BYTES)} cada).
-                        </p>
                         <p className="text-muted-foreground">
-                          Cada ZIP é baixado separadamente — extraia um por vez.
+                          Tudo será empacotado em <strong>um único ZIP</strong>, gerado direto no seu navegador.
+                          O download começa após você confirmar o local de salvamento.
                         </p>
                       </>
                     )}
