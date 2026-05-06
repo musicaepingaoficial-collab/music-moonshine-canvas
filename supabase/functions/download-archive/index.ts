@@ -11,8 +11,8 @@ const corsHeaders = {
 
 const downloadCounts = new Map<string, { count: number; resetAt: number }>();
 const DOWNLOAD_LIMIT_PER_HOUR = 30;
-const MAX_FILES_PER_ARCHIVE = 200; // Reduzido para evitar erro de CPU
-const MAX_TOTAL_SIZE_BYTES = 200 * 1024 * 1024; // Reduzido para 200MB por chamada
+const MAX_FILES_PER_ARCHIVE = 100; // Reduzido ainda mais para evitar CPU Time Exceeded
+const MAX_TOTAL_SIZE_BYTES = 100 * 1024 * 1024; // Reduzido para 100MB por parte
 const MUSICA_QUERY_BATCH_SIZE = 80;
 
 type MusicaRow = {
