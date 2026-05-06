@@ -475,10 +475,24 @@ export async function downloadMultiple(
     metadata: undefined as any,
   });
 
-  if (writableStream) {
-    // Caminho premium: streaming direto pro disco
-    try {
-      await zipResponse.body!.pipeTo(writableStream);
+  try {
+    if (writableStream) {
+      // Caminho premium: streaming direto pro disco
+      try {
+        await zipResponse.body!.pipeTo(writableStream);
+        onProgress?.({
+          downloaded,
+          total,
+          bytesDownloaded,
+          totalBytes: 0,
+          stage: "saving",
+        });
+      } catch (err) {
+        try { await writableStream.abort(); } catch { /* ignore */ }
+        throw err;
+      }
+    } else {
+      // Fallback: tudo em memória (Firefox/Safari) — limite prático ~2GB
       onProgress?.({
         downloaded,
         total,
@@ -486,22 +500,20 @@ export async function downloadMultiple(
         totalBytes: 0,
         stage: "saving",
       });
-    } catch (err) {
-      try { await writableStream.abort(); } catch { /* ignore */ }
-      throw err;
+      const blob = await zipResponse.blob();
+      if (!blob || blob.size === 0) throw new Error("ZIP gerado vazio");
+      await downloadBlob(blob, finalFileName, 60000);
     }
-  } else {
-    // Fallback: tudo em memória (Firefox/Safari) — limite prático ~2GB
-    onProgress?.({
-      downloaded,
-      total,
-      bytesDownloaded,
-      totalBytes: 0,
-      stage: "saving",
-    });
-    const blob = await zipResponse.blob();
-    if (!blob || blob.size === 0) throw new Error("ZIP gerado vazio");
-    await downloadBlob(blob, finalFileName, 60000);
+  } catch (err: any) {
+    const msg = String(err?.message || err);
+    if (msg.includes("STREAM_IDLE_TIMEOUT") || msg.includes("OFFLINE_TIMEOUT")) {
+      throw new Error(
+        "Download interrompido — provavelmente o computador entrou em hibernação ou a conexão caiu. Mantenha o computador ligado e tente novamente."
+      );
+    }
+    throw err;
+  } finally {
+    await releaseWakeLock();
   }
 
   return {
