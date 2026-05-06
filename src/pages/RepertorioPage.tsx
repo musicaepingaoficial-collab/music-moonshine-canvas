@@ -236,6 +236,17 @@ const RepertorioPage = () => {
     }
   }, [groups, selectedFolder]);
 
+  // Avisa o usuário se ele tentar fechar a aba durante um download
+  useEffect(() => {
+    if (!downloading) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [downloading]);
+
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !id) return;
