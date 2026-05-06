@@ -1,70 +1,70 @@
-## Objetivo
+## Problema
 
-Eliminar definitivamente os erros de "arquivo corrompido" e a divisão em várias partes ao baixar o repertório, movendo a geração do ZIP do servidor (Supabase Edge Function) para o navegador do usuário.
+Quando o computador hiberna ou entra em modo de espera durante o download do repertório completo:
+- As conexões com o Google Drive caem silenciosamente
+- O `client-zip` continua "aguardando" os streams travados
+- O usuário volta e o download parece travado em X% — mas nunca termina, e nenhum erro aparece
+- Em alguns casos o ZIP final fica incompleto/corrompido sem aviso
 
-## Por que isso resolve o problema
+## Solução proposta
 
-Hoje, o servidor Edge Function do Supabase faz:
-1. Baixa cada música do Google Drive
-2. Junta tudo num ZIP
-3. Envia o ZIP para o navegador
+Três camadas de proteção combinadas. Todas no frontend, sem mexer no backend.
 
-O passo 2 estoura o limite de CPU do servidor (~400ms), o que corta o ZIP no meio e gera arquivos corrompidos. Por isso era necessário dividir em várias partes pequenas.
+### 1. Manter a tela ativa durante o download (Screen Wake Lock API)
 
-Com a nova abordagem:
-1. O servidor só gera URLs assinadas para cada música (operação de milissegundos, sem limite)
-2. O navegador baixa cada música e monta o ZIP localmente, em streaming
-3. O ZIP nunca é cortado — é escrito diretamente no disco do usuário enquanto baixa
+Solicitar `navigator.wakeLock.request("screen")` ao iniciar o download e liberar ao terminar. Isso impede que a tela apague e, na maioria dos sistemas, evita que o navegador seja suspenso enquanto o download acontece. Funciona em Chrome/Edge/Opera (os mesmos que suportam o `showSaveFilePicker`).
 
-## Mudanças propostas
+Limitação honesta: o Wake Lock impede o monitor de apagar, mas se o usuário fechar a tampa do notebook ou o sistema operacional forçar hibernação por bateria, ele será suspenso de qualquer forma. Por isso precisamos das camadas 2 e 3.
 
-### 1. Nova Edge Function `download-urls`
-Substitui a `download-archive`. Recebe a lista de IDs de músicas e devolve, para cada uma:
-- `fileName` (nome final dentro do ZIP, com pasta/subpasta)
-- `signedUrl` (URL temporária do Google Drive, válida por ~1h)
-- `size` (tamanho em bytes)
+### 2. Detectar travas (timeout por arquivo) e retomar automaticamente
 
-Faz toda a validação atual (autenticação, assinatura ativa, plano trial, rate limit, registro em `downloads`), mas **não baixa nem empacota nada** — operação leve e instantânea.
+Hoje, `fetchDriveStream` faz retry só na requisição inicial. Se a conexão cair *durante* o streaming de um MP3, o `reader.read()` fica pendurado para sempre.
 
-### 2. Reescrita do `src/services/zipService.ts`
-- Adicionar a biblioteca `client-zip` (~3kb, sem dependências, suporta streaming nativo via `File System Access API` e fallback para Blob)
-- Função `downloadMultiple` passa a:
-  1. Pedir URLs assinadas à nova Edge Function
-  2. Tentar usar `showSaveFilePicker` (Chrome/Edge/Opera) → escreve o ZIP direto no disco, consumo de RAM mínimo, suporta arquivos de qualquer tamanho
-  3. Fallback para Blob em memória (Firefox/Safari) — funciona até ~2GB
-  4. Baixar as músicas em paralelo controlado (3-4 simultâneas) com retry automático
-  5. Mostrar progresso real (arquivo X de Y, MB baixados)
-- Remover a lógica de divisão em partes (`downloadMultipleAsParts`, `splitItemsIntoZipParts`, `planZipParts`, `buildPartArchiveName`)
+Mudanças no `zipService.ts`:
+- Envolver cada `reader.read()` num timeout (ex.: 60s sem receber bytes = considerar travado)
+- Detectar evento `online`/`offline` do navegador e o evento `visibilitychange` (volta da hibernação)
+- Quando detectar trava ou volta de suspensão: cancelar o stream atual, refazer o `fetchDriveStream` daquele arquivo, retomar do início **daquele arquivo** (não do ZIP inteiro — os arquivos já gravados no disco continuam intactos via File System Access API)
 
-### 3. Atualizar telas que usam download
-- `src/pages/RepertorioPage.tsx`: remover avisos de "será dividido em N partes" e barra de progresso por parte. Mostrar apenas progresso global ("Baixando 12 de 80 — 45 MB")
-- `src/pages/CategoriaPage.tsx` e `src/pages/MusicaPage.tsx`: ajustar chamadas se necessário
-- `src/components/music/MusicCard.tsx`: sem mudança (já usa `downloadSingle`)
+Como o `client-zip` precisa receber os arquivos em sequência para o índice central do ZIP, a retomada acontece *dentro* do `fetchOne` antes de entregar o arquivo ao gerador. Os arquivos já entregues e gravados não são afetados.
 
-### 4. Remover código antigo
-- Deletar `supabase/functions/download-archive/index.ts` (não será mais usado)
-- Manter `supabase/functions/download/index.ts` e `google-drive/index.ts` (ainda servem para download individual e streaming de áudio)
+### 3. Aviso claro quando algo der errado + estado persistente
+
+- Se o download falhar (timeout esgotado mesmo com retries, perda de conexão prolongada): mostrar toast de erro **explícito** com mensagem do tipo "Download interrompido — provavelmente o computador entrou em hibernação. Clique em Baixar novamente para tentar de novo."
+- Adicionar listener `beforeunload` enquanto `downloading === true` para avisar o usuário se ele tentar fechar a aba
+- Adicionar aviso visual na UI durante o download: pequeno texto "Mantenha esta aba aberta e o computador ligado até concluir."
+
+## Arquivos a modificar
+
+- `src/services/zipService.ts`
+  - Adicionar Wake Lock (request/release no início e fim de `downloadMultiple`)
+  - Envolver leitura do stream em timeout configurável (ex.: 60s)
+  - Listener de `online`/`offline` e `visibilitychange` para forçar reset do stream travado
+  - Retry com retomada do arquivo atual (até N tentativas) antes de marcar como falha
+  - Diferenciar erros: "rede caiu", "tempo esgotado", "cancelado pelo usuário", "falhou após N tentativas"
+
+- `src/pages/RepertorioPage.tsx`
+  - Adicionar `beforeunload` listener enquanto `downloading`
+  - Adicionar texto de aviso "Mantenha o computador ligado..." na barra de progresso
+  - Mensagens de erro mais específicas (já vindas do service)
+
+- `src/pages/CategoriaPage.tsx`
+  - Mesmo aviso na UI durante o download (mesma função `runDownload`)
 
 ## Detalhes técnicos
 
-**Biblioteca escolhida:** `client-zip` (https://github.com/Touffy/client-zip)
-- Suporta `ReadableStream` como entrada → o navegador faz streaming do Drive direto para o ZIP sem carregar tudo em RAM
-- Compatível com `File System Access API` para escrita direta em disco
-- Sem compressão (level 0), igual ao atual — áudio MP3 já é comprimido
+- **Wake Lock**: `navigator.wakeLock.request("screen")` retorna um `WakeLockSentinel`. Re-solicitar no `visibilitychange` quando a aba voltar a ficar visível (o lock é liberado automaticamente quando a aba sai de foco).
+- **Timeout do stream**: usar `Promise.race` entre `reader.read()` e um `setTimeout`. Se vencer o timeout, cancelar o reader e disparar retry.
+- **Retomada por arquivo**: como cada arquivo é uma `Response` independente entregue ao `client-zip`, basta refazer o fetch daquele arquivo. Não dá para retomar bytes parciais de um stream interno do ZIP, então retomamos o arquivo inteiro (aceitável — arquivos médios de música, tipicamente 5–15 MB).
+- **Persistir estado em localStorage**: descartado por enquanto. O ZIP em si não pode ser retomado entre recargas da página de forma confiável (o handle do `showSaveFilePicker` não persiste). Foco está em manter a sessão viva, não em retomar entre sessões.
 
-**Concorrência:** baixar 3-4 músicas em paralelo com `Promise` controlado, para não sobrecarregar nem o Drive nem a conexão do usuário.
+## O que não vamos fazer (e por quê)
 
-**Fallback de navegador:** browsers sem `showSaveFilePicker` (Firefox, Safari) usam Blob em memória — limite prático de ~2GB, suficiente para repertórios mensais. Se o usuário tentar algo maior nesses browsers, mostrar aviso para usar Chrome/Edge.
-
-**Segurança:** as URLs assinadas do Google Drive são geradas usando o mesmo `service account` atual e expiram em 1h. Mesma validação de assinatura/plano que existe hoje.
-
-**Registro de downloads:** continua sendo feito no servidor, na hora de gerar as URLs assinadas (igual hoje).
+- **Não vamos implementar download verdadeiramente "resumível"** (continuar de onde parou após fechar o navegador): exigiria salvar handles de arquivo entre sessões (não suportado pelos browsers) ou refatorar pra Service Worker com IndexedDB, o que é grande demais para o problema relatado.
+- **Não vamos mover para servidor dedicado**: o problema atual (hibernação local) afeta qualquer download em qualquer arquitetura. Manter no cliente continua sendo a melhor escolha.
 
 ## Resultado esperado
 
-- ✅ Repertório completo baixa em **um único arquivo ZIP**
-- ✅ Sem erros de corrupção (nunca mais)
-- ✅ Sem limite de tamanho prático (Chrome/Edge)
-- ✅ Mais rápido (paralelismo + sem intermediário no servidor)
-- ✅ Custo zero de servidor
-- ✅ Funciona com a infraestrutura atual (Google Drive + Supabase)
+- ✅ Tela e processo se mantêm ativos enquanto o usuário não força hibernação
+- ✅ Quedas curtas de conexão (ou retorno de sleep curto) são recuperadas automaticamente, arquivo por arquivo
+- ✅ Travas longas geram **erro visível e acionável** em vez de silêncio
+- ✅ Usuário vê aviso claro pedindo para manter o computador ligado
