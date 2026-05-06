@@ -486,6 +486,7 @@ serve(async (req) => {
             );
           }
 
+          console.log(`[DownloadArchive] Finished processing files. Success: ${successIds.length}, Failed: ${failedFiles.length}`);
           zip.end();
         })().catch((error) => {
           console.error("[DownloadArchive:streamError]", error);
