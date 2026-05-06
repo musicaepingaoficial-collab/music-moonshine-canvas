@@ -401,13 +401,12 @@ serve(async (req) => {
     const encoder = new TextEncoder();
 
     const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
     const zipWriter = new zip.ZipWriter(writable);
 
     (async () => {
       const startTime = Date.now();
-      const SOFT_TIMEOUT_MS = 50000;
-      console.log(`[DownloadArchive] Starting ZIP generation for ${validMusicas.length} files.`);
+      const SOFT_TIMEOUT_MS = 120000; // Aumentado para 2 minutos
+      console.log(`[DownloadArchive] Starting ZIP generation for ${validMusicas.length} files. User: ${user.id}`);
       const successIds: string[] = [];
       const failedFiles: string[] = [];
       let timeoutReached = false;
@@ -415,67 +414,69 @@ serve(async (req) => {
       try {
         for (const musica of validMusicas) {
           if (Date.now() - startTime > SOFT_TIMEOUT_MS) {
-            console.warn(`[DownloadArchive] Soft timeout reached.`);
+            console.warn(`[DownloadArchive] Soft timeout reached after ${Date.now() - startTime}ms`);
             timeoutReached = true;
             break;
           }
 
-          const driveResponse = await fetch(
-            `https://www.googleapis.com/drive/v3/files/${musica.file_url}?alt=media`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
+          try {
+            const driveResponse = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${musica.file_url}?alt=media`,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
 
-          if (!driveResponse.ok || !driveResponse.body) {
-            failedFiles.push(`${musica.artist} - ${musica.title}`);
-            continue;
+            if (!driveResponse.ok || !driveResponse.body) {
+              console.error(`[DownloadArchive] Failed to fetch file ${musica.id} from Drive: ${driveResponse.status}`);
+              failedFiles.push(`${musica.artist} - ${musica.title} (Erro Drive: ${driveResponse.status})`);
+              continue;
+            }
+
+            const contentType = driveResponse.headers.get("content-type");
+            const fileName = getUniqueFileName(buildTrackFileName(musica, contentType), usedNames);
+            const safeSubfolder = musica.subfolder ? sanitizeFileName(musica.subfolder) : "";
+            const zipPath = safeSubfolder ? `${safeSubfolder}/${fileName}` : fileName;
+
+            // Stream the Google Drive response body directly into the ZIP
+            await zipWriter.add(zipPath, driveResponse.body, { level: 0 });
+            successIds.push(musica.id);
+          } catch (fileErr) {
+            console.error(`[DownloadArchive] Error adding file ${musica.id}:`, fileErr);
+            failedFiles.push(`${musica.artist} - ${musica.title} (Erro ao processar)`);
           }
-
-          const contentType = driveResponse.headers.get("content-type");
-          const fileName = getUniqueFileName(buildTrackFileName(musica, contentType), usedNames);
-          const safeSubfolder = musica.subfolder ? sanitizeFileName(musica.subfolder) : "";
-          const zipPath = safeSubfolder ? `${safeSubfolder}/${fileName}` : fileName;
-
-          await zipWriter.add(zipPath, driveResponse.body, { level: 0 });
-          successIds.push(musica.id);
         }
 
         if (timeoutReached) {
-          const timeoutMsg = "ZIP incompleto devido ao limite de tempo do servidor.";
+          const timeoutMsg = "ZIP incompleto devido ao limite de tempo do servidor. Alguns arquivos podem estar faltando.";
           const timeoutBlob = new Blob([timeoutMsg], { type: "text/plain" });
-          await zipWriter.add("_AVISO_PARCIAL.txt", timeoutBlob.stream());
+          await zipWriter.add("_AVISO_PARCIAL_POR_TEMPO.txt", timeoutBlob.stream());
         }
 
         if (failedFiles.length > 0) {
-          const content = ["Arquivos que falharam:", ...failedFiles].join("\n");
+          const content = ["Alguns arquivos não puderam ser incluídos neste ZIP:", ...failedFiles].join("\n");
           const failBlob = new Blob([content], { type: "text/plain" });
-          await zipWriter.add("_falhas.txt", failBlob.stream());
-        }
-
-        if (successIds.length > 0) {
-          const downloadRecords = successIds.map((id) => ({ user_id: user.id, musica_id: id }));
-          await supabase.from("downloads").insert(downloadRecords);
+          await zipWriter.add("_arquivos_ausentes.txt", failBlob.stream());
         }
 
         await zipWriter.close();
-        console.log(`[DownloadArchive] ZIP closed. Success: ${successIds.length}`);
+        console.log(`[DownloadArchive] ZIP closed successfully. Files added: ${successIds.length}`);
+
+        // Register downloads in background after closing ZIP to avoid blocking
+        if (successIds.length > 0) {
+          const downloadRecords = successIds.map((id) => ({ user_id: user.id, musica_id: id }));
+          const { error: insError } = await supabase.from("downloads").insert(downloadRecords);
+          if (insError) console.error("[DownloadArchive:insertDownloadsError]", insError);
+        }
       } catch (err) {
         console.error("[DownloadArchive:processingError]", err);
-        try { await zipWriter.close(); } catch {}
+        try {
+          await zipWriter.close();
+        } catch (closeErr) {
+          console.error("[DownloadArchive:closeError]", closeErr);
+        }
       }
     })();
 
     return new Response(readable, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(archiveFileName)}`,
-        "X-Archive-File-Name": archiveFileName,
-        "Cache-Control": "no-store",
-      },
-    });
-
-    return new Response(zipStream, {
       status: 200,
       headers: {
         ...corsHeaders,
