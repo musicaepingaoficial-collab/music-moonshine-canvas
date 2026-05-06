@@ -400,7 +400,7 @@ export async function downloadMultiple(
         const wrappedHeaders = new Headers();
         if (contentType) wrappedHeaders.set("content-type", contentType);
         wrappedHeaders.set("content-length", String(buffer.byteLength));
-        const wrapped = new Response(buffer, { headers: wrappedHeaders });
+        const wrapped = new Response(buffer as BodyInit, { headers: wrappedHeaders });
         return { name, input: wrapped };
       } catch (error) {
         lastError = error;
