@@ -478,6 +478,9 @@ const RepertorioPage = () => {
                 value={downloadTotal > 0 ? (downloadDone / downloadTotal) * 100 : 0}
                 className="h-1.5 sm:h-2"
               />
+              <p className="text-[10px] sm:text-xs text-muted-foreground/80">
+                ⚠️ Mantenha esta aba aberta e o computador ligado até o download concluir. Se o PC hibernar, o download será interrompido.
+              </p>
             </div>
           )}
 
