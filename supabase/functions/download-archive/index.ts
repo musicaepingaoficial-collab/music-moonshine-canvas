@@ -447,7 +447,8 @@ serve(async (req) => {
 
         if (failedFiles.length > 0) {
           const content = ["Arquivos que falharam:", ...failedFiles].join("\n");
-          await zipWriter.add("_falhas.txt", new TextEncoder().encode(content).readable);
+          const failBlob = new Blob([content], { type: "text/plain" });
+          await zipWriter.add("_falhas.txt", failBlob.stream());
         }
 
         if (successIds.length > 0) {
