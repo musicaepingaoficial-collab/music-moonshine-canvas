@@ -1,72 +1,70 @@
 ## Objetivo
 
-Tornar o download de repertório (completo e por pasta) mais confiável, usando o tamanho real dos arquivos para dividir os ZIPs em o menor número possível de partes sem estourar limites do navegador / edge function.
+Eliminar definitivamente os erros de "arquivo corrompido" e a divisão em várias partes ao baixar o repertório, movendo a geração do ZIP do servidor (Supabase Edge Function) para o navegador do usuário.
 
-## Diagnóstico
+## Por que isso resolve o problema
 
-Hoje em `src/services/zipService.ts` + `RepertorioPage.tsx`:
+Hoje, o servidor Edge Function do Supabase faz:
+1. Baixa cada música do Google Drive
+2. Junta tudo num ZIP
+3. Envia o ZIP para o navegador
 
-- Cada parte ZIP é limitada a `300 MB` (passado em `maxZipBytes`) e até `180 IDs`.
-- Se a música não tem `file_size` no banco, é estimada em `8 MB` fixo — gera partes mal calibradas (muitas pequenas ou uma estourando).
-- Não há retry da parte inteira se a edge function falhar, e a barra de progresso é estimativa.
-- Edge `download-archive` aceita até `500 arquivos` e `2 GB` por chamada, mas no cliente forçamos 300 MB (conservador).
-- Sem feedback claro de tamanho total / nº de partes antes de iniciar; usuário não entende por que vêm vários ZIPs.
+O passo 2 estoura o limite de CPU do servidor (~400ms), o que corta o ZIP no meio e gera arquivos corrompidos. Por isso era necessário dividir em várias partes pequenas.
 
-## Mudanças
+Com a nova abordagem:
+1. O servidor só gera URLs assinadas para cada música (operação de milissegundos, sem limite)
+2. O navegador baixa cada música e monta o ZIP localmente, em streaming
+3. O ZIP nunca é cortado — é escrito diretamente no disco do usuário enquanto baixa
 
-### 1. Garantir `file_size` real para cada música
+## Mudanças propostas
 
-- No `useQuery` de `repertorio-musicas` em `RepertorioPage.tsx` já trazemos `musicas(*)`, então `file_size` está disponível. Onde estiver `0/null`, marcar como "desconhecido" e tratar separadamente (ver passo 3).
-- Adicionar utilitário `getKnownAndUnknownSizes(musicas)` para somar bytes conhecidos e contar desconhecidos.
+### 1. Nova Edge Function `download-urls`
+Substitui a `download-archive`. Recebe a lista de IDs de músicas e devolve, para cada uma:
+- `fileName` (nome final dentro do ZIP, com pasta/subpasta)
+- `signedUrl` (URL temporária do Google Drive, válida por ~1h)
+- `size` (tamanho em bytes)
 
-### 2. Mostrar resumo antes do download
+Faz toda a validação atual (autenticação, assinatura ativa, plano trial, rate limit, registro em `downloads`), mas **não baixa nem empacota nada** — operação leve e instantânea.
 
-- Em "Baixar tudo" e "Baixar pasta", abrir um pequeno diálogo de confirmação com:
-  - Total de músicas
-  - Tamanho total (ou "≈ X MB + N arquivos sem tamanho")
-  - Nº estimado de ZIPs que serão gerados
-  - Aviso: "Cada ZIP é baixado separadamente, extraia individualmente"
-- Botão Confirmar / Cancelar.
+### 2. Reescrita do `src/services/zipService.ts`
+- Adicionar a biblioteca `client-zip` (~3kb, sem dependências, suporta streaming nativo via `File System Access API` e fallback para Blob)
+- Função `downloadMultiple` passa a:
+  1. Pedir URLs assinadas à nova Edge Function
+  2. Tentar usar `showSaveFilePicker` (Chrome/Edge/Opera) → escreve o ZIP direto no disco, consumo de RAM mínimo, suporta arquivos de qualquer tamanho
+  3. Fallback para Blob em memória (Firefox/Safari) — funciona até ~2GB
+  4. Baixar as músicas em paralelo controlado (3-4 simultâneas) com retry automático
+  5. Mostrar progresso real (arquivo X de Y, MB baixados)
+- Remover a lógica de divisão em partes (`downloadMultipleAsParts`, `splitItemsIntoZipParts`, `planZipParts`, `buildPartArchiveName`)
 
-### 3. Particionamento mais inteligente em `zipService.ts`
+### 3. Atualizar telas que usam download
+- `src/pages/RepertorioPage.tsx`: remover avisos de "será dividido em N partes" e barra de progresso por parte. Mostrar apenas progresso global ("Baixando 12 de 80 — 45 MB")
+- `src/pages/CategoriaPage.tsx` e `src/pages/MusicaPage.tsx`: ajustar chamadas se necessário
+- `src/components/music/MusicCard.tsx`: sem mudança (já usa `downloadSingle`)
 
-- Aumentar `DEFAULT_MAX_ZIP_BYTES` para `700 MB` (margem segura abaixo do limite de 2 GB do edge e confortável p/ navegador). Manter override por chamada.
-- Para itens sem `file_size`:
-  - Buscar em batch (RPC simples ou select já existente) e fallback para média dos itens conhecidos do mesmo repertório (em vez de 8 MB fixo).
-- Adicionar `MIN_FILES_PER_PART = 1` e remover `MAX_IDS_PER_ZIP_PART` rígido (ou subir p/ 400) — deixar o limite ser por bytes, não por contagem, para gerar o mínimo de partes.
-- Garantir que nenhum item ultrapasse o limite sozinho (se um arquivo > maxZipBytes, vira sua própria parte e loga aviso).
-
-### 4. Retry e robustez no download de cada parte
-
-- Em `downloadMultiple` (chama `download-archive`):
-  - Adicionar retry automático (até 3x) com backoff em 408/429/5xx, similar ao já feito em `fetchDriveFileWithRetry`.
-  - Em caso de falha definitiva de uma parte, continuar as demais e retornar a parte falhada na lista, em vez de abortar tudo.
-- Em `downloadMultipleAsParts`:
-  - Coletar partes que falharam e oferecer botão "Tentar novamente as partes que falharam" no toast/UI.
-
-### 5. UI/UX no `RepertorioPage.tsx`
-
-- Barra de progresso já existe; adicionar:
-  - Texto "Parte X de Y — ~ZZ MB" usando soma de bytes da parte atual.
-  - Após concluir: toast com nº de ZIPs, tamanho total real baixado e quais partes (se houver) falharam, com botão de retry.
-- Botão "Baixar pasta" só aparece para pastas com músicas (já é o caso); incluir tooltip com tamanho da pasta.
-
-### 6. Edge function `download-archive`
-
-- Sem mudanças estruturais. Apenas confirmar:
-  - Header `Content-Length` é enviado quando possível (para progresso real). Se não, manter estimativa.
-  - Logar `bytesReceived` por arquivo para depurar futuros erros.
+### 4. Remover código antigo
+- Deletar `supabase/functions/download-archive/index.ts` (não será mais usado)
+- Manter `supabase/functions/download/index.ts` e `google-drive/index.ts` (ainda servem para download individual e streaming de áudio)
 
 ## Detalhes técnicos
 
-- Arquivos tocados:
-  - `src/services/zipService.ts` — particionamento, retry, novos tipos de retorno (`failedParts`).
-  - `src/pages/RepertorioPage.tsx` — diálogo de confirmação, exibição de tamanho por parte, retry.
-  - `src/components/ui/` — possível novo `ConfirmDownloadDialog` reutilizável.
-  - `supabase/functions/download-archive/index.ts` — apenas pequenos ajustes de log/headers, sem mudança de schema.
-- Sem alterações em banco / RLS.
+**Biblioteca escolhida:** `client-zip` (https://github.com/Touffy/client-zip)
+- Suporta `ReadableStream` como entrada → o navegador faz streaming do Drive direto para o ZIP sem carregar tudo em RAM
+- Compatível com `File System Access API` para escrita direta em disco
+- Sem compressão (level 0), igual ao atual — áudio MP3 já é comprimido
 
-## Fora de escopo
+**Concorrência:** baixar 3-4 músicas em paralelo com `Promise` controlado, para não sobrecarregar nem o Drive nem a conexão do usuário.
 
-- Streaming progressivo real do ZIP (mantemos blob completo).
-- Reorganização da estrutura de pastas/Drive.
+**Fallback de navegador:** browsers sem `showSaveFilePicker` (Firefox, Safari) usam Blob em memória — limite prático de ~2GB, suficiente para repertórios mensais. Se o usuário tentar algo maior nesses browsers, mostrar aviso para usar Chrome/Edge.
+
+**Segurança:** as URLs assinadas do Google Drive são geradas usando o mesmo `service account` atual e expiram em 1h. Mesma validação de assinatura/plano que existe hoje.
+
+**Registro de downloads:** continua sendo feito no servidor, na hora de gerar as URLs assinadas (igual hoje).
+
+## Resultado esperado
+
+- ✅ Repertório completo baixa em **um único arquivo ZIP**
+- ✅ Sem erros de corrupção (nunca mais)
+- ✅ Sem limite de tamanho prático (Chrome/Edge)
+- ✅ Mais rápido (paralelismo + sem intermediário no servidor)
+- ✅ Custo zero de servidor
+- ✅ Funciona com a infraestrutura atual (Google Drive + Supabase)
