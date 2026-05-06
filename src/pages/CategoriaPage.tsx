@@ -54,11 +54,25 @@ const CategoriaPage = () => {
       navigate("/planos");
       return;
     }
+    // Abrir seletor "Salvar como…" antes de qualquer await que invalide a user activation
+    let fileHandle: any = null;
+    if (hasFileSystemAccess()) {
+      try {
+        const picked = await pickZipDestination(label);
+        if (picked === "cancelled") return;
+        fileHandle = picked;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao abrir seletor.");
+        return;
+      }
+    }
     setDownloading(true);
     try {
       const result = await downloadMultiple(
         musicas.map((m) => m.id),
-        label
+        label,
+        undefined,
+        fileHandle
       );
       if (result.failed > 0) {
         toast.warning(
