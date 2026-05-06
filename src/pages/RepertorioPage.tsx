@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
 import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2, Eraser } from "lucide-react";
-import { downloadMultipleAsParts, planZipParts, type FailedPart, type DownloadArchiveItem } from "@/services/zipService";
+import { downloadMultiple, type DownloadArchiveItem } from "@/services/zipService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,18 +70,16 @@ function formatFileSize(bytes: number): string {
 const RepertorioPage = () => {
   const { id } = useParams<{ id: string }>();
   const [downloading, setDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadDone, setDownloadDone] = useState(0);
   const [downloadTotal, setDownloadTotal] = useState(0);
+  const [downloadBytes, setDownloadBytes] = useState(0);
   const [downloadStage, setDownloadStage] = useState<"preparing" | "downloading" | "saving">("preparing");
-  const [downloadPart, setDownloadPart] = useState(0);
-  const [downloadPartsTotal, setDownloadPartsTotal] = useState(0);
-  const [downloadPartBytes, setDownloadPartBytes] = useState(0);
+  const [downloadCurrentFile, setDownloadCurrentFile] = useState<string>("");
   const [pendingDownload, setPendingDownload] = useState<{
     items: DownloadArchiveItem[];
     name: string;
     label: string;
   } | null>(null);
-  const [failedParts, setFailedParts] = useState<FailedPart[]>([]);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -287,49 +285,40 @@ const RepertorioPage = () => {
     });
   };
 
-  const MAX_ZIP_BYTES = 100 * 1024 * 1024; // Reduzido para evitar erro de CPU no servidor
-
   const runDownload = async (
     items: DownloadArchiveItem[],
     name: string,
     contextLabel: string
   ) => {
     setDownloading(true);
-    setDownloadProgress(0);
-    setDownloadTotal(100);
+    setDownloadDone(0);
+    setDownloadTotal(items.length);
+    setDownloadBytes(0);
     setDownloadStage("preparing");
-    setDownloadPart(0);
-    setDownloadPartsTotal(0);
-    setDownloadPartBytes(0);
-    setFailedParts([]);
+    setDownloadCurrentFile("");
     try {
-      const result = await downloadMultipleAsParts(items, name, {
-        maxZipBytes: MAX_ZIP_BYTES,
-        onProgress: (progress) => {
-          setDownloadProgress(progress.overallProgressPercent);
-          setDownloadPartsTotal(progress.partCount);
-          setDownloadPart(progress.partIndex + 1);
+      const result = await downloadMultiple(
+        items.map((it) => it.id),
+        name,
+        (progress) => {
+          setDownloadDone(progress.downloaded);
+          setDownloadTotal(progress.total);
+          setDownloadBytes(progress.bytesDownloaded);
           setDownloadStage(progress.stage);
-          setDownloadPartBytes(progress.partEstimatedBytes ?? 0);
-        },
-      });
+          if (progress.currentFile) setDownloadCurrentFile(progress.currentFile);
+        }
+      );
 
-      if (result.failedParts.length > 0) {
-        setFailedParts(result.failedParts);
+      if (result.failed > 0) {
         toast.warning(
-          `${result.parts} ZIP(s) gerados para ${contextLabel}. ${result.failedParts.length} parte(s) falharam — você pode tentar novamente.`
-        );
-      } else if (result.failed > 0) {
-        toast.warning(
-          `${result.parts} ZIP(s) gerados. ${result.downloaded} arquivo(s) incluídos e ${result.failed} falharam.`
+          `ZIP gerado com ${result.downloaded} arquivo(s). ${result.failed} falharam.`
         );
       } else {
-        toast.success(
-          `${result.parts} ZIP(s) baixados com sucesso! Extraia cada ZIP separadamente.`
-        );
+        toast.success(`Download concluido! ${result.downloaded} musicas em um unico ZIP.`);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `Erro ao baixar ${contextLabel}.`);
+      const msg = error instanceof Error ? error.message : `Erro ao baixar ${contextLabel}.`;
+      if (msg !== "Download cancelado") toast.error(msg);
     } finally {
       setDownloading(false);
     }
@@ -363,17 +352,18 @@ const RepertorioPage = () => {
     });
   };
 
-  const handleRetryFailedParts = async () => {
-    if (!failedParts.length) return;
-    const items: DownloadArchiveItem[] = failedParts.flatMap((p) =>
-      p.ids.map((id) => ({ id, fileSize: null }))
-    );
-    await runDownload(items, repertorio?.name ?? "repertorio", "as partes que falharam");
-  };
-
   const downloadPlan = useMemo(() => {
     if (!pendingDownload) return null;
-    return planZipParts(pendingDownload.items, MAX_ZIP_BYTES);
+    const totalKnownBytes = pendingDownload.items.reduce(
+      (s, it) => s + (Number(it.fileSize) > 0 ? Number(it.fileSize) : 0),
+      0
+    );
+    const unknownCount = pendingDownload.items.filter((it) => !(Number(it.fileSize) > 0)).length;
+    return {
+      totalItems: pendingDownload.items.length,
+      totalKnownBytes,
+      unknownCount,
+    };
   }, [pendingDownload]);
 
   const isLoading = loadingRep || loadingMusicas;
