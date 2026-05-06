@@ -459,32 +459,25 @@ const RepertorioPage = () => {
             </div>
           </div>
 
-          {downloading && downloadTotal > 0 && (
+          {downloading && (
             <div className="space-y-2 rounded-lg border border-border bg-card p-3 sm:p-4">
               <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground gap-2">
                 <span className="truncate">
                   {downloadStage === "preparing"
-                    ? `Preparando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}...`
+                    ? "Preparando download..."
                     : downloadStage === "downloading"
-                    ? `Baixando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}`
-                    : `Finalizando ZIP${downloadPartsTotal > 0 ? ` ${downloadPart}/${downloadPartsTotal}` : ""}`}
-                  {downloadPartBytes > 0 ? ` • ~${formatFileSize(downloadPartBytes)}` : ""}
+                    ? `Baixando ${downloadDone}/${downloadTotal}${downloadCurrentFile ? ` • ${downloadCurrentFile}` : ""}`
+                    : "Finalizando ZIP..."}
+                  {downloadBytes > 0 ? ` • ${formatFileSize(downloadBytes)}` : ""}
                 </span>
-                <span className="shrink-0">{Math.round((downloadProgress / downloadTotal) * 100)}%</span>
+                <span className="shrink-0">
+                  {downloadTotal > 0 ? Math.round((downloadDone / downloadTotal) * 100) : 0}%
+                </span>
               </div>
-              <Progress value={(downloadProgress / downloadTotal) * 100} className="h-1.5 sm:h-2" />
-            </div>
-          )}
-
-          {!downloading && failedParts.length > 0 && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 sm:p-4">
-              <p className="text-xs sm:text-sm text-destructive">
-                {failedParts.length} parte(s) do download falharam.
-              </p>
-              <Button size="sm" variant="outline" onClick={handleRetryFailedParts}>
-                <Download className="mr-1 h-3.5 w-3.5" />
-                Tentar novamente
-              </Button>
+              <Progress
+                value={downloadTotal > 0 ? (downloadDone / downloadTotal) * 100 : 0}
+                className="h-1.5 sm:h-2"
+              />
             </div>
           )}
 
@@ -513,13 +506,9 @@ const RepertorioPage = () => {
                           {downloadPlan.unknownCount > 0 &&
                             ` (+ ${downloadPlan.unknownCount} arquivo(s) sem tamanho informado)`}
                         </p>
-                        <p>
-                          Serão gerados{" "}
-                          <strong>{downloadPlan.partCount}</strong> arquivo(s) ZIP
-                          (máx. {formatFileSize(MAX_ZIP_BYTES)} cada).
-                        </p>
                         <p className="text-muted-foreground">
-                          Cada ZIP é baixado separadamente — extraia um por vez.
+                          Tudo será empacotado em <strong>um único ZIP</strong>, gerado direto no seu navegador.
+                          O download começa após você confirmar o local de salvamento.
                         </p>
                       </>
                     )}
