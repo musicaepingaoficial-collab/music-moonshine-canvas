@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Banner } from "@/components/ui/Banner";
 import { MusicCard } from "@/components/music/MusicCard";
