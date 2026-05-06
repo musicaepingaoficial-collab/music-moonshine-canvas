@@ -311,7 +311,10 @@ export async function downloadMultiple(
       writableStream = await fileHandle.createWritable();
     } catch (err: any) {
       // Usuário cancelou o seletor de arquivo
-      if (err?.name === "AbortError") throw new Error("Download cancelado");
+      if (err?.name === "AbortError") {
+        await releaseWakeLock();
+        throw new Error("Download cancelado");
+      }
       // Outro erro -> cai pro fallback
       writableStream = null;
     }
