@@ -287,7 +287,7 @@ const RepertorioPage = () => {
     });
   };
 
-  const MAX_ZIP_BYTES = 250 * 1024 * 1024; // Reduzido para garantir estabilidade máxima
+  const MAX_ZIP_BYTES = 100 * 1024 * 1024; // Reduzido para evitar erro de CPU no servidor
 
   const runDownload = async (
     items: DownloadArchiveItem[],
