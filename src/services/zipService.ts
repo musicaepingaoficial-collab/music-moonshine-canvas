@@ -233,6 +233,26 @@ function hasFileSystemAccess(): boolean {
   return typeof (window as any).showSaveFilePicker === "function";
 }
 
+/** Aguarda o navegador voltar a ficar online, com timeout. */
+function waitForOnline(timeoutMs: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === "undefined" || navigator.onLine) {
+      resolve();
+      return;
+    }
+    const onOnline = () => {
+      window.removeEventListener("online", onOnline);
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      window.removeEventListener("online", onOnline);
+      reject(new Error("OFFLINE_TIMEOUT"));
+    }, timeoutMs);
+    window.addEventListener("online", onOnline);
+  });
+}
+
 type ProgressCallback = (info: {
   downloaded: number;
   total: number;
