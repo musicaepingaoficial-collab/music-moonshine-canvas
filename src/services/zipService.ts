@@ -268,9 +268,13 @@ export async function downloadMultiple(
   let blob: Blob;
   try {
     blob = await response.blob();
-  } catch (error) {
+    if (!blob || blob.size === 0) {
+      throw new Error("O servidor retornou um arquivo vazio.");
+    }
+  } catch (error: any) {
     console.error("[zipService:downloadMultiple] Failed to read blob", error);
-    throw new Error("Falha ao receber os dados do arquivo do servidor. Tente reduzir o tamanho do download.");
+    const msg = error?.message || "Erro de rede ou tempo limite atingido";
+    throw new Error(`Falha ao receber os dados: ${msg}. Tente novamente ou reduza o tamanho do download.`);
   }
 
   onProgress?.(99, 100, "saving");
