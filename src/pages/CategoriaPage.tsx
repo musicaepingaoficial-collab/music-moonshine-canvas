@@ -74,6 +74,17 @@ const CategoriaPage = () => {
     }
   };
 
+  // Avisa se o usuário tentar fechar a aba durante o download
+  useEffect(() => {
+    if (!downloading) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [downloading]);
+
   const categoryName = id ? id.charAt(0).toUpperCase() + id.slice(1) : "Categoria";
 
   return (
