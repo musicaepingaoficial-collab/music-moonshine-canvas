@@ -5,6 +5,46 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const DOWNLOAD_BATCH_SIZE = 20; // Limite da edge function `download`
 const CONCURRENT_DOWNLOADS = 4; // Quantos arquivos baixar em paralelo do Drive
 const FETCH_RETRY_ATTEMPTS = 3;
+const STREAM_IDLE_TIMEOUT_MS = 60_000; // Sem receber bytes por 60s = considerado travado
+const FILE_RETRY_ATTEMPTS = 4; // Tentativas de baixar o arquivo inteiro antes de desistir
+
+// Wake Lock para impedir que tela/sistema durma durante o download
+let wakeLockSentinel: any = null;
+let wakeLockVisibilityHandler: (() => void) | null = null;
+
+async function requestWakeLock() {
+  try {
+    if (typeof navigator === "undefined" || !(navigator as any).wakeLock) return;
+    wakeLockSentinel = await (navigator as any).wakeLock.request("screen");
+    // O lock é liberado automaticamente quando a aba perde foco; re-solicitar ao voltar
+    wakeLockVisibilityHandler = async () => {
+      if (document.visibilityState === "visible" && !wakeLockSentinel) {
+        try {
+          wakeLockSentinel = await (navigator as any).wakeLock.request("screen");
+        } catch { /* ignore */ }
+      }
+    };
+    document.addEventListener("visibilitychange", wakeLockVisibilityHandler);
+    if (wakeLockSentinel?.addEventListener) {
+      wakeLockSentinel.addEventListener("release", () => {
+        wakeLockSentinel = null;
+      });
+    }
+  } catch {
+    // Sem permissão ou não suportado — segue sem wake lock
+  }
+}
+
+async function releaseWakeLock() {
+  try {
+    if (wakeLockVisibilityHandler) {
+      document.removeEventListener("visibilitychange", wakeLockVisibilityHandler);
+      wakeLockVisibilityHandler = null;
+    }
+    if (wakeLockSentinel?.release) await wakeLockSentinel.release();
+  } catch { /* ignore */ }
+  wakeLockSentinel = null;
+}
 
 type DownloadFile = {
   id: string;
