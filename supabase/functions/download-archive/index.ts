@@ -437,7 +437,11 @@ serve(async (req) => {
               : `${archiveRoot}/${fileName}`;
 
             const zipEntry = new ZipPassThrough(zipPath);
+            // @ts-ignore: level exists on ZipPassThrough in some versions or can be set
+            zipEntry.level = 0; 
             zip.add(zipEntry);
+
+            console.log(`[DownloadArchive] Processing: ${fileName} (${zipPath})`);
 
             const reader = driveResponse.body.getReader();
             while (true) {
