@@ -152,6 +152,12 @@ const CategoriaPage = () => {
         <EmptyState icon={Music} title="Nenhuma música nesta categoria." />
       )}
 
+      {downloading && (
+        <p className="text-xs text-muted-foreground rounded-md border border-border bg-card p-3">
+          ⚠️ Mantenha esta aba aberta e o computador ligado até o download concluir. Se o PC hibernar, o download será interrompido.
+        </p>
+      )}
+
       {/* Subfolder navigation view */}
       {!isLoading && !error && showSubfolderView && (
         <>
