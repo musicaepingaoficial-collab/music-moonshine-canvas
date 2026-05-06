@@ -400,117 +400,75 @@ serve(async (req) => {
     const usedNames = new Set<string>();
     const encoder = new TextEncoder();
 
-    const zipStream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        const zip = new Zip((error, chunk, final) => {
-          if (error) {
-            controller.error(error);
-            return;
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const zipWriter = new zip.ZipWriter(writable);
+
+    (async () => {
+      const startTime = Date.now();
+      const SOFT_TIMEOUT_MS = 50000;
+      console.log(`[DownloadArchive] Starting ZIP generation for ${validMusicas.length} files.`);
+      const successIds: string[] = [];
+      const failedFiles: string[] = [];
+      let timeoutReached = false;
+
+      try {
+        for (const musica of validMusicas) {
+          if (Date.now() - startTime > SOFT_TIMEOUT_MS) {
+            console.warn(`[DownloadArchive] Soft timeout reached.`);
+            timeoutReached = true;
+            break;
           }
 
-          controller.enqueue(chunk);
-          if (final) {
-            controller.close();
-          }
-        });
+          const driveResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${musica.file_url}?alt=media`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
 
-        (async () => {
-          const startTime = Date.now();
-          const SOFT_TIMEOUT_MS = 50000; // 50s limit for 60s hard timeout
-          console.log(`[DownloadArchive] Starting ZIP generation for ${validMusicas.length} files. Total estimated size: ${estimatedBytes} bytes`);
-          const successIds: string[] = [];
-          const failedFiles: string[] = [];
-          let timeoutReached = false;
-
-          for (const musica of validMusicas) {
-            if (Date.now() - startTime > SOFT_TIMEOUT_MS) {
-              console.warn(`[DownloadArchive] Soft timeout reached. Finalizing ZIP.`);
-              timeoutReached = true;
-              break;
-            }
-            const driveResponse = await fetch(
-              `https://www.googleapis.com/drive/v3/files/${musica.file_url}?alt=media`,
-              { headers: { Authorization: `Bearer ${accessToken}` } }
-            );
-
-            if (!driveResponse.ok || !driveResponse.body) {
-              failedFiles.push(`${musica.artist} - ${musica.title}`);
-              continue;
-            }
-
-            const contentType = driveResponse.headers.get("content-type");
-            const fileName = getUniqueFileName(buildTrackFileName(musica, contentType), usedNames);
-            const safeSubfolder = musica.subfolder ? sanitizeFileName(musica.subfolder) : "";
-            const zipPath = safeSubfolder
-              ? `${archiveRoot}/${safeSubfolder}/${fileName}`
-              : `${archiveRoot}/${fileName}`;
-
-            const zipEntry = new ZipPassThrough(zipPath);
-            // @ts-ignore: level exists on ZipPassThrough in some versions or can be set
-            zipEntry.level = 0; 
-            zip.add(zipEntry);
-
-            console.log(`[DownloadArchive] Processing: ${fileName} (${zipPath})`);
-
-            const reader = driveResponse.body.getReader();
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              if (value) {
-                zipEntry.push(value, false);
-              }
-            }
-            zipEntry.push(new Uint8Array(0), true);
-            successIds.push(musica.id);
+          if (!driveResponse.ok || !driveResponse.body) {
+            failedFiles.push(`${musica.artist} - ${musica.title}`);
+            continue;
           }
 
-          if (timeoutReached) {
-            const timeoutEntry = new ZipPassThrough(`${archiveRoot}/_AVISO_PARCIAL.txt`);
-            zip.add(timeoutEntry);
-            timeoutEntry.push(
-              encoder.encode(
-                "ATENCAO: Este ZIP esta incompleto porque o tempo limite do servidor foi atingido. Tente baixar o repertorio em partes menores se necessario."
-              ),
-              true
-            );
-          }
+          const contentType = driveResponse.headers.get("content-type");
+          const fileName = getUniqueFileName(buildTrackFileName(musica, contentType), usedNames);
+          const safeSubfolder = musica.subfolder ? sanitizeFileName(musica.subfolder) : "";
+          const zipPath = safeSubfolder ? `${safeSubfolder}/${fileName}` : fileName;
 
-          if (failedFiles.length > 0) {
-            const failedEntry = new ZipPassThrough(`${archiveRoot}/_falhas.txt`);
-            zip.add(failedEntry);
-            failedEntry.push(
-              encoder.encode(
-                ["Arquivos que falharam durante a geracao do ZIP:", ...failedFiles].join("\n")
-              ),
-              true
-            );
-          }
+          await zipWriter.add(zipPath, driveResponse.body, { level: 0 });
+          successIds.push(musica.id);
+        }
 
-          if (successIds.length > 0) {
-            const downloadRecords = successIds.map((musicaId) => ({
-              user_id: user.id,
-              musica_id: musicaId,
-            }));
+        if (timeoutReached) {
+          await zipWriter.add("_AVISO_PARCIAL.txt", new TextEncoder().encode("ZIP incompleto devido ao limite de tempo do servidor.").readable);
+        }
 
-            const { error: insertError } = await supabase.from("downloads").insert(downloadRecords);
-            if (insertError) {
-              console.error("[DownloadArchive:insertDownloadsError]", insertError);
-            }
-          } else {
-            const infoEntry = new ZipPassThrough(`${archiveRoot}/_erro.txt`);
-            zip.add(infoEntry);
-            infoEntry.push(
-              encoder.encode("Nao foi possivel incluir nenhum arquivo no ZIP."),
-              true
-            );
-          }
+        if (failedFiles.length > 0) {
+          const content = ["Arquivos que falharam:", ...failedFiles].join("\n");
+          await zipWriter.add("_falhas.txt", new TextEncoder().encode(content).readable);
+        }
 
-          console.log(`[DownloadArchive] Finished processing files. Success: ${successIds.length}, Failed: ${failedFiles.length}`);
-          zip.end();
-        })().catch((error) => {
-          console.error("[DownloadArchive:streamError]", error);
-          controller.error(error);
-        });
+        if (successIds.length > 0) {
+          const downloadRecords = successIds.map((id) => ({ user_id: user.id, musica_id: id }));
+          await supabase.from("downloads").insert(downloadRecords);
+        }
+
+        await zipWriter.close();
+        console.log(`[DownloadArchive] ZIP closed. Success: ${successIds.length}`);
+      } catch (err) {
+        console.error("[DownloadArchive:processingError]", err);
+        try { await zipWriter.close(); } catch {}
+      }
+    })();
+
+    return new Response(readable, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(archiveFileName)}`,
+        "X-Archive-File-Name": archiveFileName,
+        "Cache-Control": "no-store",
       },
     });
 
