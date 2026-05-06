@@ -401,7 +401,6 @@ serve(async (req) => {
     const encoder = new TextEncoder();
 
     const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
     const zipWriter = new zip.ZipWriter(writable);
 
     (async () => {
@@ -420,23 +419,30 @@ serve(async (req) => {
             break;
           }
 
-          const driveResponse = await fetch(
-            `https://www.googleapis.com/drive/v3/files/${musica.file_url}?alt=media`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
+          try {
+            const driveResponse = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${musica.file_url}?alt=media`,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
 
-          if (!driveResponse.ok || !driveResponse.body) {
+            if (!driveResponse.ok || !driveResponse.body) {
+              console.error(`[DownloadArchive] Failed to fetch file ${musica.id} from Drive: ${driveResponse.status}`);
+              failedFiles.push(`${musica.artist} - ${musica.title}`);
+              continue;
+            }
+
+            const contentType = driveResponse.headers.get("content-type");
+            const fileName = getUniqueFileName(buildTrackFileName(musica, contentType), usedNames);
+            const safeSubfolder = musica.subfolder ? sanitizeFileName(musica.subfolder) : "";
+            const zipPath = safeSubfolder ? `${safeSubfolder}/${fileName}` : fileName;
+
+            // Stream the Google Drive response body directly into the ZIP
+            await zipWriter.add(zipPath, driveResponse.body, { level: 0 });
+            successIds.push(musica.id);
+          } catch (fileErr) {
+            console.error(`[DownloadArchive] Error adding file ${musica.id}:`, fileErr);
             failedFiles.push(`${musica.artist} - ${musica.title}`);
-            continue;
           }
-
-          const contentType = driveResponse.headers.get("content-type");
-          const fileName = getUniqueFileName(buildTrackFileName(musica, contentType), usedNames);
-          const safeSubfolder = musica.subfolder ? sanitizeFileName(musica.subfolder) : "";
-          const zipPath = safeSubfolder ? `${safeSubfolder}/${fileName}` : fileName;
-
-          await zipWriter.add(zipPath, driveResponse.body, { level: 0 });
-          successIds.push(musica.id);
         }
 
         if (timeoutReached) {
@@ -457,25 +463,20 @@ serve(async (req) => {
         }
 
         await zipWriter.close();
-        console.log(`[DownloadArchive] ZIP closed. Success: ${successIds.length}`);
+        console.log(`[DownloadArchive] ZIP closed successfully. Files: ${successIds.length}`);
       } catch (err) {
         console.error("[DownloadArchive:processingError]", err);
-        try { await zipWriter.close(); } catch {}
+        try {
+          // If we haven't closed yet, try to close to flush any remaining data
+          // although if the error is here, the ZIP is likely corrupt.
+          await zipWriter.close();
+        } catch (closeErr) {
+          console.error("[DownloadArchive:closeError]", closeErr);
+        }
       }
     })();
 
     return new Response(readable, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(archiveFileName)}`,
-        "X-Archive-File-Name": archiveFileName,
-        "Cache-Control": "no-store",
-      },
-    });
-
-    return new Response(zipStream, {
       status: 200,
       headers: {
         ...corsHeaders,
