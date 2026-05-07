@@ -304,6 +304,40 @@ serve(async (req) => {
 
       console.log(`Subscription activated for user ${userId}, plan: ${planSlug}`);
 
+      // Meta CAPI Purchase (server-side, deduplicates with client via event_id)
+      try {
+        const { data: profileForCapi } = await supabase
+          .from("profiles")
+          .select("email, whatsapp")
+          .eq("id", userId)
+          .maybeSingle();
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/meta-capi`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            event_name: "Purchase",
+            event_id: String(payment.id),
+            action_source: "website",
+            user_data: {
+              email: profileForCapi?.email,
+              phone: profileForCapi?.whatsapp,
+              external_id: userId,
+            },
+            custom_data: {
+              value: Number(plan.price),
+              currency: payment.currency_id || "BRL",
+              content_ids: [planSlug],
+              content_name: planSlug,
+            },
+          }),
+        });
+      } catch (err) {
+        console.error("[meta-capi] erro:", err);
+      }
+
       try {
         const { data: profile } = await supabase
           .from("profiles")
