@@ -127,7 +127,9 @@ export function useHasActiveSubscription() {
     (!assinatura.expires_at || new Date(assinatura.expires_at) > new Date());
 
   const isVitalicio = assinatura?.plan === "vitalicio";
-  const hasDiscografiasAccess = Boolean(isAdmin) || isVitalicio || !!profile?.has_discografias;
+  const isAnual = assinatura?.plan === "anual";
+  const planIncludesDiscografias = (isVitalicio || isAnual) && notExpired;
+  const hasDiscografiasAccess = Boolean(isAdmin) || planIncludesDiscografias || !!profile?.has_discografias;
 
   return {
     hasAccess: Boolean(isAdmin) || notExpired,

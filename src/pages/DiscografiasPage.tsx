@@ -73,12 +73,13 @@ export default function DiscografiasPage() {
           </div>
           <h1 className="text-3xl font-bold mb-4">Módulo Bloqueado</h1>
           <p className="text-muted-foreground text-lg mb-8">
-            As discografias completas estão disponíveis exclusivamente para usuários com plano 
-            <span className="font-bold text-foreground"> Vitalício</span> ou que adquiriram o módulo separadamente.
+            As discografias completas estão inclusas nos planos
+            <span className="font-bold text-foreground"> Vitalício</span> e
+            <span className="font-bold text-foreground"> Anual</span>, ou podem ser adquiridas separadamente.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" onClick={() => navigate("/ofertas")}>
-              Ver Planos Vitalícios
+              Ver Planos
             </Button>
             <Button 
               variant="default" 

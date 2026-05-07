@@ -1,43 +1,35 @@
-## Diagnóstico
+# Discografias inclusas nos planos Vitalício e Anual
 
-O navegador exige que `showSaveFilePicker()` seja chamado **diretamente dentro de um gesto do usuário** (clique). Hoje, em `downloadMultiple`, o picker só é chamado depois de vários `await` (sessão Supabase, wake lock, lote de URLs do edge function `download`). Esses `await` invalidam a "user activation", então o Chrome lança `SecurityError` (não `AbortError`).
+## Objetivo
+- Na página de vendas (LandingPage e OfertasPage) **não** oferecer o módulo Discografias como item separado.
+- Comunicar claramente que **Discografias está incluída nos planos Vitalício e Anual**.
+- Quem assinar Mensal ou Semestral continua podendo comprar o módulo avulso, mas **somente dentro do sistema** (página `/discografias`, como já é hoje).
 
-No código atual, qualquer erro diferente de `AbortError` cai no `catch` silenciosamente e seta `writableStream = null`, indo para o fallback em memória. Resultado:
+## Mudanças
 
-1. O diálogo "Salvar como…" nunca aparece.
-2. O fallback monta o ZIP em memória e tenta `anchor.click()`. Para repertórios grandes, isso pode estourar memória ou ser bloqueado pelo Chrome (download sem gesto recente), e o arquivo nunca aparece em Downloads.
+### 1. Regra de acesso (`src/hooks/useUser.ts`)
+Atualizar `useHasActiveSubscription`:
+- Hoje: `hasDiscografiasAccess = admin || vitalicio || profile.has_discografias`.
+- Novo: incluir também o plano **anual** → `admin || vitalicio || anual || profile.has_discografias`.
 
-Por isso o usuário vê o progresso terminar, mas nenhum arquivo é salvo.
+Assim, usuários do plano Anual entram direto em `/discografias` sem precisar comprar o módulo.
 
-## Solução
+### 2. Página de vendas pública (`src/pages/LandingPage.tsx`)
+Na seção de planos, adicionar o item de feature **"Discografias completas inclusas"** (com destaque visual estilo "bônus") apenas nos cards cujo `slug` seja `vitalicio` ou `anual`. Os cards `mensal` e `semestral` não exibem nenhuma menção a Discografias (nem como upsell).
 
-Abrir o `showSaveFilePicker()` **antes** de qualquer `await`, no próprio handler do clique, e passar o handle pronto para o serviço.
+Sem alterações no resto da landing.
 
-### Mudanças
+### 3. Página de planos logada (`src/pages/OfertasPage.tsx`)
+Mesma lógica: dentro do `<ul>` de features de cada plano, adicionar
+"Discografias completas inclusas" apenas quando `plano.slug` for `vitalicio` ou `anual`.
 
-**`src/services/zipService.ts`**
-- Exportar uma função utilitária `pickZipDestination(suggestedName)` que chama `showSaveFilePicker` (ou retorna `null` se o navegador não suportar). Essa função fica isolada para ser chamada imediatamente no clique.
-- Alterar a assinatura de `downloadMultiple` para aceitar um `fileHandle?` opcional já obtido do picker. Se vier handle, usa direto; se não vier e o navegador não tem File System Access, cai no fallback de blob.
-- Remover o `showSaveFilePicker` de dentro de `downloadMultiple`.
-- Melhorar o fallback em memória: avisar via toast quando o ZIP for grande demais, e logar erros do `anchor.click()` em vez de engolir.
-- Diferenciar `AbortError` (cancelamento) de outros erros do picker — outros erros viram toast explícito ("Não foi possível abrir o seletor de arquivo. Tente clicar em Baixar novamente.") em vez de silêncio.
+### 4. Página de Discografias (`src/pages/DiscografiasPage.tsx`)
+No bloco de "Módulo Bloqueado":
+- Atualizar o texto: "disponível nos planos **Vitalício** e **Anual**, ou pode ser adquirido separadamente".
+- Botão "Ver Planos" leva para `/ofertas` (mantém).
+- Botão "Comprar módulo" (já existente) continua disponível para os usuários autenticados que não tiverem plano Vitalício/Anual.
 
-**`src/pages/RepertorioPage.tsx` e `src/pages/CategoriaPage.tsx`**
-- No `runDownload`, **antes** de qualquer `await` ou `setState` assíncrono, chamar `pickZipDestination(name)` sincronamente a partir do clique. Se o usuário cancelar, abortar sem mostrar erro. Se o handle vier, repassar para `downloadMultiple`.
-- Garantir que o handler do botão "Baixar" continue sendo um clique direto (não dentro de um `setTimeout` ou `Promise.then` que quebraria a user activation).
+Esse botão de compra avulsa **continua existindo apenas aqui, dentro do sistema**, atendendo ao requisito de que mensal/semestral compre por dentro.
 
-### Detalhe técnico do fluxo correto
-
-```text
-clique no botão Baixar
-  └─ pickZipDestination(name)            ← gesto do usuário ainda válido
-      ├─ usuário escolhe pasta → handle
-      └─ usuário cancela → return
-  └─ await downloadMultiple(ids, name, onProgress, handle)
-      ├─ usa handle.createWritable() direto
-      └─ stream do ZIP vai pro disco sem passar pela RAM
-```
-
-### Fora do escopo
-
-- Não vamos mudar a lógica de retry, wake lock ou timeout — só o ponto onde o picker é aberto e o tratamento de erro do fallback.
+## Observação técnica
+Nenhuma mudança de schema. O webhook (`payment-webhook`) já liga `has_discografias = true` para a compra avulsa. O acesso por plano Anual é checado em runtime através do slug da assinatura ativa.
