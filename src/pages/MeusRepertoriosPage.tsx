@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { FolderOpen, Plus, ChevronRight, Trash2, Pencil, ImagePlus } from "lucide-react";
+import { FolderOpen, Plus, ChevronRight, Pencil, ImagePlus } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import type { RepertorioWithCount } from "@/hooks/useRepertorios";
