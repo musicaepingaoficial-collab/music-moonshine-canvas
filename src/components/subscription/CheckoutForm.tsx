@@ -122,6 +122,27 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
   };
 
   useEffect(() => {
+    let interval: number;
+    // Automatic polling for Pix payment
+    if (status === "pending" && paymentMethod === "pix" && pixData?.paymentId) {
+      interval = window.setInterval(async () => {
+        try {
+          const sub = await getSubscriptionStatus();
+          if (sub) {
+            toast.success("Pagamento confirmado automaticamente! Acesso liberado.");
+            onSuccess();
+          }
+        } catch (err) {
+          console.error("Error polling payment status:", err);
+        }
+      }, 7000); // Check every 7 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [status, paymentMethod, pixData?.paymentId, onSuccess]);
+
+  useEffect(() => {
     if (paymentMethod !== "card") {
       try { cardFormRef.current?.unmount(); } catch {}
       cardFormRef.current = null;
@@ -366,6 +387,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
   };
 
   const handleCheckPixPayment = async () => {
+    setStatus("processing");
     try {
       const sub = await getSubscriptionStatus();
       if (sub) {
@@ -391,9 +413,11 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         toast.success("Pagamento confirmado! Acesso liberado.");
         onSuccess();
       } else {
-        toast("Pagamento ainda não confirmado.");
+        setStatus("pending");
+        toast.info("Pagamento ainda não confirmado. Aguarde um instante e tente novamente.");
       }
     } catch (err: any) {
+      setStatus("pending");
       toast.error(err.message || "Erro ao verificar pagamento");
     }
   };
@@ -475,8 +499,8 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             <Button variant="outline" onClick={onBack} className="flex-1">
               Voltar
             </Button>
-            <Button onClick={handleCheckPixPayment} className="flex-1">
-              Já paguei
+            <Button onClick={handleCheckPixPayment} className="flex-1" disabled={status === "processing"}>
+              {status === "processing" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Já paguei"}
             </Button>
           </div>
         </div>
