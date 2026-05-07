@@ -1,5 +1,5 @@
 import { usePlayerStore } from "@/stores/playerStore";
-import { ListPlus, PlaySquare } from "lucide-react";
+import { ListPlus, PlaySquare, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useState } from "react";
@@ -53,6 +53,16 @@ export function AddToQueueButton({ musica, title, side = "bottom" }: AddToQueueB
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-48 p-1 bg-background/95 backdrop-blur-lg border-border" align="end" side={side} sideOffset={10}>
+        <button
+          onClick={() => {
+            usePlayerStore.getState().play(track);
+            setOpen(false);
+          }}
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
+        >
+          <Play className="h-4 w-4 text-primary" />
+          Tocar agora
+        </button>
         <button
           onClick={handlePlayNext}
           className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
