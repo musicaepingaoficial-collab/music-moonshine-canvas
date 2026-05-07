@@ -35,6 +35,7 @@ import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import heroMockup from "@/assets/hero-mockup.jpg";
 import { PublicCheckoutDialog } from "@/components/subscription/PublicCheckoutDialog";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const GENRES = [
   "Sertanejo", "Funk", "Forró", "Piseiro", "Arrocha", "Flash Back",
@@ -97,6 +98,11 @@ export default function LandingPage() {
   const { user, loading } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [checkoutPlan, setCheckoutPlan] = useState<{ slug: string; name: string; price: number } | null>(null);
+  const { data: siteSettings } = useSiteSettings();
+  const waNumber = (siteSettings?.whatsapp_number || "").replace(/\D/g, "");
+  const waLink = waNumber
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent("Olá, quero saber mais sobre o painel")}`
+    : null;
 
   const { data: planos } = useQuery({
     queryKey: ["public-planos"],
@@ -623,16 +629,14 @@ export default function LandingPage() {
                 <Play className="mr-2 h-5 w-5 fill-current" />
                 QUERO ACESSAR AGORA
               </Button>
-              <a
-                href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20painel"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  Falar no WhatsApp
-                </Button>
-              </a>
+              {waLink && (
+                <a href={waLink} target="_blank" rel="noreferrer">
+                  <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
+                    <MessageCircle className="mr-2 h-5 w-5" />
+                    Falar no WhatsApp
+                  </Button>
+                </a>
+              )}
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-primary" />7 dias de garantia</div>
@@ -662,15 +666,17 @@ export default function LandingPage() {
       </footer>
 
       {/* Floating WhatsApp */}
-      <a
-        href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20quero%20tirar%20uma%20d%C3%BAvida"
-        target="_blank"
-        rel="noreferrer"
-        className="fixed bottom-5 right-5 z-40 h-14 w-14 rounded-full bg-gradient-cta text-primary-foreground shadow-glow flex items-center justify-center transition-transform hover:scale-110 animate-glow-pulse"
-        aria-label="Falar no WhatsApp"
-      >
-        <MessageCircle className="h-6 w-6" />
-      </a>
+      {waNumber && (
+        <a
+          href={`https://wa.me/${waNumber}?text=${encodeURIComponent("Olá, quero tirar uma dúvida")}`}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-5 right-5 z-40 h-14 w-14 rounded-full bg-gradient-cta text-primary-foreground shadow-glow flex items-center justify-center transition-transform hover:scale-110 animate-glow-pulse"
+          aria-label="Falar no WhatsApp"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </a>
+      )}
 
       <PublicCheckoutDialog
         open={!!checkoutPlan}
