@@ -2,6 +2,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MusicCard } from "@/components/music/MusicCard";
+import { usePlayerStore } from "@/stores/playerStore";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
