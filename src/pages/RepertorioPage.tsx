@@ -470,16 +470,30 @@ const RepertorioPage = () => {
             <div className="flex items-center gap-2">
               {/* Botão limpar removido da tela principal do aplicativo conforme solicitado */}
               {(musicas?.length ?? 0) > 0 && (
-                <Button
-                  onClick={handleDownloadAll}
-                  disabled={downloading || isTrial}
-                  size="sm"
-                  title={isTrial ? "DisponÃ­vel apenas para assinantes" : undefined}
-                  aria-label="Baixar repertÃ³rio completo"
-                >
-                  <Download className="mr-1 h-4 w-4" />
-                  {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => {
+                      const addToQueue = usePlayerStore.getState().addToQueue;
+                      musicas?.forEach(m => addToQueue(m));
+                      toast.success(`${musicas?.length} músicas adicionadas à lista de reprodução`);
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <ListPlus className="mr-1 h-4 w-4" />
+                    Adicionar à lista
+                  </Button>
+                  <Button
+                    onClick={handleDownloadAll}
+                    disabled={downloading || isTrial}
+                    size="sm"
+                    title={isTrial ? "Disponível apenas para assinantes" : undefined}
+                    aria-label="Baixar repertório completo"
+                  >
+                    <Download className="mr-1 h-4 w-4" />
+                    {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
+                  </Button>
+                </div>
               )}
             </div>
           </div>
