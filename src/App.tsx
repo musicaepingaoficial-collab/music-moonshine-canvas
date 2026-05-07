@@ -97,6 +97,7 @@ const App = () => (
               <Route path="/termos" element={<TermsPage />} />
 
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/completar-perfil" element={<CompleteProfilePage />} />
               <Route path="/planos" element={<PlanosGatePage />} />
               <Route path="/instalar" element={<InstalarPage />} />
