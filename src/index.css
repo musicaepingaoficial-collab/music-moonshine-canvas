@@ -47,6 +47,12 @@
     --surface-hover: 0 0% 18%;
     --surface-active: 0 0% 22%;
     --gradient-primary: linear-gradient(135deg, hsl(145 65% 42%), hsl(160 60% 35%));
+    --brand-glow: 145 80% 55%;
+    --gradient-hero: radial-gradient(ellipse at top, hsl(145 65% 42% / 0.25), transparent 60%);
+    --gradient-cta: linear-gradient(135deg, hsl(145 70% 45%), hsl(160 75% 40%));
+    --shadow-glow: 0 0 60px hsl(var(--brand-glow) / 0.45);
+    --shadow-glow-lg: 0 0 100px hsl(var(--brand-glow) / 0.55);
+    --shadow-premium: 0 30px 80px -20px hsl(var(--brand-glow) / 0.35);
   }
 }
 
