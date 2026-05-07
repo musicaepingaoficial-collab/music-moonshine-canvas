@@ -451,7 +451,7 @@ export default function LandingPage() {
               Escolha seu acesso
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
-              Planos para todos <span className="text-gradient-brand">os gostos !</span>{"\n"}
+              Planos para todos <span className="text-gradient-brand">os gostos !{"\n"}</span>
             </h2>
             <p className="mt-4 text-muted-foreground text-base sm:text-lg">
               Pagamento único ou recorrente. Acesso liberado em segundos após a confirmação.
