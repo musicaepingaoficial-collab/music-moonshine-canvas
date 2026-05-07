@@ -629,16 +629,14 @@ export default function LandingPage() {
                 <Play className="mr-2 h-5 w-5 fill-current" />
                 QUERO ACESSAR AGORA
               </Button>
-              <a
-                href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20painel"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  Falar no WhatsApp
-                </Button>
-              </a>
+              {waLink && (
+                <a href={waLink} target="_blank" rel="noreferrer">
+                  <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
+                    <MessageCircle className="mr-2 h-5 w-5" />
+                    Falar no WhatsApp
+                  </Button>
+                </a>
+              )}
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-primary" />7 dias de garantia</div>
