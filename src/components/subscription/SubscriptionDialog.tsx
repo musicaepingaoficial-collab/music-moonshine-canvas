@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -19,9 +19,11 @@ interface Plano {
 interface SubscriptionDialogProps {
   open: boolean;
   onTrialStarted: () => void;
+  initialPlanSlug?: string | null;
+  prefill?: { fullName?: string; cpf?: string; email?: string };
 }
 
-export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogProps) {
+export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, prefill }: SubscriptionDialogProps) {
   const [selectedPlan, setSelectedPlan] = useState<Plano | null>(null);
   const queryClient = useQueryClient();
 
@@ -38,6 +40,14 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
     enabled: open,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Auto-select plan from initialPlanSlug
+  useEffect(() => {
+    if (initialPlanSlug && planos && !selectedPlan) {
+      const found = planos.find((p) => p.slug === initialPlanSlug);
+      if (found) setSelectedPlan(found);
+    }
+  }, [initialPlanSlug, planos, selectedPlan]);
 
   const handlePaymentSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["assinatura"] });
@@ -65,8 +75,15 @@ export function SubscriptionDialog({ open, onTrialStarted }: SubscriptionDialogP
             planSlug={selectedPlan.slug}
             planName={selectedPlan.name}
             planPrice={selectedPlan.price}
-            onBack={() => setSelectedPlan(null)}
+            onBack={() => {
+              if (initialPlanSlug) {
+                onTrialStarted();
+              } else {
+                setSelectedPlan(null);
+              }
+            }}
             onSuccess={handlePaymentSuccess}
+            prefill={prefill}
           />
         ) : (
           <>

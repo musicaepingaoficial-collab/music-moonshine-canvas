@@ -12,6 +12,11 @@ interface CheckoutFormProps {
   planPrice: number;
   onBack: () => void;
   onSuccess: () => void;
+  prefill?: {
+    fullName?: string;
+    cpf?: string;
+    email?: string;
+  };
 }
 
 type PaymentStatus = "idle" | "processing" | "approved" | "pending" | "rejected";
@@ -58,13 +63,13 @@ const splitFullName = (fullName: string) => {
   };
 };
 
-export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess }: CheckoutFormProps) {
+export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess, prefill }: CheckoutFormProps) {
   const [status, setStatus] = useState<PaymentStatus>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
-  const [pixEmail, setPixEmail] = useState("");
-  const [pixFullName, setPixFullName] = useState("");
-  const [pixCpf, setPixCpf] = useState("");
+  const [pixEmail, setPixEmail] = useState(prefill?.email ?? "");
+  const [pixFullName, setPixFullName] = useState(prefill?.fullName ?? "");
+  const [pixCpf, setPixCpf] = useState(prefill?.cpf ? formatCpf(prefill.cpf) : "");
   const [pixData, setPixData] = useState<{
     qrCode?: string;
     qrCodeBase64?: string;
@@ -75,19 +80,24 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
   const cardFormRef = useRef<any>(null);
   const { user } = useAuth();
   const metadataName =
+    prefill?.fullName ||
     (user?.user_metadata?.full_name as string | undefined) ||
     (user?.user_metadata?.name as string | undefined) ||
     "";
 
   useEffect(() => {
-    if (!pixEmail && user?.email) {
-      setPixEmail(user.email);
+    if (!pixEmail && (prefill?.email || user?.email)) {
+      setPixEmail(prefill?.email || user?.email || "");
     }
 
     if (!pixFullName && metadataName.trim()) {
       setPixFullName(metadataName.trim());
     }
-  }, [metadataName, pixEmail, pixFullName, user?.email]);
+
+    if (!pixCpf && prefill?.cpf) {
+      setPixCpf(formatCpf(prefill.cpf));
+    }
+  }, [metadataName, pixEmail, pixFullName, pixCpf, user?.email, prefill?.email, prefill?.cpf]);
 
   // Initiate checkout once on mount
   useEffect(() => {
@@ -145,6 +155,26 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
       callbacks: {
         onFormMounted: (error: any) => {
           if (error) console.warn("CardForm mount error:", error);
+          // Prefill card form fields from user data
+          try {
+            const emailEl = document.getElementById("mp-cardholder-email") as HTMLInputElement | null;
+            const nameEl = document.getElementById("mp-cardholder-name") as HTMLInputElement | null;
+            const idNumEl = document.getElementById("mp-identification-number") as HTMLInputElement | null;
+            const idTypeEl = document.getElementById("mp-identification-type") as HTMLSelectElement | null;
+            const emailVal = prefill?.email || user?.email || "";
+            const nameVal = prefill?.fullName || metadataName || "";
+            const cpfVal = prefill?.cpf ? onlyDigits(prefill.cpf) : "";
+            if (emailEl && !emailEl.value && emailVal) emailEl.value = emailVal;
+            if (nameEl && !nameEl.value && nameVal) nameEl.value = nameVal;
+            if (idNumEl && !idNumEl.value && cpfVal) idNumEl.value = cpfVal;
+            if (idTypeEl && cpfVal) {
+              // Try to select CPF option once available
+              setTimeout(() => {
+                const opt = Array.from(idTypeEl.options).find((o) => o.value === "CPF");
+                if (opt) idTypeEl.value = "CPF";
+              }, 300);
+            }
+          } catch {}
         },
         onSubmit: async (event: Event) => {
           event.preventDefault();
@@ -230,7 +260,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
     const nameParts = splitFullName(fullName);
 
     if (!email) {
-      toast.error("Informe um e-mail valido para o Pix");
+      toast.error("Informe um e-mail válido para o Pix");
       return;
     }
 
@@ -240,7 +270,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
     }
 
     if (!isValidCpf(cpf)) {
-      toast.error("Informe um CPF valido para o Pix");
+      toast.error("Informe um CPF válido para o Pix");
       return;
     }
 
@@ -307,9 +337,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
     if (!pixData?.qrCode) return;
     try {
       await navigator.clipboard.writeText(pixData.qrCode);
-      toast.success("CÃ³digo Pix copiado");
+      toast.success("Código Pix copiado");
     } catch {
-      toast.error("NÃ£o foi possÃ­vel copiar o cÃ³digo");
+      toast.error("Não foi possível copiar o código");
     }
   };
 
@@ -339,7 +369,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
         toast.success("Pagamento confirmado! Acesso liberado.");
         onSuccess();
       } else {
-        toast("Pagamento ainda nÃ£o confirmado.");
+        toast("Pagamento ainda não confirmado.");
       }
     } catch (err: any) {
       toast.error(err.message || "Erro ao verificar pagamento");
@@ -485,7 +515,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
           className="gap-2"
         >
           <CreditCard className="h-4 w-4" />
-          CartÃ£o
+          CARTÃO
         </Button>
         <Button
           type="button"

@@ -123,6 +123,21 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Mitiga loop do "Voltar" quando o usuário veio de um redirect externo (ex.: Hostinger antiga)
+  useEffect(() => {
+    try {
+      const ref = document.referrer;
+      if (ref) {
+        const refUrl = new URL(ref);
+        const isExternal = refUrl.origin !== window.location.origin;
+        const isKnownRedirect = /hostinger|hstgr/i.test(refUrl.hostname);
+        if (isExternal && (isKnownRedirect || window.history.length <= 2)) {
+          window.history.replaceState(null, "", window.location.href);
+        }
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     trackEvent("view_content", { content_category: "landing", content_name: "LandingPage" });
   }, []);

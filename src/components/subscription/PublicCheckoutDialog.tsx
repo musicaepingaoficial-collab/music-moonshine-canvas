@@ -111,7 +111,10 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
       if (signUpError) {
         const msg = signUpError.message?.toLowerCase() || "";
         if (msg.includes("registered") || msg.includes("already")) {
-          toast.error("Este e-mail já tem cadastro. Faça login para comprar.");
+          toast.error("Este e-mail já tem cadastro. Redirecionando para o login...");
+          setTimeout(() => {
+            navigate(`/login?redirect=/planos?plano=${plan.slug}`);
+          }, 1200);
         } else {
           toast.error(signUpError.message);
         }
@@ -291,6 +294,11 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
             planPrice={plan.price}
             onBack={handleBackToForm}
             onSuccess={handlePaymentSuccess}
+            prefill={{
+              fullName: name.trim().replace(/\s+/g, " "),
+              cpf: cpf,
+              email: email.trim(),
+            }}
           />
         )}
       </DialogContent>
