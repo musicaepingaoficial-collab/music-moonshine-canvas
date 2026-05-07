@@ -1,7 +1,10 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Loader2, X } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Loader2, X, ListMusic } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { usePlayerStore } from "@/stores/playerStore";
 import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -12,6 +15,7 @@ function formatTime(seconds: number): string {
 
 export function MusicPlayer() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const queue = usePlayerStore((s) => s.queue);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const isLoading = usePlayerStore((s) => s.isLoading);
   const volume = usePlayerStore((s) => s.volume);
@@ -20,6 +24,7 @@ export function MusicPlayer() {
   const duration = usePlayerStore((s) => s.duration);
   const currentTime = usePlayerStore((s) => s.currentTime);
 
+  const play = usePlayerStore((s) => s.play);
   const pause = usePlayerStore((s) => s.pause);
   const resume = usePlayerStore((s) => s.resume);
   const next = usePlayerStore((s) => s.next);
@@ -28,6 +33,8 @@ export function MusicPlayer() {
   const setVolume = usePlayerStore((s) => s.setVolume);
   const toggleMute = usePlayerStore((s) => s.toggleMute);
   const setProgress = usePlayerStore((s) => s.setProgress);
+
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
 
   const handlePlayPause = () => {
     isPlaying ? pause() : resume();
@@ -137,6 +144,58 @@ export function MusicPlayer() {
 
           {/* Volume + Close */}
           <div className="hidden flex-1 items-center justify-end gap-2 md:flex">
+            <Popover open={isQueueOpen} onOpenChange={setIsQueueOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className={`text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring rounded-full p-2 ${isQueueOpen ? 'text-primary' : ''}`}
+                  aria-label="Ver lista de reprodução"
+                >
+                  <ListMusic className="h-5 w-5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0 mr-4 bg-background/95 backdrop-blur-lg border-border" align="end" side="top" sideOffset={10}>
+                <div className="p-3 border-b border-border/50">
+                  <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
+                  <p className="text-[10px] text-muted-foreground">{queue.length} músicas na fila</p>
+                </div>
+                <ScrollArea className="h-64">
+                  <div className="p-2 space-y-1">
+                    {queue.map((track, i) => (
+                      <button
+                        key={`${track.id}-${i}`}
+                        onClick={() => {
+                          play(track);
+                          setIsQueueOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 p-2 rounded-md transition-colors text-left ${currentTrack.id === track.id ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
+                      >
+                        <div className="h-8 w-8 shrink-0 rounded overflow-hidden bg-muted">
+                          {track.cover_url ? (
+                            <img src={track.cover_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <Play className="h-3 w-3 opacity-50" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium truncate">{track.title}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{track.artist}</p>
+                        </div>
+                        {currentTrack.id === track.id && (
+                          <div className="flex gap-0.5">
+                            <div className="w-0.5 h-2 bg-primary animate-music-bar-1" />
+                            <div className="w-0.5 h-2 bg-primary animate-music-bar-2" />
+                            <div className="w-0.5 h-2 bg-primary animate-music-bar-3" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
+
             <button
               onClick={toggleMute}
               className="text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring rounded-full p-1"
@@ -161,7 +220,53 @@ export function MusicPlayer() {
             </button>
           </div>
 
-          {/* Remove duplicate close button on mobile as it's now in track info flex */}
+          {/* Mobile Queue Button */}
+          <div className="flex md:hidden absolute -top-10 right-4">
+             <Popover open={isQueueOpen} onOpenChange={setIsQueueOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-background/95 backdrop-blur-lg border border-border/50 text-foreground shadow-lg"
+                  aria-label="Lista"
+                >
+                  <ListMusic className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[90vw] max-w-sm p-0 mb-4 bg-background/95 backdrop-blur-lg border-border" align="end" side="top" sideOffset={10}>
+                <div className="p-3 border-b border-border/50">
+                  <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
+                  <p className="text-[10px] text-muted-foreground">{queue.length} músicas na fila</p>
+                </div>
+                <ScrollArea className="h-64">
+                  <div className="p-2 space-y-1">
+                    {queue.map((track, i) => (
+                      <button
+                        key={`${track.id}-${i}`}
+                        onClick={() => {
+                          play(track);
+                          setIsQueueOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 p-2 rounded-md transition-colors text-left ${currentTrack.id === track.id ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
+                      >
+                        <div className="h-8 w-8 shrink-0 rounded overflow-hidden bg-muted">
+                          {track.cover_url ? (
+                            <img src={track.cover_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <Play className="h-3 w-3 opacity-50" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium truncate">{track.title}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{track.artist}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
