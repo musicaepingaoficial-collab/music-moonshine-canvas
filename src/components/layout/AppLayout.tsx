@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Header } from "@/components/layout/Header";
 import { MusicPlayer } from "@/components/player/MusicPlayer";
 import { InstallBanner } from "@/components/pwa/InstallBanner";
+import { WelcomePopup } from "@/components/popup/WelcomePopup";
 
 export function AppLayout() {
   return (
@@ -19,6 +20,7 @@ export function AppLayout() {
       </div>
       <MusicPlayer />
       <InstallBanner />
+      <WelcomePopup />
     </SidebarProvider>
   );
 }
