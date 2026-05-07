@@ -179,6 +179,7 @@ serve(async (req) => {
       payment_method_id: paymentMethodId,
       payer: payerPayload,
       external_reference: `${user.id}:${selectedPlan.slug}`,
+      statement_descriptor: "MUSICAE PINGA",
       notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook`,
       additional_info: {
         items: [
