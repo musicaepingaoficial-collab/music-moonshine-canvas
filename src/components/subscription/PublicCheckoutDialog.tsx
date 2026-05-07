@@ -291,6 +291,11 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
             planPrice={plan.price}
             onBack={handleBackToForm}
             onSuccess={handlePaymentSuccess}
+            prefill={{
+              fullName: name.trim().replace(/\s+/g, " "),
+              cpf: cpf,
+              email: email.trim(),
+            }}
           />
         )}
       </DialogContent>
