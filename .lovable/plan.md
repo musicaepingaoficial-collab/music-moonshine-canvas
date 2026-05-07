@@ -1,72 +1,72 @@
 ## Objetivo
 
-Ativar o disparo de eventos do Meta Pixel (client-side) e CAPI (server-side) em toda a aplicação, respeitando dinamicamente as configurações salvas em `pixel_settings` (Pixel ID, Access Token, e checkboxes de eventos ativos).
+Permitir que o admin cadastre um popup de boas-vindas (com grupos/promoções) que aparece para usuários logados conforme regras de público, e fica oculto após o usuário fechar.
 
-## Estado atual
+## Modelo de dados
 
-- `pixel_settings` já é lida e persistida via `/admin/pixels`.
-- `PixelInjector` já injeta o script do Meta Pixel quando `meta_enabled` + `meta_pixel_id` estão presentes, e respeita `page_view`.
-- `src/lib/pixels.ts` já expõe `trackEvent()` e `usePixels()` que validam toggles antes de chamar `fbq`. **Nenhum componente do app chama esses helpers ainda** — é aí que entra a integração.
-- O webhook `payment-webhook` já existe (Mercado Pago) e é o ponto natural para enviar `Purchase` via CAPI server-side.
+Nova tabela `welcome_popup` (singleton — apenas 1 registro ativo por vez):
 
-## Mudanças
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id` | uuid PK | |
+| `active` | boolean | Liga/desliga o popup |
+| `title` | text | Título exibido |
+| `description` | text | Texto/descrição (multilinha) |
+| `image_url` | text nullable | Imagem opcional (topo) |
+| `links` | jsonb | Array `[{ label, url, icon? }]` para grupos/promoções |
+| `show_to_new` | boolean | Exibir para usuários sem assinatura ativa / recém-cadastrados |
+| `show_to_subscribers` | boolean | Exibir para assinantes ativos |
+| `new_user_days` | integer | Considera "novo" usuários cadastrados há ≤ N dias (default 7) |
+| `version` | integer | Incrementa a cada save no admin — força reaparecer se admin atualizar |
+| `updated_at` | timestamptz | |
 
-### 1. Tracking automático de rota (page_view)
-Criar `src/components/pixels/RouteTracker.tsx` que escuta `useLocation()` e chama `trackEvent("page_view")` em cada mudança de rota. Montar dentro do `<BrowserRouter>` em `src/App.tsx` (junto ao `PixelInjector`). Remover o `PageView` automático do snippet inicial em `PixelInjector` para evitar duplicidade — o RouteTracker passa a ser a única fonte.
+**RLS:**
+- SELECT público (anon + authenticated) — necessário para o popup carregar.
+- ALL apenas para admins (`has_role(auth.uid(), 'admin')`).
 
-### 2. Eventos de UI (client-side `fbq`)
+**Bucket de storage:** reutiliza `anuncios-images` (já público) para imagem do popup.
 
-| Evento | Onde disparar |
-|---|---|
-| `view_content` | `LandingPage.tsx` (mount), `OfertasPage.tsx` (mount, com lista de planos), `PdfsPage.tsx` (mount) |
-| `add_to_cart` | Clique em "Assinar agora" / "Comprar" em `OfertasPage`, `LandingPage` (CTA dos planos) e cards de PDF |
-| `initiate_checkout` | Abertura do `CheckoutForm` / `PublicCheckoutDialog` (mount do dialog) |
-| `add_payment_info` | Seleção de método (Pix/Crédito) dentro de `CheckoutForm.tsx` |
-| `purchase` | Tela de sucesso do `CheckoutForm` (após `processTransparentPayment` aprovado ou Pix aprovado), enviando `value`, `currency: "BRL"`, `transaction_id` (= payment id, usado também como `event_id` para deduplicação com CAPI) |
-| `lead` | Submit do formulário de captura na `LandingPage` (se houver) |
-| `complete_registration` | Sucesso do cadastro em `LoginPage.tsx` / `CompleteProfilePage.tsx` |
+## Tela de admin
 
-Todos via `trackEvent(...)` — o helper já valida `meta_enabled` e `meta_events[*]`.
+Nova página `src/pages/admin/AdminPopupPage.tsx` em `/admin/popup`:
+- Toggle "Popup ativo".
+- Inputs: título (max 120), descrição (textarea, max 1000), upload de imagem (preview + botão remover).
+- Editor de **lista de links** (add/remover linhas): label (max 60) + URL (validar `https://`) + opcional ícone (select: WhatsApp, Telegram, Instagram, Link).
+- Configuração de público: 2 switches (`show_to_new`, `show_to_subscribers`) + input numérico "considerar novo até X dias".
+- Botão Salvar — incrementa `version` automaticamente.
+- Pré-visualização do popup ao lado do formulário.
 
-### 3. CAPI server-side (Conversions API)
+Adicionar entrada "Popup de Boas-vindas" no `AdminSidebar.tsx` e rota em `App.tsx` (dentro de `/admin`).
 
-Criar **edge function** `supabase/functions/meta-capi/index.ts`:
-- POST `{ event_name, event_id, event_source_url, user_data: {email, phone, fbp, fbc, client_ip, client_user_agent}, custom_data: {value, currency, ...} }`
-- Lê `meta_pixel_id` e `meta_access_token` de `pixel_settings`.
-- Faz hash SHA-256 dos campos PII (`em`, `ph`) conforme exigido pela Meta.
-- POST para `https://graph.facebook.com/v18.0/{pixel_id}/events?access_token=...`.
-- Retorna `{ ok: true }` ou erro.
-- CORS habilitado, `verify_jwt = false` (chamada também ocorre do webhook sem JWT).
+## Componente do popup (frontend do app)
 
-**Pontos de chamada do CAPI:**
-- **`payment-webhook`** (já existe): após confirmar pagamento aprovado, chamar `meta-capi` com `event_name: "Purchase"`, `event_id` = payment id (mesmo usado no client `trackEvent`), `value`, `currency`. Garante o evento mesmo se o usuário fechar a aba.
-- **`CheckoutForm`** (client): após `purchase` no `fbq`, chamar `supabase.functions.invoke("meta-capi", {...})` para `Lead`/`InitiateCheckout` críticos opcionalmente — escopo inicial: só `Purchase` no webhook.
+Novo `src/components/popup/WelcomePopup.tsx`:
+- Hook `useWelcomePopup()` que lê o registro via React Query (`welcome_popup`), cruza com `useAuth` + `useAssinatura`.
+- Lógica de visibilidade:
+  1. `active === true`.
+  2. Usuário autenticado e está dentro de uma rota do `AppLayout` (não landing/login).
+  3. Verifica audiência:
+     - Se assinante ativo → mostra apenas se `show_to_subscribers`.
+     - Senão → mostra apenas se `show_to_new` **e** (`profiles.created_at` ≤ `new_user_days` dias OU usuário sem assinatura, conforme as duas opções estarem ligadas — implementação: se `show_to_new` ligado, mostra a quem se enquadra; `new_user_days = 0` significa "qualquer não-assinante").
+  4. Lê localStorage `welcome_popup_dismissed_v{version}_{userId}`. Se existir → não mostra. Quando admin atualiza, `version` muda e o popup reaparece.
+- UI: usa `Dialog` do shadcn. Cabeçalho com imagem (se houver), título, descrição. Lista de links como botões grandes (ícone + label, abrem em nova aba com `rel="noreferrer"`). Botão "Fechar" no rodapé que grava o dismiss.
+- Montar dentro de `AppLayout.tsx` para aparecer só nas rotas autenticadas.
 
-### 4. Helper compartilhado
-Adicionar em `src/lib/pixels.ts` uma função `getFbCookies()` que extrai `_fbp` / `_fbc` do `document.cookie` para enriquecer payloads do CAPI (passada como `user_data` quando chamamos a edge function do client).
+## Validações
 
-### 5. Limpeza
-- Remover stub `__lovEnabledMetaEvents` do `PixelInjector` (não usado).
-- Remover `PageView` automático do snippet inicial do Meta no `PixelInjector` (substituído pelo `RouteTracker`).
+- Admin: zod schema (título obrigatório, max lengths, URLs válidas começando com `http(s)://`).
+- Frontend: `encodeURI` não é necessário pois URLs são salvas pelo admin; apenas garantir `target="_blank" rel="noopener noreferrer"`.
 
-## Detalhes técnicos
+## Arquivos
 
-- Toda leitura de settings no client passa por `usePixelSettings()` (cache via React Query) + `_setCachedPixelSettings` que `pixels.ts` já usa internamente — então `trackEvent()` funciona fora de hooks também.
-- Deduplicação Meta: client e CAPI usam o **mesmo `event_id`** (= `transaction_id` para Purchase).
-- Edge function não armazena nada — apenas relay para Graph API.
-- Sem mudanças de schema no banco.
-
-## Arquivos afetados
+**Migration:** criar tabela `welcome_popup` + RLS + seed de 1 linha vazia (`active=false`).
 
 **Novos**
-- `src/components/pixels/RouteTracker.tsx`
-- `supabase/functions/meta-capi/index.ts`
+- `src/pages/admin/AdminPopupPage.tsx`
+- `src/components/popup/WelcomePopup.tsx`
+- `src/hooks/useWelcomePopup.ts`
 
 **Editados**
-- `src/App.tsx` (montar RouteTracker)
-- `src/components/pixels/PixelInjector.tsx` (remover PageView inicial e stub)
-- `src/lib/pixels.ts` (helper `getFbCookies`, opcional helper para invocar CAPI)
-- `src/pages/LandingPage.tsx`, `src/pages/OfertasPage.tsx`, `src/pages/PdfsPage.tsx` (view_content + add_to_cart)
-- `src/components/subscription/CheckoutForm.tsx`, `PublicCheckoutDialog.tsx` (initiate_checkout, add_payment_info, purchase)
-- `src/pages/LoginPage.tsx` e/ou `CompleteProfilePage.tsx` (complete_registration)
-- `supabase/functions/payment-webhook/index.ts` (chamar `meta-capi` em pagamento aprovado)
+- `src/App.tsx` — rota `/admin/popup`.
+- `src/components/layout/AdminSidebar.tsx` — item de menu.
+- `src/components/layout/AppLayout.tsx` — montar `<WelcomePopup />`.
