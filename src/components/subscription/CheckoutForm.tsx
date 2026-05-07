@@ -583,7 +583,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Número do cartão</label>
+          <label className="text-xs font-medium text-muted-foreground">NÚMERO DO CARTÃO</label>
           <div id="mp-card-number" className="h-10 rounded-md border border-border bg-secondary" />
         </div>
 
@@ -599,7 +599,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Nome no cartão</label>
+          <label className="text-xs font-medium text-muted-foreground">NOME NO CARTÃO</label>
           <input id="mp-cardholder-name" type="text"
             className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>

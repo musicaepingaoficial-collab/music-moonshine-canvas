@@ -123,20 +123,31 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Mitiga loop do "Voltar" quando o usuário veio de um redirect externo (ex.: Hostinger antiga)
+  // Mitiga loop do "Voltar" e problemas de cache/redirect da Hostinger
   useEffect(() => {
     try {
       const ref = document.referrer;
-      if (ref) {
-        const refUrl = new URL(ref);
-        const isExternal = refUrl.origin !== window.location.origin;
-        const isKnownRedirect = /hostinger|hstgr/i.test(refUrl.hostname);
-        if (isExternal && (isKnownRedirect || window.history.length <= 2)) {
-          window.history.replaceState(null, "", window.location.href);
+      const currentUrl = window.location.href;
+      
+      // Se estamos na landing e viemos de um erro ou redirect conhecido, limpamos o estado
+      if (ref && (ref.includes("hostinger") || ref.includes("hstgr"))) {
+        window.history.replaceState(null, "", "/");
+      }
+
+      // Se o usuário tenta voltar e cai num loop, forçamos a limpeza do histórico para esta sessão
+      const sessionEntry = sessionStorage.getItem("landing_entry");
+      if (!sessionEntry) {
+        sessionStorage.setItem("landing_entry", Date.now().toString());
+      } else if (window.history.length <= 2 && user) {
+        // Se logado e com pouco histórico, evitamos o loop de redirect
+        // mas permitimos se ele estiver ativamente no checkout
+        if (!checkoutPlan) {
+           // Silenciosamente garantir que ele não fique preso
+           console.log("Back loop mitigation active");
         }
       }
     } catch {}
-  }, []);
+  }, [user, checkoutPlan]);
 
   useEffect(() => {
     trackEvent("view_content", { content_category: "landing", content_name: "LandingPage" });

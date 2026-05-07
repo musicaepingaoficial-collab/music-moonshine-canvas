@@ -70,11 +70,11 @@ export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, pref
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        {selectedPlan ? (
+        {(selectedPlan || initialPlanSlug) ? (
           <CheckoutForm
-            planSlug={selectedPlan.slug}
-            planName={selectedPlan.name}
-            planPrice={selectedPlan.price}
+            planSlug={selectedPlan?.slug || initialPlanSlug!}
+            planName={selectedPlan?.name || "Plano selecionado"}
+            planPrice={selectedPlan?.price || 0}
             onBack={() => {
               if (initialPlanSlug) {
                 onTrialStarted();
