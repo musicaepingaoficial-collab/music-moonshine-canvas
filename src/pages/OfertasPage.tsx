@@ -7,11 +7,12 @@ import { Tag, Crown, Check, BadgeCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CheckoutForm } from "@/components/subscription/CheckoutForm";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useAssinatura } from "@/hooks/useUser";
+import { trackEvent } from "@/lib/pixels";
 
 interface Plano {
   id: string;
@@ -51,6 +52,21 @@ const OfertasPage = () => {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  useEffect(() => {
+    trackEvent("view_content", { content_category: "planos", content_name: "Ofertas" });
+  }, []);
+
+  useEffect(() => {
+    if (selectedPlan) {
+      trackEvent("initiate_checkout", {
+        value: selectedPlan.price,
+        currency: "BRL",
+        content_ids: [selectedPlan.slug],
+        content_name: selectedPlan.name,
+      });
+    }
+  }, [selectedPlan]);
 
   const handlePaymentSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["assinatura"] });
