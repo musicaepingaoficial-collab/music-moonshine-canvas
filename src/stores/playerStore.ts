@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Musica } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 let audio: HTMLAudioElement | null = null;
 let progressInterval: ReturnType<typeof setInterval> | null = null;
@@ -65,6 +66,9 @@ interface PlayerState {
   close: () => void;
   setQueue: (tracks: Musica[]) => void;
   addToQueue: (track: Musica) => void;
+  removeFromQueue: (trackId: string) => void;
+  playNext: (track: Musica) => void;
+  clearQueue: () => void;
   setVolume: (vol: number) => void;
   toggleMute: () => void;
   setProgress: (p: number) => void;
@@ -184,6 +188,45 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (!queue.find((t) => t.id === track.id)) {
       set({ queue: [...queue, track] });
     }
+  },
+
+  removeFromQueue: (trackId) => {
+    const { queue, currentTrack } = get();
+    const newQueue = queue.filter((t) => t.id !== trackId);
+    set({ queue: newQueue });
+    
+    // If we removed the currently playing track, play the next one
+    if (currentTrack?.id === trackId) {
+      if (newQueue.length > 0) {
+        const idx = queue.findIndex(t => t.id === trackId);
+        const nextTrack = newQueue[idx % newQueue.length];
+        get().play(nextTrack);
+      } else {
+        get().close();
+      }
+    }
+  },
+
+  playNext: (track) => {
+    const { queue, currentTrack } = get();
+    const filteredQueue = queue.filter(t => t.id !== track.id);
+    
+    if (!currentTrack) {
+      get().play(track);
+      return;
+    }
+
+    const currentIndex = filteredQueue.findIndex(t => t.id === currentTrack.id);
+    const newQueue = [...filteredQueue];
+    newQueue.splice(currentIndex + 1, 0, track);
+    
+    set({ queue: newQueue });
+    toast.success(`"${track.title}" será a próxima a tocar`);
+  },
+
+  clearQueue: () => {
+    const { currentTrack } = get();
+    set({ queue: currentTrack ? [currentTrack] : [] });
   },
 
   setVolume: (vol) => {
