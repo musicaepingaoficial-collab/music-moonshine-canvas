@@ -301,6 +301,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
 
       const result = await createPixPayment({
         plan: planSlug,
+        device_id: deviceId,
         payer: {
           email,
           first_name: nameParts.firstName,
