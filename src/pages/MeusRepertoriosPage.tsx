@@ -1,14 +1,10 @@
 import { Link } from "react-router-dom";
 import { Banner } from "@/components/ui/Banner";
-import { useRepertorios, useCreateRepertorio, useDeleteRepertorio, useUpdateRepertorio } from "@/hooks/useRepertorios";
+import { useRepertorios } from "@/hooks/useRepertorios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { FolderOpen, Plus, ChevronRight, Pencil, ImagePlus } from "lucide-react";
-import { useRef, useState } from "react";
-import { toast } from "sonner";
+import { FolderOpen } from "lucide-react";
 import type { RepertorioWithCount } from "@/hooks/useRepertorios";
 import { useHasActiveSubscription } from "@/hooks/useUser";
 
@@ -21,91 +17,6 @@ function formatFileSize(bytes: number): string {
 
 const MeusRepertoriosPage = () => {
   const { data: repertorios, isLoading } = useRepertorios();
-  const createRep = useCreateRepertorio();
-  const deleteRep = useDeleteRepertorio();
-  const updateRep = useUpdateRepertorio();
-  const { isAdmin } = useHasActiveSubscription();
-  // Create dialog state
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const createFileRef = useRef<HTMLInputElement>(null);
-
-  // Edit dialog state
-  const [editOpen, setEditOpen] = useState(false);
-  const [editRep, setEditRep] = useState<RepertorioWithCount | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
-  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
-  const editFileRef = useRef<HTMLInputElement>(null);
-
-  const resetCreate = () => {
-    setNewName("");
-    setCoverFile(null);
-    setCoverPreview(null);
-  };
-
-  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>, mode: "create" | "edit") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecione uma imagem válida.");
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    if (mode === "create") {
-      setCoverFile(file);
-      setCoverPreview(url);
-    } else {
-      setEditCoverFile(file);
-      setEditCoverPreview(url);
-    }
-  };
-
-  const handleCreate = () => {
-    if (!newName.trim()) return;
-    createRep.mutate(
-      { name: newName.trim(), coverFile: coverFile ?? undefined },
-      {
-        onSuccess: () => {
-          toast.success(`Repertório "${newName.trim()}" criado!`);
-          resetCreate();
-          setCreateOpen(false);
-        },
-        onError: () => toast.error("Erro ao criar repertório."),
-      }
-    );
-  };
-
-  const openEdit = (rep: RepertorioWithCount) => {
-    setEditRep(rep);
-    setEditName(rep.name);
-    setEditCoverPreview(rep.cover_url);
-    setEditCoverFile(null);
-    setEditOpen(true);
-  };
-
-  const handleEdit = () => {
-    if (!editRep || !editName.trim()) return;
-    updateRep.mutate(
-      { repertorioId: editRep.id, name: editName.trim(), coverFile: editCoverFile ?? undefined },
-      {
-        onSuccess: () => {
-          toast.success("Repertório atualizado!");
-          setEditOpen(false);
-        },
-        onError: () => toast.error("Erro ao atualizar repertório."),
-      }
-    );
-  };
-
-  const handleDelete = (id: string, name: string) => {
-    deleteRep.mutate(id, {
-      onSuccess: () => toast.success(`"${name}" removido.`),
-      onError: () => toast.error("Erro ao remover repertório."),
-    });
-  };
 
   return (
     <div className="space-y-8">
