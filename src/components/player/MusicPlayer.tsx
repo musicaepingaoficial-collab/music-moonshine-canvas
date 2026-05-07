@@ -142,8 +142,7 @@ export function MusicPlayer() {
             </div>
           </div>
 
-          {/* Volume + Close */}
-          <div className="hidden flex-1 items-center justify-end gap-2 md:flex">
+          <div className="flex flex-1 items-center justify-end gap-2">
             <Popover open={isQueueOpen} onOpenChange={setIsQueueOpen}>
               <PopoverTrigger asChild>
                 <button
@@ -154,7 +153,7 @@ export function MusicPlayer() {
                 </button>
               </PopoverTrigger>
               <PopoverContent 
-                className="w-80 p-0 mr-4 bg-background/95 backdrop-blur-lg border-border" 
+                className="w-80 md:w-96 p-0 mr-4 bg-background/95 backdrop-blur-lg border-border" 
                 align="end" 
                 side="top" 
                 sideOffset={10}
@@ -165,7 +164,7 @@ export function MusicPlayer() {
                   <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
                   <p className="text-[10px] text-muted-foreground">{queue.length} músicas na fila</p>
                 </div>
-                <ScrollArea className="h-64">
+                <ScrollArea className="h-64 md:h-80">
                   <div className="p-2 space-y-1">
                     {queue.map((track, i) => (
                       <div
@@ -203,21 +202,24 @@ export function MusicPlayer() {
               </PopoverContent>
             </Popover>
 
-            <button
-              onClick={toggleMute}
-              className="text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring rounded-full p-1"
-              aria-label={muted ? "Ativar som" : "Silenciar"}
-            >
-              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </button>
-            <Slider
-              value={muted ? [0] : [volume]}
-              onValueChange={([v]) => setVolume(v)}
-              max={100}
-              step={1}
-              className="w-24 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:border-0 [&_[role=slider]]:bg-foreground"
-              aria-label="Volume"
-            />
+            <div className="hidden md:flex items-center gap-2">
+              <button
+                onClick={toggleMute}
+                className="text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring rounded-full p-1"
+                aria-label={muted ? "Ativar som" : "Silenciar"}
+              >
+                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <Slider
+                value={muted ? [0] : [volume]}
+                onValueChange={([v]) => setVolume(v)}
+                max={100}
+                step={1}
+                className="w-24 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:border-0 [&_[role=slider]]:bg-foreground"
+                aria-label="Volume"
+              />
+            </div>
+
             <button
               onClick={close}
               className="ml-2 text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring rounded-full p-1"
@@ -225,60 +227,6 @@ export function MusicPlayer() {
             >
               <X className="h-4 w-4" />
             </button>
-          </div>
-
-          <div className="flex md:hidden absolute -top-10 right-4">
-             <Popover open={isQueueOpen} onOpenChange={setIsQueueOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-background/95 backdrop-blur-lg border border-border/50 text-foreground shadow-lg"
-                  aria-label="Lista"
-                >
-                  <ListMusic className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="w-[90vw] max-w-sm p-0 mb-4 bg-background/95 backdrop-blur-lg border-border" 
-                align="end" 
-                side="top" 
-                sideOffset={10}
-                onOpenAutoFocus={(e) => e.preventDefault()}
-                onCloseAutoFocus={(e) => e.preventDefault()}
-              >
-                <div className="p-3 border-b border-border/50">
-                  <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
-                  <p className="text-[10px] text-muted-foreground">{queue.length} músicas na fila</p>
-                </div>
-                <ScrollArea className="h-64">
-                  <div className="p-2 space-y-1">
-                    {queue.map((track, i) => (
-                      <div
-                        key={`${track.id}-${i}`}
-                        onClick={() => {
-                          play(track);
-                          setIsQueueOpen(false);
-                        }}
-                        className={`w-full flex items-center gap-3 p-2 rounded-md transition-colors text-left cursor-pointer ${currentTrack.id === track.id ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
-                      >
-                        <div className="h-8 w-8 shrink-0 rounded overflow-hidden bg-muted">
-                          {track.cover_url ? (
-                            <img src={track.cover_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center">
-                              <Play className="h-3 w-3 opacity-50" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium truncate">{track.title}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{track.artist}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
           </div>
         </motion.div>
       )}
