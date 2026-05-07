@@ -20,6 +20,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const BibliotecaPage = lazy(() => import("./pages/BibliotecaPage"));
 const CategoriaPage = lazy(() => import("./pages/CategoriaPage"));
@@ -96,6 +97,7 @@ const App = () => (
               <Route path="/termos" element={<TermsPage />} />
 
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/completar-perfil" element={<CompleteProfilePage />} />
               <Route path="/planos" element={<PlanosGatePage />} />
               <Route path="/instalar" element={<InstalarPage />} />
