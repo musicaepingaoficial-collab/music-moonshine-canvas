@@ -4,6 +4,7 @@ import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, C
 import { createPixPayment, getSubscriptionStatus, processTransparentPayment } from "@/services/paymentService";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
+import { trackEvent, sendCapi } from "@/lib/pixels";
 
 interface CheckoutFormProps {
   planSlug: string;
@@ -87,6 +88,28 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
       setPixFullName(metadataName.trim());
     }
   }, [metadataName, pixEmail, pixFullName, user?.email]);
+
+  // Initiate checkout once on mount
+  useEffect(() => {
+    trackEvent("initiate_checkout", {
+      value: planPrice,
+      currency: "BRL",
+      content_ids: [planSlug],
+      content_name: planName,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Add payment info when user picks a method
+  const handleSelectMethodTracked = (method: PaymentMethod) => {
+    trackEvent("add_payment_info", {
+      value: planPrice,
+      currency: "BRL",
+      content_ids: [planSlug],
+      content_name: planName,
+      payment_method: method,
+    });
+  };
 
   useEffect(() => {
     if (paymentMethod !== "card") {
@@ -175,6 +198,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
     setStatus("idle");
     setErrorMsg("");
     setPixData(null);
+    handleSelectMethodTracked(method);
   };
 
   const handleCreatePix = async () => {
