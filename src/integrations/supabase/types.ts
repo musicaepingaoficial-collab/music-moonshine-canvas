@@ -823,6 +823,51 @@ export type Database = {
         }
         Relationships: []
       }
+      welcome_popup: {
+        Row: {
+          active: boolean
+          description: string
+          id: string
+          image_url: string | null
+          links: Json
+          new_user_days: number
+          show_to_new: boolean
+          show_to_subscribers: boolean
+          title: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          description?: string
+          id?: string
+          image_url?: string | null
+          links?: Json
+          new_user_days?: number
+          show_to_new?: boolean
+          show_to_subscribers?: boolean
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          description?: string
+          id?: string
+          image_url?: string | null
+          links?: Json
+          new_user_days?: number
+          show_to_new?: boolean
+          show_to_subscribers?: boolean
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
