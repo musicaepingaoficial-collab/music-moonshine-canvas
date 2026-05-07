@@ -1,6 +1,8 @@
 import { usePlayerStore } from "@/stores/playerStore";
-import { ListPlus } from "lucide-react";
+import { ListPlus, PlaySquare } from "lucide-react";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useState } from "react";
 import type { Musica } from "@/types/database";
 
 interface AddToQueueButtonProps {
@@ -10,36 +12,61 @@ interface AddToQueueButtonProps {
 
 export function AddToQueueButton({ musica, title }: AddToQueueButtonProps) {
   const addToQueue = usePlayerStore((s) => s.addToQueue);
+  const playNext = usePlayerStore((s) => s.playNext);
+  const [open, setOpen] = useState(false);
+
+  const track = {
+    ...musica,
+    id: musica.id,
+    title: musica.title || title,
+    artist: musica.artist || "",
+    cover_url: musica.cover_url || null,
+    file_url: musica.file_url || null,
+    duration: musica.duration || 0,
+    file_size: musica.file_size || null,
+    categoria_id: musica.categoria_id || null,
+    drive_id: musica.drive_id || null,
+    subfolder: musica.subfolder || null,
+    created_at: musica.created_at || ""
+  };
 
   const handleAddToQueue = () => {
-    // Ensure all required properties are present for the player store
-    const track = {
-      ...musica,
-      id: musica.id,
-      title: musica.title || title,
-      artist: musica.artist || "",
-      cover_url: musica.cover_url || null,
-      file_url: musica.file_url || null,
-      duration: musica.duration || 0,
-      file_size: musica.file_size || null,
-      categoria_id: musica.categoria_id || null,
-      drive_id: musica.drive_id || null,
-      subfolder: musica.subfolder || null,
-      created_at: musica.created_at || ""
-    };
-    
     addToQueue(track);
-    toast.success(`"${title}" adicionada à lista de reprodução`);
+    toast.success(`"${title}" adicionada à lista`);
+    setOpen(false);
+  };
+
+  const handlePlayNext = () => {
+    playNext(track);
+    setOpen(false);
   };
 
   return (
-    <button
-      onClick={handleAddToQueue}
-      className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
-      aria-label={`Adicionar "${title}" à lista de reprodução`}
-      title="Adicionar à lista de reprodução"
-    >
-      <ListPlus className="h-4 w-4" />
-    </button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
+          aria-label={`Opções de lista para "${title}"`}
+        >
+          <ListPlus className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-1 bg-background/95 backdrop-blur-lg border-border" align="end">
+        <button
+          onClick={handlePlayNext}
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
+        >
+          <PlaySquare className="h-4 w-4 text-primary" />
+          Tocar a seguir
+        </button>
+        <button
+          onClick={handleAddToQueue}
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
+        >
+          <ListPlus className="h-4 w-4 text-primary" />
+          Adicionar à fila
+        </button>
+      </PopoverContent>
+    </Popover>
   );
 }

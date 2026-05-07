@@ -1,4 +1,4 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Loader2, X, ListMusic } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Loader2, X, ListMusic, Trash2, Eraser } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { usePlayerStore } from "@/stores/playerStore";
 import { AnimatePresence, motion } from "framer-motion";
@@ -33,6 +33,8 @@ export function MusicPlayer() {
   const setVolume = usePlayerStore((s) => s.setVolume);
   const toggleMute = usePlayerStore((s) => s.toggleMute);
   const setProgress = usePlayerStore((s) => s.setProgress);
+  const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
+  const clearQueue = usePlayerStore((s) => s.clearQueue);
 
   const [isQueueOpen, setIsQueueOpen] = useState(false);
 
@@ -160,9 +162,21 @@ export function MusicPlayer() {
                 onOpenAutoFocus={(e) => e.preventDefault()}
                 onCloseAutoFocus={(e) => e.preventDefault()}
               >
-                <div className="p-3 border-b border-border/50">
-                  <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
-                  <p className="text-[10px] text-muted-foreground">{queue.length} músicas na fila</p>
+                <div className="p-3 border-b border-border/50 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
+                    <p className="text-[10px] text-muted-foreground">{queue.length} músicas na fila</p>
+                  </div>
+                  {queue.length > 1 && (
+                    <button 
+                      onClick={clearQueue}
+                      className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+                      title="Limpar lista"
+                    >
+                      <Eraser className="h-3 w-3" />
+                      Limpar
+                    </button>
+                  )}
                 </div>
                 <ScrollArea className="h-64 md:h-80">
                   <div className="p-2 space-y-1">
@@ -188,6 +202,16 @@ export function MusicPlayer() {
                           <p className="text-xs font-medium truncate">{track.title}</p>
                           <p className="text-[10px] text-muted-foreground truncate">{track.artist}</p>
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromQueue(track.id);
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                          title="Remover da lista"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                         {currentTrack.id === track.id && (
                           <div className="flex gap-0.5">
                             <div className="w-0.5 h-2 bg-primary animate-music-bar-1" />
