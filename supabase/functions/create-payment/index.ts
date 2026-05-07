@@ -49,7 +49,7 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Nao autenticado" }), {
+      return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -58,7 +58,7 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Token invalido" }), {
+      return new Response(JSON.stringify({ error: "Token inválido" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -86,14 +86,14 @@ serve(async (req) => {
     }
 
     if (!isPix && !cardToken) {
-      return new Response(JSON.stringify({ error: "Dados de cartao incompletos" }), {
+      return new Response(JSON.stringify({ error: "Dados de cartão incompletos" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!payerEmail) {
-      return new Response(JSON.stringify({ error: "E-mail do pagador nao informado" }), {
+      return new Response(JSON.stringify({ error: "E-mail do pagador não informado" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -107,7 +107,7 @@ serve(async (req) => {
       .single();
 
     if (planError || !selectedPlan) {
-      return new Response(JSON.stringify({ error: "Plano invalido ou inativo" }), {
+      return new Response(JSON.stringify({ error: "Plano inválido ou inativo" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -115,7 +115,7 @@ serve(async (req) => {
 
     const mercadoPagoAccessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
     if (!mercadoPagoAccessToken) {
-      return new Response(JSON.stringify({ error: "Mercado Pago nao configurado" }), {
+      return new Response(JSON.stringify({ error: "Mercado Pago não configurado. Contate o suporte." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -132,14 +132,14 @@ serve(async (req) => {
       const cpf = onlyDigits(String(payer?.identification?.number || ""));
 
       if (!firstName || !lastName) {
-        return new Response(JSON.stringify({ error: "Pix exige nome completo do titular" }), {
+        return new Response(JSON.stringify({ error: "Pix exige nome completo do titular." }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
       if (identificationType !== "CPF" || !isValidCpf(cpf)) {
-        return new Response(JSON.stringify({ error: "Pix exige CPF valido do titular" }), {
+        return new Response(JSON.stringify({ error: "Pix exige CPF válido do titular." }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
