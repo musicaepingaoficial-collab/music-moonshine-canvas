@@ -118,6 +118,7 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
               <AddToQueueButton 
                 musica={{ id, title, artist, cover_url: coverUrl, file_url: fileUrl, drive_id: driveId }} 
                 title={title} 
+                side="top"
               />
             </div>
           </div>

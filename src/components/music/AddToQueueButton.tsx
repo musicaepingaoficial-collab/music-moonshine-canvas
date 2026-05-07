@@ -8,9 +8,10 @@ import type { Musica } from "@/types/database";
 interface AddToQueueButtonProps {
   musica: Musica | any;
   title: string;
+  side?: "top" | "bottom" | "left" | "right";
 }
 
-export function AddToQueueButton({ musica, title }: AddToQueueButtonProps) {
+export function AddToQueueButton({ musica, title, side = "end" }: AddToQueueButtonProps) {
   const addToQueue = usePlayerStore((s) => s.addToQueue);
   const playNext = usePlayerStore((s) => s.playNext);
   const [open, setOpen] = useState(false);
@@ -51,7 +52,7 @@ export function AddToQueueButton({ musica, title }: AddToQueueButtonProps) {
           <ListPlus className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-48 p-1 bg-background/95 backdrop-blur-lg border-border" align="end">
+      <PopoverContent className="w-48 p-1 bg-background/95 backdrop-blur-lg border-border" align="end" side={side} sideOffset={10}>
         <button
           onClick={handlePlayNext}
           className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors"
