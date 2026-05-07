@@ -78,6 +78,7 @@ const PlanosGatePage = () => {
           fullName: (profile as any)?.name || (user?.user_metadata as any)?.full_name || "",
           cpf: (profile as any)?.cpf || "",
           email: user?.email || "",
+          whatsapp: (profile as any)?.whatsapp || (user?.user_metadata as any)?.whatsapp || "",
         }}
       />
     </div>

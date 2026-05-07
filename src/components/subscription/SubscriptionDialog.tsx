@@ -20,7 +20,7 @@ interface SubscriptionDialogProps {
   open: boolean;
   onTrialStarted: () => void;
   initialPlanSlug?: string | null;
-  prefill?: { fullName?: string; cpf?: string; email?: string };
+  prefill?: { fullName?: string; cpf?: string; email?: string; whatsapp?: string };
 }
 
 export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, prefill }: SubscriptionDialogProps) {
