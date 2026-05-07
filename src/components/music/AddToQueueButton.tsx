@@ -11,7 +11,7 @@ interface AddToQueueButtonProps {
   side?: "top" | "bottom" | "left" | "right";
 }
 
-export function AddToQueueButton({ musica, title, side = "end" }: AddToQueueButtonProps) {
+export function AddToQueueButton({ musica, title, side = "bottom" }: AddToQueueButtonProps) {
   const addToQueue = usePlayerStore((s) => s.addToQueue);
   const playNext = usePlayerStore((s) => s.playNext);
   const [open, setOpen] = useState(false);
