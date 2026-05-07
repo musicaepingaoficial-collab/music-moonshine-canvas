@@ -98,6 +98,11 @@ export default function LandingPage() {
   const { user, loading } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [checkoutPlan, setCheckoutPlan] = useState<{ slug: string; name: string; price: number } | null>(null);
+  const { data: siteSettings } = useSiteSettings();
+  const waNumber = (siteSettings?.whatsapp_number || "").replace(/\D/g, "");
+  const waLink = waNumber
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent("Olá, quero saber mais sobre o painel")}`
+    : null;
 
   const { data: planos } = useQuery({
     queryKey: ["public-planos"],
