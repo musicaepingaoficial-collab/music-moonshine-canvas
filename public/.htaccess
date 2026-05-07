@@ -1,0 +1,11 @@
+# Configurações para Single Page Application (React/Vite)
+# Isso redireciona todas as rotas para o index.html, permitindo que o React Router cuide da navegação.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>

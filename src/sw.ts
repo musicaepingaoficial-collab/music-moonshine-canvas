@@ -11,11 +11,29 @@ declare const self: ServiceWorkerGlobalScope & {
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
 
-// HTML navigations: NetworkFirst, evita travar em build velho
+// HTML navigations: NetworkFirst com fallback para o cache do index.html
 registerRoute(
-  new NavigationRoute(new NetworkFirst({ cacheName: "html", networkTimeoutSeconds: 3 }), {
-    denylist: [/^\/~oauth/],
-  })
+  new NavigationRoute(
+    async (params) => {
+      try {
+        const networkResponse = await new NetworkFirst({
+          cacheName: "html",
+          networkTimeoutSeconds: 5,
+        }).handle(params);
+        
+        if (networkResponse) return networkResponse;
+      } catch (error) {
+        console.error("Network request failed, falling back to cache", error);
+      }
+      
+      // Se falhar a rede, tenta retornar o index.html precacheado
+      const cachedResponse = await caches.match("/index.html");
+      return cachedResponse || Response.error();
+    },
+    {
+      denylist: [/^\/~oauth/],
+    }
+  )
 );
 
 self.addEventListener("install", () => {
