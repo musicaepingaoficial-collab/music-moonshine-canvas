@@ -4,6 +4,7 @@ import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, C
 import { createPixPayment, getSubscriptionStatus, processTransparentPayment } from "@/services/paymentService";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
+import { trackEvent, sendCapi } from "@/lib/pixels";
 
 interface CheckoutFormProps {
   planSlug: string;
@@ -88,6 +89,28 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
     }
   }, [metadataName, pixEmail, pixFullName, user?.email]);
 
+  // Initiate checkout once on mount
+  useEffect(() => {
+    trackEvent("initiate_checkout", {
+      value: planPrice,
+      currency: "BRL",
+      content_ids: [planSlug],
+      content_name: planName,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Add payment info when user picks a method
+  const handleSelectMethodTracked = (method: PaymentMethod) => {
+    trackEvent("add_payment_info", {
+      value: planPrice,
+      currency: "BRL",
+      content_ids: [planSlug],
+      content_name: planName,
+      payment_method: method,
+    });
+  };
+
   useEffect(() => {
     if (paymentMethod !== "card") {
       try { cardFormRef.current?.unmount(); } catch {}
@@ -145,6 +168,28 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
 
             if (result.status === "approved") {
               setStatus("approved");
+              const txId = String(result.id);
+              trackEvent("purchase", {
+                value: planPrice,
+                currency: "BRL",
+                transaction_id: txId,
+                content_ids: [planSlug],
+                content_name: planName,
+              });
+              sendCapi({
+                event_name: "Purchase",
+                event_id: txId,
+                user_data: {
+                  email: formData?.payer?.email || user?.email,
+                  external_id: user?.id,
+                },
+                custom_data: {
+                  value: planPrice,
+                  currency: "BRL",
+                  content_ids: [planSlug],
+                  content_name: planName,
+                },
+              });
               toast.success("Pagamento aprovado! Acesso liberado.");
               setTimeout(() => onSuccess(), 2000);
             } else if (result.status === "in_process" || result.status === "pending") {
@@ -175,6 +220,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
     setStatus("idle");
     setErrorMsg("");
     setPixData(null);
+    handleSelectMethodTracked(method);
   };
 
   const handleCreatePix = async () => {
@@ -218,6 +264,25 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
 
       if (result.status === "approved") {
         setStatus("approved");
+        const txId = String(result.id);
+        trackEvent("purchase", {
+          value: planPrice,
+          currency: "BRL",
+          transaction_id: txId,
+          content_ids: [planSlug],
+          content_name: planName,
+        });
+        sendCapi({
+          event_name: "Purchase",
+          event_id: txId,
+          user_data: { email, phone: undefined, external_id: user?.id },
+          custom_data: {
+            value: planPrice,
+            currency: "BRL",
+            content_ids: [planSlug],
+            content_name: planName,
+          },
+        });
         toast.success("Pagamento aprovado! Acesso liberado.");
         setTimeout(() => onSuccess(), 2000);
         return;
@@ -252,6 +317,25 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess 
     try {
       const sub = await getSubscriptionStatus();
       if (sub) {
+        const txId = pixData?.paymentId ? String(pixData.paymentId) : undefined;
+        trackEvent("purchase", {
+          value: planPrice,
+          currency: "BRL",
+          transaction_id: txId,
+          content_ids: [planSlug],
+          content_name: planName,
+        });
+        sendCapi({
+          event_name: "Purchase",
+          event_id: txId,
+          user_data: { email: pixEmail || user?.email, external_id: user?.id },
+          custom_data: {
+            value: planPrice,
+            currency: "BRL",
+            content_ids: [planSlug],
+            content_name: planName,
+          },
+        });
         toast.success("Pagamento confirmado! Acesso liberado.");
         onSuccess();
       } else {

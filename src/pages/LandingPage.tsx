@@ -36,6 +36,7 @@ import logo from "@/assets/logo.jpeg";
 import heroMockup from "@/assets/hero-mockup.jpg";
 import { PublicCheckoutDialog } from "@/components/subscription/PublicCheckoutDialog";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { trackEvent } from "@/lib/pixels";
 
 const GENRES = [
   "Sertanejo", "Funk", "Forró", "Piseiro", "Arrocha", "Flash Back",
@@ -120,6 +121,10 @@ export default function LandingPage() {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    trackEvent("view_content", { content_category: "landing", content_name: "LandingPage" });
   }, []);
 
   if (loading) {
@@ -532,7 +537,15 @@ export default function LandingPage() {
                     </ul>
 
                     <Button
-                      onClick={() => setCheckoutPlan({ slug: p.slug, name: p.name, price: Number(p.price) })}
+                      onClick={() => {
+                        trackEvent("add_to_cart", {
+                          value: Number(p.price),
+                          currency: "BRL",
+                          content_ids: [p.slug],
+                          content_name: p.name,
+                        });
+                        setCheckoutPlan({ slug: p.slug, name: p.name, price: Number(p.price) });
+                      }}
                       className={`mt-auto w-full font-bold h-12 ${
                         isHighlight
                           ? "bg-gradient-cta text-primary-foreground shadow-glow hover:opacity-95"
