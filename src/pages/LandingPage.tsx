@@ -306,7 +306,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
-            {(planos ?? []).map((p) => {
+            {(planos ?? []).filter((p: any) => p.slug !== "discografias").map((p) => {
               const isLifetime = p.slug === "vitalicio";
               const periodLabel =
                 p.slug === "mensal" ? "/ mês" :
