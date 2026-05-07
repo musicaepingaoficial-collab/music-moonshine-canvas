@@ -126,6 +126,8 @@ export default function LandingPage() {
   useEffect(() => {
     trackEvent("view_content", { content_category: "landing", content_name: "LandingPage" });
   }, []);
+
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
