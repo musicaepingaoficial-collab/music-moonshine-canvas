@@ -16,6 +16,7 @@ interface CheckoutFormProps {
     fullName?: string;
     cpf?: string;
     email?: string;
+    whatsapp?: string;
   };
 }
 
@@ -70,6 +71,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
   const [pixEmail, setPixEmail] = useState(prefill?.email ?? "");
   const [pixFullName, setPixFullName] = useState(prefill?.fullName ?? "");
   const [pixCpf, setPixCpf] = useState(prefill?.cpf ? formatCpf(prefill.cpf) : "");
+  const [pixWhatsapp, setPixWhatsapp] = useState(prefill?.whatsapp ? prefill.whatsapp : "");
   const [pixData, setPixData] = useState<{
     qrCode?: string;
     qrCodeBase64?: string;
@@ -89,15 +91,16 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     if (!pixEmail && (prefill?.email || user?.email)) {
       setPixEmail(prefill?.email || user?.email || "");
     }
-
     if (!pixFullName && metadataName.trim()) {
       setPixFullName(metadataName.trim());
     }
-
     if (!pixCpf && prefill?.cpf) {
       setPixCpf(formatCpf(prefill.cpf));
     }
-  }, [metadataName, pixEmail, pixFullName, pixCpf, user?.email, prefill?.email, prefill?.cpf]);
+    if (!pixWhatsapp && (prefill?.whatsapp || user?.user_metadata?.whatsapp)) {
+      setPixWhatsapp(prefill?.whatsapp || user?.user_metadata?.whatsapp || "");
+    }
+  }, [metadataName, pixEmail, pixFullName, pixCpf, pixWhatsapp, user?.email, user?.user_metadata, prefill?.email, prefill?.cpf, prefill?.whatsapp]);
 
   // Initiate checkout once on mount
   useEffect(() => {
@@ -120,6 +123,27 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
       payment_method: method,
     });
   };
+
+  useEffect(() => {
+    let interval: number;
+    // Automatic polling for Pix payment
+    if (status === "pending" && paymentMethod === "pix" && pixData?.paymentId) {
+      interval = window.setInterval(async () => {
+        try {
+          const sub = await getSubscriptionStatus();
+          if (sub) {
+            toast.success("Pagamento confirmado automaticamente! Acesso liberado.");
+            onSuccess();
+          }
+        } catch (err) {
+          console.error("Error polling payment status:", err);
+        }
+      }, 7000); // Check every 7 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [status, paymentMethod, pixData?.paymentId, onSuccess]);
 
   useEffect(() => {
     if (paymentMethod !== "card") {
@@ -204,7 +228,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               payer: {
                 email: formData.payer.email,
                 identification: formData.payer.identification,
-                phone: (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
+                phone: pixWhatsapp || (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
               },
             });
 
@@ -306,7 +330,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           email,
           first_name: nameParts.firstName,
           last_name: nameParts.lastName,
-          phone: (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
+          phone: pixWhatsapp || (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
           identification: {
             type: "CPF",
             number: cpf,
@@ -366,6 +390,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
   };
 
   const handleCheckPixPayment = async () => {
+    setStatus("processing");
     try {
       const sub = await getSubscriptionStatus();
       if (sub) {
@@ -391,9 +416,11 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         toast.success("Pagamento confirmado! Acesso liberado.");
         onSuccess();
       } else {
-        toast("Pagamento ainda não confirmado.");
+        setStatus("pending");
+        toast.info("Pagamento ainda não confirmado. Aguarde um instante e tente novamente.");
       }
     } catch (err: any) {
+      setStatus("pending");
       toast.error(err.message || "Erro ao verificar pagamento");
     }
   };
@@ -475,8 +502,8 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             <Button variant="outline" onClick={onBack} className="flex-1">
               Voltar
             </Button>
-            <Button onClick={handleCheckPixPayment} className="flex-1">
-              Já paguei
+            <Button onClick={handleCheckPixPayment} className="flex-1" disabled={status === "processing"}>
+              {status === "processing" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Já paguei"}
             </Button>
           </div>
         </div>
@@ -559,7 +586,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Número do cartão</label>
+          <label className="text-xs font-medium text-muted-foreground">NÚMERO DO CARTÃO</label>
           <div id="mp-card-number" className="h-10 rounded-md border border-border bg-secondary" />
         </div>
 
@@ -575,7 +602,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Nome no cartão</label>
+          <label className="text-xs font-medium text-muted-foreground">NOME NO CARTÃO</label>
           <input id="mp-cardholder-name" type="text"
             className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>

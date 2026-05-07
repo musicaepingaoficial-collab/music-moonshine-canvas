@@ -61,12 +61,14 @@ const PlanosGatePage = () => {
         </Button>
       </div>
 
-      <div className="w-full max-w-md space-y-6 text-center">
-        <h1 className="text-2xl font-bold text-foreground">Escolha seu plano para continuar</h1>
-        <p className="text-sm text-muted-foreground">
-          Para acessar a plataforma, escolha um dos planos abaixo.
-        </p>
-      </div>
+      {!initialPlanSlug && (
+        <div className="w-full max-w-md space-y-6 text-center">
+          <h1 className="text-2xl font-bold text-foreground">Escolha seu plano para continuar</h1>
+          <p className="text-sm text-muted-foreground">
+            Para acessar a plataforma, escolha um dos planos abaixo.
+          </p>
+        </div>
+      )}
 
       <SubscriptionDialog
         open={true}
@@ -76,6 +78,7 @@ const PlanosGatePage = () => {
           fullName: (profile as any)?.name || (user?.user_metadata as any)?.full_name || "",
           cpf: (profile as any)?.cpf || "",
           email: user?.email || "",
+          whatsapp: (profile as any)?.whatsapp || (user?.user_metadata as any)?.whatsapp || "",
         }}
       />
     </div>

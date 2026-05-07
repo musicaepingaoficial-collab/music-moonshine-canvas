@@ -110,7 +110,9 @@ const LoginPage = () => {
         });
         if (error) throw error;
         await registerPendingReferral();
-        navigate("/dashboard");
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get("redirect");
+        navigate(redirect || "/dashboard", { replace: true });
       }
     } catch (error: any) {
       toast({

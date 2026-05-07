@@ -298,6 +298,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
               fullName: name.trim().replace(/\s+/g, " "),
               cpf: cpf,
               email: email.trim(),
+              whatsapp: whatsapp,
             }}
           />
         )}

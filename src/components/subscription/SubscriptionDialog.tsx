@@ -20,7 +20,7 @@ interface SubscriptionDialogProps {
   open: boolean;
   onTrialStarted: () => void;
   initialPlanSlug?: string | null;
-  prefill?: { fullName?: string; cpf?: string; email?: string };
+  prefill?: { fullName?: string; cpf?: string; email?: string; whatsapp?: string };
 }
 
 export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, prefill }: SubscriptionDialogProps) {
@@ -70,7 +70,12 @@ export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, pref
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        {selectedPlan ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground animate-pulse">Carregando planos...</p>
+          </div>
+        ) : selectedPlan ? (
           <CheckoutForm
             planSlug={selectedPlan.slug}
             planName={selectedPlan.name}
@@ -94,61 +99,55 @@ export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, pref
               </DialogDescription>
             </DialogHeader>
 
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="space-y-5">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {planos?.map((plano) => {
-                    const highlighted = isHighlighted(plano.slug);
-                    return (
-                      <div
-                        key={plano.id}
-                        className={`relative flex flex-col rounded-xl border p-4 transition-all ${
-                          highlighted
-                            ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
-                            : "border-border bg-card"
-                        }`}
-                      >
-                        {highlighted && (
-                          <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 gap-1 bg-primary text-primary-foreground text-[10px]">
-                            <Crown className="h-3 w-3" />
-                            Melhor oferta
-                          </Badge>
-                        )}
-                        <h3 className="font-bold text-foreground">{plano.name}</h3>
-                        <p className="text-xs text-muted-foreground">{getDurationLabel(plano.duration_days)}</p>
-                        <div className="mt-2">
-                          <span className="text-2xl font-extrabold text-foreground">
-                            R$ {plano.price.toFixed(2).replace(".", ",")}
-                          </span>
-                        </div>
-                        <ul className="mt-3 space-y-1.5 flex-1">
-                          <li className="flex items-center gap-1.5 text-xs text-foreground">
-                            <Check className="h-3.5 w-3.5 text-primary" />
-                            Downloads ilimitados
-                          </li>
-                          <li className="flex items-center gap-1.5 text-xs text-foreground">
-                            <Check className="h-3.5 w-3.5 text-primary" />
-                            Baixar pastas e repertórios
-                          </li>
-                        </ul>
-                        <Button
-                          className="mt-4 w-full"
-                          size="sm"
-                          variant={highlighted ? "default" : "outline"}
-                          onClick={() => setSelectedPlan(plano)}
-                        >
-                          Assinar
-                        </Button>
+            <div className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {planos?.map((plano) => {
+                  const highlighted = isHighlighted(plano.slug);
+                  return (
+                    <div
+                      key={plano.id}
+                      className={`relative flex flex-col rounded-xl border p-4 transition-all ${
+                        highlighted
+                          ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      {highlighted && (
+                        <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 gap-1 bg-primary text-primary-foreground text-[10px]">
+                          <Crown className="h-3 w-3" />
+                          Melhor oferta
+                        </Badge>
+                      )}
+                      <h3 className="font-bold text-foreground">{plano.name}</h3>
+                      <p className="text-xs text-muted-foreground">{getDurationLabel(plano.duration_days)}</p>
+                      <div className="mt-2">
+                        <span className="text-2xl font-extrabold text-foreground">
+                          R$ {plano.price.toFixed(2).replace(".", ",")}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <ul className="mt-3 space-y-1.5 flex-1">
+                        <li className="flex items-center gap-1.5 text-xs text-foreground">
+                          <Check className="h-3.5 w-3.5 text-primary" />
+                          Downloads ilimitados
+                        </li>
+                        <li className="flex items-center gap-1.5 text-xs text-foreground">
+                          <Check className="h-3.5 w-3.5 text-primary" />
+                          Baixar pastas e repertórios
+                        </li>
+                      </ul>
+                      <Button
+                        className="mt-4 w-full"
+                        size="sm"
+                        variant={highlighted ? "default" : "outline"}
+                        onClick={() => setSelectedPlan(plano)}
+                      >
+                        Assinar
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
           </>
         )}
       </DialogContent>
