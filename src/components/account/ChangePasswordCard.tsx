@@ -151,6 +151,26 @@ export function ChangePasswordCard() {
           )}
         </Button>
       </form>
+
+      <div className="mt-4 pt-4 border-t border-border/40">
+        <p className="text-sm text-muted-foreground mb-2">Esqueceu sua senha atual?</p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleForgotPassword}
+          disabled={sendingReset}
+          className="gap-2"
+        >
+          {sendingReset ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <KeyRound className="h-4 w-4" />
+              Enviar link de recuperação por email
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
