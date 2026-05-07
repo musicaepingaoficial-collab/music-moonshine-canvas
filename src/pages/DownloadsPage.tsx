@@ -1,10 +1,13 @@
 import { Banner } from "@/components/ui/Banner";
 import { MusicCard } from "@/components/music/MusicCard";
-import { Download } from "lucide-react";
+import { Download, ListPlus } from "lucide-react";
 import { useDownloads } from "@/hooks/useFavorites";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Button } from "@/components/ui/button";
+import { usePlayerStore } from "@/stores/playerStore";
+import { toast } from "sonner";
 
 const DownloadsPage = () => {
   const { data: downloads, isLoading, error, refetch } = useDownloads();
@@ -13,7 +16,23 @@ const DownloadsPage = () => {
 
   return (
     <div className="space-y-8">
-      <Banner title="Downloads" subtitle="Músicas baixadas para ouvir offline." />
+      <div className="flex items-center justify-between gap-4">
+        <Banner title="Downloads" subtitle="Músicas baixadas para ouvir offline." />
+        {!isLoading && !error && (downloads?.length ?? 0) > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const addToQueue = usePlayerStore.getState().addToQueue;
+              downloads?.forEach((d: any) => addToQueue(d.musicas));
+              toast.success(`${downloads?.length} músicas adicionadas à lista de reprodução`);
+            }}
+          >
+            <ListPlus className="mr-2 h-4 w-4" />
+            Adicionar tudo à lista
+          </Button>
+        )}
+      </div>
 
       {error && <ErrorState message="Erro ao carregar downloads." onRetry={() => refetch()} />}
 
