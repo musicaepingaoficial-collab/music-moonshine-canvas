@@ -608,7 +608,7 @@ export default function LandingPage() {
             </div>
             <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05]">
               Pronto para parar de perder tempo e{" "}
-              <span className="text-gradient-brand">dominar a sua pista?</span>
+              <span className="text-gradient-brand">tenha Agora O melhor Repertório no Seu Pendrive !</span>
             </h2>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Mais de 100 mil músicas em 320kbps, atualizações mensais e download em 1 clique
