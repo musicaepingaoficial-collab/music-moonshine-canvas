@@ -187,7 +187,6 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             // Get deviceId for maximum security score
             let deviceId = "";
             try {
-              // @ts-ignore
               const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
               deviceId = await mp.getDeviceSolution();
             } catch (deverr) {
