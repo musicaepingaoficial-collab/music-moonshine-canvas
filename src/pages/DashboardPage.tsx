@@ -84,7 +84,7 @@ const AllRepertorios = () => {
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Todos os repertórios</h2>
+          <h2 className="text-lg font-semibold text-foreground">Todos os Repertórios</h2>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {otherReps.map((rep) => (

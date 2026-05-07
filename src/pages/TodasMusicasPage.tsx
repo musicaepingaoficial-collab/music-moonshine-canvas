@@ -7,8 +7,11 @@ import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
-import { Search, Music, X } from "lucide-react";
+import { Search, Music, X, ListPlus } from "lucide-react";
 import { usePagination } from "@/hooks/usePagination";
+import { Button } from "@/components/ui/button";
+import { usePlayerStore } from "@/stores/playerStore";
+import { toast } from "sonner";
 
 const TodasMusicasPage = () => {
   const { data: musicas, isLoading, error, refetch } = useMusicas();
@@ -30,10 +33,26 @@ const TodasMusicasPage = () => {
 
   return (
     <div className="space-y-8">
-      <Banner 
-        title="Todas as Músicas" 
-        subtitle={`${musicas?.length ?? 0} músicas disponíveis na coleção.`} 
-      />
+      <div className="flex items-center justify-between gap-4">
+        <Banner 
+          title="Todas as Músicas" 
+          subtitle={`${musicas?.length ?? 0} músicas disponíveis na coleção.`} 
+        />
+        {!isLoading && !error && filteredMusicas.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const addToQueue = usePlayerStore.getState().addToQueue;
+              filteredMusicas.forEach(m => addToQueue(m));
+              toast.success(`${filteredMusicas.length} músicas adicionadas à lista de reprodução`);
+            }}
+          >
+            <ListPlus className="mr-2 h-4 w-4" />
+            Adicionar tudo à lista
+          </Button>
+        )}
+      </div>
 
       <div className="relative max-w-md mx-auto sm:mx-0">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -1,10 +1,13 @@
 import { Banner } from "@/components/ui/Banner";
 import { MusicCard } from "@/components/music/MusicCard";
-import { Heart } from "lucide-react";
+import { Heart, ListPlus } from "lucide-react";
 import { useFavoritos } from "@/hooks/useFavorites";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Button } from "@/components/ui/button";
+import { usePlayerStore } from "@/stores/playerStore";
+import { toast } from "sonner";
 
 const FavoritosPage = () => {
   const { data: favoritos, isLoading, error, refetch } = useFavoritos();
@@ -13,7 +16,23 @@ const FavoritosPage = () => {
 
   return (
     <div className="space-y-8">
-      <Banner title="Favoritos" subtitle="Suas músicas mais queridas." />
+      <div className="flex items-center justify-between gap-4">
+        <Banner title="Favoritos" subtitle="Suas músicas mais queridas." />
+        {!isLoading && !error && (favoritos?.length ?? 0) > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const addToQueue = usePlayerStore.getState().addToQueue;
+              favoritos?.forEach(f => addToQueue(f.musicas));
+              toast.success(`${favoritos?.length} músicas adicionadas à lista de reprodução`);
+            }}
+          >
+            <ListPlus className="mr-2 h-4 w-4" />
+            Adicionar tudo à lista
+          </Button>
+        )}
+      </div>
 
       {error && <ErrorState message="Erro ao carregar favoritos." onRetry={() => refetch()} />}
 

@@ -232,7 +232,7 @@ const AdminBibliotecaPage = () => {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setCatOpen(true)}>
-            <FolderPlus className="h-4 w-4 mr-1" /> Categorias
+            <FolderPlus className="h-4 w-4 mr-1" /> Categorias de Músicas
           </Button>
           <Button onClick={() => { setForm(emptyForm); setAddOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Adicionar Música

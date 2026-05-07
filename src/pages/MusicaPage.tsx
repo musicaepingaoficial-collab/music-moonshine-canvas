@@ -12,7 +12,7 @@ import { useToggleFavorito, useFavoritos } from "@/hooks/useFavorites";
 import { useHasActiveSubscription } from "@/hooks/useUser";
 import { downloadSingle } from "@/services/zipService";
 import { toast } from "sonner";
-import { AddToRepertorioDialog } from "@/components/music/AddToRepertorioDialog";
+import { AddToQueueButton } from "@/components/music/AddToQueueButton";
 import type { Musica } from "@/types/database";
 
 const MusicaPage = () => {
@@ -147,8 +147,8 @@ const MusicaPage = () => {
               </Button>
 
               <div className="flex items-center gap-2">
-                <AddToRepertorioDialog musicaId={musica.id} title={musica.title} />
-                <span className="text-sm text-muted-foreground">Adicionar ao repertório</span>
+                <AddToQueueButton musica={musica} title={musica.title} />
+                <span className="text-sm text-muted-foreground">Adicionar à lista</span>
               </div>
             </div>
           </div>

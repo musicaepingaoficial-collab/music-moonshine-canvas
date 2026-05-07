@@ -2,6 +2,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MusicCard } from "@/components/music/MusicCard";
+import { usePlayerStore } from "@/stores/playerStore";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +10,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Loader2, Eraser } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Loader2, Eraser, ListPlus } from "lucide-react";
 import { downloadMultiple, hasFileSystemAccess, pickZipDestination, type DownloadArchiveItem } from "@/services/zipService";
 import {
   AlertDialog,
@@ -470,16 +471,30 @@ const RepertorioPage = () => {
             <div className="flex items-center gap-2">
               {/* Botão limpar removido da tela principal do aplicativo conforme solicitado */}
               {(musicas?.length ?? 0) > 0 && (
-                <Button
-                  onClick={handleDownloadAll}
-                  disabled={downloading || isTrial}
-                  size="sm"
-                  title={isTrial ? "DisponÃ­vel apenas para assinantes" : undefined}
-                  aria-label="Baixar repertÃ³rio completo"
-                >
-                  <Download className="mr-1 h-4 w-4" />
-                  {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => {
+                      const addToQueue = usePlayerStore.getState().addToQueue;
+                      musicas?.forEach(m => addToQueue(m));
+                      toast.success(`${musicas?.length} músicas adicionadas à lista de reprodução`);
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <ListPlus className="mr-1 h-4 w-4" />
+                    Adicionar à lista
+                  </Button>
+                  <Button
+                    onClick={handleDownloadAll}
+                    disabled={downloading || isTrial}
+                    size="sm"
+                    title={isTrial ? "Disponível apenas para assinantes" : undefined}
+                    aria-label="Baixar repertório completo"
+                  >
+                    <Download className="mr-1 h-4 w-4" />
+                    {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
+                  </Button>
+                </div>
               )}
             </div>
           </div>

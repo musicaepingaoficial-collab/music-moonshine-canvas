@@ -10,9 +10,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Music, Folder, ArrowLeft, Download, ListPlus } from "lucide-react";
 import { downloadMultiple, hasFileSystemAccess, pickZipDestination } from "@/services/zipService";
-import { AddBulkToRepertorioDialog } from "@/components/music/AddBulkToRepertorioDialog";
+
 import { toast } from "sonner";
 import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
+import { usePlayerStore } from "@/stores/playerStore";
 import { useNavigate } from "react-router-dom";
 import { usePagination } from "@/hooks/usePagination";
 
@@ -127,33 +128,33 @@ const CategoriaPage = () => {
 
         {!isLoading && !error && (
           <div className="flex items-center gap-2">
-            <AddBulkToRepertorioDialog
-              musicaIds={
-                selectedSubfolder
-                  ? filteredTracks.map((t) => t.id)
-                  : (tracks ?? []).map((t) => t.id)
-              }
-              label={selectedSubfolder ?? categoryName}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const selectedTracks = selectedSubfolder ? filteredTracks : tracks ?? [];
+                const addToQueue = usePlayerStore.getState().addToQueue;
+                selectedTracks.forEach(t => addToQueue(t));
+                toast.success(`${selectedTracks.length} músicas adicionadas à lista de reprodução`);
+              }}
             >
-              <Button size="sm" variant="outline">
-                <ListPlus className="mr-1.5 h-4 w-4" />
-                Salvar em repertório
-              </Button>
-            </AddBulkToRepertorioDialog>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={downloading || isTrial}
-                title={isTrial ? "Disponível apenas para assinantes" : undefined}
-                onClick={() => {
-                  const selectedTracks = selectedSubfolder ? filteredTracks : tracks ?? [];
-                  const label = selectedSubfolder ?? categoryName;
-                  handleBatchDownload(selectedTracks, label);
-                }}
-              >
-                <Download className="mr-1.5 h-4 w-4" />
-                {isTrial ? "Assine para baixar pasta" : downloading ? "Preparando..." : selectedSubfolder ? "Baixar pasta" : "Baixar categoria"}
-              </Button>
+              <ListPlus className="mr-1.5 h-4 w-4" />
+              Adicionar à lista
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={downloading || isTrial}
+              title={isTrial ? "Disponível apenas para assinantes" : undefined}
+              onClick={() => {
+                const selectedTracks = selectedSubfolder ? filteredTracks : tracks ?? [];
+                const label = selectedSubfolder ?? categoryName;
+                handleBatchDownload(selectedTracks, label);
+              }}
+            >
+              <Download className="mr-1.5 h-4 w-4" />
+              {isTrial ? "Assine para baixar" : downloading ? "Preparando..." : selectedSubfolder ? "Baixar pasta" : "Baixar categoria"}
+            </Button>
           </div>
         )}
       </div>
