@@ -355,3 +355,60 @@ export function usePixels() {
 
   return { track, settings };
 }
+
+// ───────────────── CAPI helpers ─────────────────
+
+/** Reads `_fbp` and `_fbc` cookies for richer Meta CAPI matching. */
+export function getFbCookies(): { fbp?: string; fbc?: string } {
+  if (typeof document === "undefined") return {};
+  const out: { fbp?: string; fbc?: string } = {};
+  for (const part of document.cookie.split(";")) {
+    const [k, ...v] = part.trim().split("=");
+    if (k === "_fbp") out.fbp = decodeURIComponent(v.join("="));
+    else if (k === "_fbc") out.fbc = decodeURIComponent(v.join("="));
+  }
+  return out;
+}
+
+export interface CapiCallInput {
+  event_name:
+    | "PageView"
+    | "ViewContent"
+    | "AddToCart"
+    | "InitiateCheckout"
+    | "AddPaymentInfo"
+    | "Purchase"
+    | "Lead"
+    | "CompleteRegistration";
+  event_id?: string;
+  user_data?: { email?: string; phone?: string; external_id?: string };
+  custom_data?: Record<string, unknown>;
+}
+
+/** Fire-and-forget call to the meta-capi edge function. */
+export function sendCapi(input: CapiCallInput): void {
+  try {
+    const { fbp, fbc } = getFbCookies();
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-capi`;
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify({
+        ...input,
+        event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
+        user_data: {
+          ...(input.user_data || {}),
+          fbp,
+          fbc,
+          client_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+        },
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    /* ignore */
+  }
+}
