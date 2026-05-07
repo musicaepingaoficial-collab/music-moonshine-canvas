@@ -127,33 +127,20 @@ const CategoriaPage = () => {
 
         {!isLoading && !error && (
           <div className="flex items-center gap-2">
-            <AddBulkToRepertorioDialog
-              musicaIds={
-                selectedSubfolder
-                  ? filteredTracks.map((t) => t.id)
-                  : (tracks ?? []).map((t) => t.id)
-              }
-              label={selectedSubfolder ?? categoryName}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={downloading || isTrial}
+              title={isTrial ? "Disponível apenas para assinantes" : undefined}
+              onClick={() => {
+                const selectedTracks = selectedSubfolder ? filteredTracks : tracks ?? [];
+                const label = selectedSubfolder ?? categoryName;
+                handleBatchDownload(selectedTracks, label);
+              }}
             >
-              <Button size="sm" variant="outline">
-                <ListPlus className="mr-1.5 h-4 w-4" />
-                Salvar em repertório
-              </Button>
-            </AddBulkToRepertorioDialog>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={downloading || isTrial}
-                title={isTrial ? "Disponível apenas para assinantes" : undefined}
-                onClick={() => {
-                  const selectedTracks = selectedSubfolder ? filteredTracks : tracks ?? [];
-                  const label = selectedSubfolder ?? categoryName;
-                  handleBatchDownload(selectedTracks, label);
-                }}
-              >
-                <Download className="mr-1.5 h-4 w-4" />
-                {isTrial ? "Assine para baixar pasta" : downloading ? "Preparando..." : selectedSubfolder ? "Baixar pasta" : "Baixar categoria"}
-              </Button>
+              <Download className="mr-1.5 h-4 w-4" />
+              {isTrial ? "Assine para baixar" : downloading ? "Preparando..." : selectedSubfolder ? "Baixar pasta" : "Baixar categoria"}
+            </Button>
           </div>
         )}
       </div>
