@@ -72,6 +72,7 @@ serve(async (req) => {
       installments,
       plan,
       payer,
+      device_id,
     } = body;
 
     const paymentMethodId = String(payment_method_id || "").trim();
