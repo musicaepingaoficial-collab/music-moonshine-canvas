@@ -153,7 +153,13 @@ export function MusicPlayer() {
                   <ListMusic className="h-5 w-5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0 mr-4 bg-background/95 backdrop-blur-lg border-border" align="end" side="top" sideOffset={10}>
+              <PopoverContent 
+                className="w-80 p-0 mr-4 bg-background/95 backdrop-blur-lg border-border" 
+                align="end" 
+                side="top" 
+                sideOffset={10}
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
                 <div className="p-3 border-b border-border/50">
                   <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
                   <p className="text-[10px] text-muted-foreground">{queue.length} músicas na fila</p>
@@ -161,13 +167,13 @@ export function MusicPlayer() {
                 <ScrollArea className="h-64">
                   <div className="p-2 space-y-1">
                     {queue.map((track, i) => (
-                      <button
+                      <div
                         key={`${track.id}-${i}`}
                         onClick={() => {
                           play(track);
                           setIsQueueOpen(false);
                         }}
-                        className={`w-full flex items-center gap-3 p-2 rounded-md transition-colors text-left ${currentTrack.id === track.id ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
+                        className={`w-full flex items-center gap-3 p-2 rounded-md transition-colors text-left cursor-pointer ${currentTrack.id === track.id ? 'bg-primary/10 text-primary' : 'hover:bg-accent'}`}
                       >
                         <div className="h-8 w-8 shrink-0 rounded overflow-hidden bg-muted">
                           {track.cover_url ? (
@@ -189,7 +195,7 @@ export function MusicPlayer() {
                             <div className="w-0.5 h-2 bg-primary animate-music-bar-3" />
                           </div>
                         )}
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </ScrollArea>
