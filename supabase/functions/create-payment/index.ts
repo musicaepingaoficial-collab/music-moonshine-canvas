@@ -199,6 +199,7 @@ serve(async (req) => {
             area_code: payerPhone.length >= 10 ? payerPhone.slice(0, 2) : undefined,
             number: payerPhone.length >= 10 ? payerPhone.slice(2) : payerPhone
           } : undefined,
+          registration_date: user.created_at ? new Date(user.created_at).toISOString() : undefined,
         }
       }
     };
