@@ -413,8 +413,6 @@ const RepertorioPage = () => {
             coverUrl={t.cover_url}
             fileUrl={t.file_url}
             driveId={t.drive_id}
-            onRemove={isAdmin ? () => handleRemoveSingle(t.id, t.title) : undefined}
-            removeDisabled={removeSingle.isPending}
           />
         </motion.div>
       ))}
