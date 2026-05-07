@@ -183,6 +183,16 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
 
           try {
             const formData = cardFormRef.current.getCardFormData();
+            
+            // Get deviceId for maximum security score
+            let deviceId = "";
+            try {
+              const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
+              deviceId = await mp.getDeviceSolution();
+            } catch (deverr) {
+              console.warn("Could not get device solution:", deverr);
+            }
+
             const result = await processTransparentPayment({
               token: formData.token,
               issuer_id: formData.issuer_id,
@@ -190,9 +200,11 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               transaction_amount: planPrice,
               installments: formData.installments,
               plan: planSlug,
+              device_id: deviceId,
               payer: {
                 email: formData.payer.email,
                 identification: formData.payer.identification,
+                phone: (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
               },
             });
 
@@ -279,12 +291,22 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     setErrorMsg("");
 
     try {
+      // Get deviceId for Pix as well
+      let deviceId = "";
+      try {
+        // @ts-ignore
+        const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
+        deviceId = await mp.getDeviceSolution();
+      } catch {}
+
       const result = await createPixPayment({
         plan: planSlug,
+        device_id: deviceId,
         payer: {
           email,
           first_name: nameParts.firstName,
           last_name: nameParts.lastName,
+          phone: (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
           identification: {
             type: "CPF",
             number: cpf,

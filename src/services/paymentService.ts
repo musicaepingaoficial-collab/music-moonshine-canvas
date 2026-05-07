@@ -9,10 +9,12 @@ export interface TransparentPaymentData {
   transaction_amount: number;
   installments: number;
   plan: string;
+  device_id?: string;
   payer: {
     email: string;
     first_name?: string;
     last_name?: string;
+    phone?: string;
     identification: { type: string; number: string };
   };
 }
@@ -57,11 +59,12 @@ export interface PixPaymentData {
     email: string;
     first_name: string;
     last_name: string;
+    phone?: string;
     identification: { type: "CPF"; number: string };
   };
 }
 
-export async function createPixPayment(data: PixPaymentData): Promise<PaymentResponse> {
+export async function createPixPayment(data: PixPaymentData & { device_id?: string }): Promise<PaymentResponse> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Não autenticado");
 
@@ -78,6 +81,7 @@ export async function createPixPayment(data: PixPaymentData): Promise<PaymentRes
         plan: data.plan,
         payment_method_id: "pix",
         payer: data.payer,
+        device_id: data.device_id,
       }),
     }
   );

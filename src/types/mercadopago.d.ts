@@ -1,5 +1,6 @@
 declare class MercadoPago {
   constructor(publicKey: string, options?: { locale?: string });
+  getDeviceSolution(): Promise<string>;
   cardForm(options: {
     amount: string;
     iframe?: boolean;
