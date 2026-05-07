@@ -175,7 +175,15 @@ const OfertasPage = () => {
                   className="mt-6 w-full"
                   variant={isCurrent ? "outline" : highlighted ? "default" : "outline"}
                   disabled={isCurrent}
-                  onClick={() => setSelectedPlan(plano)}
+                  onClick={() => {
+                    trackEvent("add_to_cart", {
+                      value: plano.price,
+                      currency: "BRL",
+                      content_ids: [plano.slug],
+                      content_name: plano.name,
+                    });
+                    setSelectedPlan(plano);
+                  }}
                 >
                   {isCurrent ? "Plano atual" : "Assinar agora"}
                 </Button>
