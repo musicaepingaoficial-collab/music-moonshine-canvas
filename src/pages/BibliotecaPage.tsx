@@ -79,7 +79,7 @@ const BibliotecaPage = () => {
 
       {/* Repertórios — Netflix style */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Outros Repertórios</h2>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">Todos os Repertórios</h2>
         {loadingReps ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {Array.from({ length: 6 }).map((_, i) => (
