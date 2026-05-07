@@ -16,9 +16,10 @@ interface MusicCardProps {
   coverUrl?: string | null;
   fileUrl?: string | null;
   driveId?: string | null;
+  queueContext?: any[];
 }
 
-export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId }: MusicCardProps) {
+export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queueContext }: MusicCardProps) {
   const toggleFav = useToggleFavorito();
   const [downloading, setDownloading] = useState(false);
   const { hasAccess, isLoading: accessLoading, isAdmin } = useHasActiveSubscription();
@@ -29,7 +30,8 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId }: Mus
   const isActive = currentTrack?.id === id && isPlaying;
 
   const handlePlay = () => {
-    play({ id, title, artist, cover_url: coverUrl ?? null, file_url: fileUrl ?? null, duration: 0, file_size: null, categoria_id: null, drive_id: driveId ?? null, subfolder: null, created_at: "" });
+    const track = { id, title, artist, cover_url: coverUrl ?? null, file_url: fileUrl ?? null, duration: 0, file_size: null, categoria_id: null, drive_id: driveId ?? null, subfolder: null, created_at: "" };
+    play(track, queueContext);
   };
 
   const handleFavorite = () => {

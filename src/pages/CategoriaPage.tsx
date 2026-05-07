@@ -217,7 +217,15 @@ const CategoriaPage = () => {
                     key={t.id}
                     variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
                   >
-                    <MusicCard id={t.id} title={t.title} artist={t.artist} coverUrl={t.cover_url} fileUrl={t.file_url} driveId={t.drive_id} />
+                    <MusicCard 
+                      id={t.id} 
+                      title={t.title} 
+                      artist={t.artist} 
+                      coverUrl={t.cover_url} 
+                      fileUrl={t.file_url} 
+                      driveId={t.drive_id} 
+                      queueContext={looseTracks}
+                    />
                   </motion.div>
                 ))}
               </motion.div>
@@ -240,7 +248,15 @@ const CategoriaPage = () => {
                 key={t.id}
                 variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
               >
-                <MusicCard id={t.id} title={t.title} artist={t.artist} coverUrl={t.cover_url} fileUrl={t.file_url} driveId={t.drive_id} />
+                <MusicCard 
+                  id={t.id} 
+                  title={t.title} 
+                  artist={t.artist} 
+                  coverUrl={t.cover_url} 
+                  fileUrl={t.file_url} 
+                  driveId={t.drive_id} 
+                  queueContext={selectedSubfolder ? filteredTracks : (tracks ?? [])}
+                />
               </motion.div>
             ))}
           </motion.div>

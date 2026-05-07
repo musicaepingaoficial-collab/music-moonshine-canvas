@@ -413,6 +413,7 @@ const RepertorioPage = () => {
             coverUrl={t.cover_url}
             fileUrl={t.file_url}
             driveId={t.drive_id}
+            queueContext={displayMusicas}
           />
         </motion.div>
       ))}
