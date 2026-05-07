@@ -64,7 +64,7 @@ export interface PixPaymentData {
   };
 }
 
-export async function createPixPayment(data: PixPaymentData): Promise<PaymentResponse> {
+export async function createPixPayment(data: PixPaymentData & { device_id?: string }): Promise<PaymentResponse> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Não autenticado");
 
