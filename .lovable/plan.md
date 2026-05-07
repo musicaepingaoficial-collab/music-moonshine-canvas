@@ -1,64 +1,72 @@
-# Landing Page Premium — Recriação Completa (Verde)
+## Objetivo
 
-Vou recriar totalmente a `src/pages/LandingPage.tsx` com copy persuasiva nível CRO e visual SaaS premium, **mantendo a paleta verde atual** (`--primary: 145 65% 42%`) com glow e gradientes. Toda a lógica atual (planos, checkout público, redirect de logado, filtro `discografias`) é preservada.
+Ativar o disparo de eventos do Meta Pixel (client-side) e CAPI (server-side) em toda a aplicação, respeitando dinamicamente as configurações salvas em `pixel_settings` (Pixel ID, Access Token, e checkboxes de eventos ativos).
 
-## Direção visual
+## Estado atual
 
-- Fundo escuro existente + acento **verde primary** com **glow** e gradientes radiais
-- Tipografia: display pesado (font-black, tracking-tight) para headlines
-- Efeitos: glow verde, blur, gradient mesh, sombras, bordas com gradient, microanimações `framer-motion`
-- CTAs grandes em verde com glow pulsante
-- Mockup do painel (imagem gerada via `imagegen`, UI dark estilo Spotify/Netflix em tons verdes)
-- Mobile-first (otimizado para 390px)
+- `pixel_settings` já é lida e persistida via `/admin/pixels`.
+- `PixelInjector` já injeta o script do Meta Pixel quando `meta_enabled` + `meta_pixel_id` estão presentes, e respeita `page_view`.
+- `src/lib/pixels.ts` já expõe `trackEvent()` e `usePixels()` que validam toggles antes de chamar `fbq`. **Nenhum componente do app chama esses helpers ainda** — é aí que entra a integração.
+- O webhook `payment-webhook` já existe (Mercado Pago) e é o ponto natural para enviar `Purchase` via CAPI server-side.
 
-## Tokens novos no `index.css`
+## Mudanças
 
-- `--brand-glow: 145 80% 55%`
-- `--gradient-hero`, `--shadow-glow`, `--shadow-premium`
-- Keyframes: `glow-pulse`, `float`, `marquee`
+### 1. Tracking automático de rota (page_view)
+Criar `src/components/pixels/RouteTracker.tsx` que escuta `useLocation()` e chama `trackEvent("page_view")` em cada mudança de rota. Montar dentro do `<BrowserRouter>` em `src/App.tsx` (junto ao `PixelInjector`). Remover o `PageView` automático do snippet inicial em `PixelInjector` para evitar duplicidade — o RouteTracker passa a ser a única fonte.
 
-E mapear animações novas no `tailwind.config.ts`. **Nenhuma cor existente é alterada.**
+### 2. Eventos de UI (client-side `fbq`)
 
-## Estrutura da nova LandingPage
+| Evento | Onde disparar |
+|---|---|
+| `view_content` | `LandingPage.tsx` (mount), `OfertasPage.tsx` (mount, com lista de planos), `PdfsPage.tsx` (mount) |
+| `add_to_cart` | Clique em "Assinar agora" / "Comprar" em `OfertasPage`, `LandingPage` (CTA dos planos) e cards de PDF |
+| `initiate_checkout` | Abertura do `CheckoutForm` / `PublicCheckoutDialog` (mount do dialog) |
+| `add_payment_info` | Seleção de método (Pix/Crédito) dentro de `CheckoutForm.tsx` |
+| `purchase` | Tela de sucesso do `CheckoutForm` (após `processTransparentPayment` aprovado ou Pix aprovado), enviando `value`, `currency: "BRL"`, `transaction_id` (= payment id, usado também como `event_id` para deduplicação com CAPI) |
+| `lead` | Submit do formulário de captura na `LandingPage` (se houver) |
+| `complete_registration` | Sucesso do cadastro em `LoginPage.tsx` / `CompleteProfilePage.tsx` |
 
-1. **Header sticky** — refinado com glow verde sutil
-2. **HERO**
-   - Eyebrow: "+100 MIL MÚSICAS • ATUALIZADO MENSALMENTE"
-   - H1: **"O Painel de Repertórios Mais Completo do Brasil"**
-   - Sub: "Mais de 100 mil músicas em 320kbps, organizadas, atualizadas e prontas para download. Pare de perder tempo procurando música em sites quebrados."
-   - 4 trust pills: Acesso imediato • +100k músicas • 320kbps • Download 1 clique
-   - CTA gigante verde com glow: **"QUERO ACESSAR AGORA"** + "7 dias de garantia"
-   - Mockup flutuante do painel (desktop ao lado / mobile abaixo)
-3. **Marquee de gêneros** — barra rolante infinita com 16 estilos
-4. **Problema → Solução** — 6 dores em cards (links quebrados, qualidade ruim, desorganização, etc.) + transição "Chega disso."
-5. **Benefícios (10 cards)** — grid premium, ícones, hover glow verde, animação on-scroll
-6. **Estilos Musicais** — grid de chips/cards com hover scale
-7. **Mockup feature** — screenshots do painel + bullets (Pesquisa inteligente, Player integrado, Downloads organizados)
-8. **Prova social** — Stats grandes (100K+ músicas / 50K+ downloads/mês / 16+ estilos / 4.9★) + 6 depoimentos realistas (DJ, dono de paredão, criador, som automotivo)
-9. **Planos** — cards premium (mantém lógica + filtro `slug !== "discografias"`, badge "MAIS VENDIDO" no semestral, "MELHOR CUSTO" no vitalício, glow verde no destaque)
-10. **Garantia 7 dias** — selo grande + copy emocional
-11. **FAQ** — accordion moderno
-12. **CTA Final** — bloco gradient verde com headline de fechamento + CTA gigante + urgência
-13. **Footer** — minimalista (mantém atual)
+Todos via `trackEvent(...)` — o helper já valida `meta_enabled` e `meta_events[*]`.
 
-## Copy
+### 3. CAPI server-side (Conversions API)
 
-- Headlines fortes, frases curtas, gatilhos de escassez/autoridade/praticidade/exclusividade
-- Tom confiante, direto, profissional — sem soar golpe
-- Otimizada para tráfego frio de Facebook/Instagram Ads
+Criar **edge function** `supabase/functions/meta-capi/index.ts`:
+- POST `{ event_name, event_id, event_source_url, user_data: {email, phone, fbp, fbc, client_ip, client_user_agent}, custom_data: {value, currency, ...} }`
+- Lê `meta_pixel_id` e `meta_access_token` de `pixel_settings`.
+- Faz hash SHA-256 dos campos PII (`em`, `ph`) conforme exigido pela Meta.
+- POST para `https://graph.facebook.com/v18.0/{pixel_id}/events?access_token=...`.
+- Retorna `{ ok: true }` ou erro.
+- CORS habilitado, `verify_jwt = false` (chamada também ocorre do webhook sem JWT).
+
+**Pontos de chamada do CAPI:**
+- **`payment-webhook`** (já existe): após confirmar pagamento aprovado, chamar `meta-capi` com `event_name: "Purchase"`, `event_id` = payment id (mesmo usado no client `trackEvent`), `value`, `currency`. Garante o evento mesmo se o usuário fechar a aba.
+- **`CheckoutForm`** (client): após `purchase` no `fbq`, chamar `supabase.functions.invoke("meta-capi", {...})` para `Lead`/`InitiateCheckout` críticos opcionalmente — escopo inicial: só `Purchase` no webhook.
+
+### 4. Helper compartilhado
+Adicionar em `src/lib/pixels.ts` uma função `getFbCookies()` que extrai `_fbp` / `_fbc` do `document.cookie` para enriquecer payloads do CAPI (passada como `user_data` quando chamamos a edge function do client).
+
+### 5. Limpeza
+- Remover stub `__lovEnabledMetaEvents` do `PixelInjector` (não usado).
+- Remover `PageView` automático do snippet inicial do Meta no `PixelInjector` (substituído pelo `RouteTracker`).
 
 ## Detalhes técnicos
 
-- Mantém `useAuth`, redirect de logado, `useQuery` de planos, `PublicCheckoutDialog`, filtro discografias
-- Novo `src/assets/hero-mockup.jpg` via `imagegen` (UI dark verde, mockup de painel de músicas)
-- `framer-motion` com `whileInView` para fade/slide on scroll
-- 100% tokens semânticos do design system
+- Toda leitura de settings no client passa por `usePixelSettings()` (cache via React Query) + `_setCachedPixelSettings` que `pixels.ts` já usa internamente — então `trackEvent()` funciona fora de hooks também.
+- Deduplicação Meta: client e CAPI usam o **mesmo `event_id`** (= `transaction_id` para Purchase).
+- Edge function não armazena nada — apenas relay para Graph API.
+- Sem mudanças de schema no banco.
 
-## Arquivos alterados
+## Arquivos afetados
 
-- `src/index.css` — tokens auxiliares + keyframes (sem alterar cores existentes)
-- `tailwind.config.ts` — animações novas
-- `src/pages/LandingPage.tsx` — reescrita completa preservando lógica
-- `src/assets/hero-mockup.jpg` — gerar via imagegen
+**Novos**
+- `src/components/pixels/RouteTracker.tsx`
+- `supabase/functions/meta-capi/index.ts`
 
-Aprovar para eu executar.
+**Editados**
+- `src/App.tsx` (montar RouteTracker)
+- `src/components/pixels/PixelInjector.tsx` (remover PageView inicial e stub)
+- `src/lib/pixels.ts` (helper `getFbCookies`, opcional helper para invocar CAPI)
+- `src/pages/LandingPage.tsx`, `src/pages/OfertasPage.tsx`, `src/pages/PdfsPage.tsx` (view_content + add_to_cart)
+- `src/components/subscription/CheckoutForm.tsx`, `PublicCheckoutDialog.tsx` (initiate_checkout, add_payment_info, purchase)
+- `src/pages/LoginPage.tsx` e/ou `CompleteProfilePage.tsx` (complete_registration)
+- `supabase/functions/payment-webhook/index.ts` (chamar `meta-capi` em pagamento aprovado)
