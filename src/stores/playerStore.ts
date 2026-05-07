@@ -57,7 +57,7 @@ interface PlayerState {
   currentTime: number;
   isLoading: boolean;
 
-  play: (track: Musica) => void;
+  play: (track: Musica, queueContext?: Musica[]) => void;
   pause: () => void;
   resume: () => void;
   next: () => void;
@@ -83,12 +83,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTime: 0,
   isLoading: false,
 
-  play: async (track) => {
+  play: async (track, queueContext) => {
     const { queue, volume, muted } = get();
-    const exists = queue.find((t) => t.id === track.id);
-    if (!exists) {
-      set({ queue: [...queue, track] });
+    
+    // If a new queue context is provided, update the queue
+    if (queueContext && queueContext.length > 0) {
+      set({ queue: queueContext });
+    } else {
+      // Fallback: check if exists in current queue, if not add it
+      const exists = queue.find((t) => t.id === track.id);
+      if (!exists) {
+        set({ queue: [...queue, track] });
+      }
     }
+    
     set({ currentTrack: track, isPlaying: false, progress: 0, isLoading: true });
 
     cleanupAudio();
