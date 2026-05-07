@@ -35,6 +35,7 @@ import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import heroMockup from "@/assets/hero-mockup.jpg";
 import { PublicCheckoutDialog } from "@/components/subscription/PublicCheckoutDialog";
+import { VersionChecker } from "@/components/layout/VersionChecker";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { trackEvent } from "@/lib/pixels";
 
@@ -722,6 +723,7 @@ export default function LandingPage() {
         onOpenChange={(o) => !o && setCheckoutPlan(null)}
         plan={checkoutPlan}
       />
+      <VersionChecker />
     </div>
   );
 }
