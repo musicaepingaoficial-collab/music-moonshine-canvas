@@ -122,13 +122,15 @@ serve(async (req) => {
       });
     }
 
+    const payerPhone = String(payer?.phone || user.user_metadata?.whatsapp || user.user_metadata?.phone || "").trim();
     let payerPayload: Record<string, unknown> = { email: payerEmail };
 
+    const fullName = String(payer?.full_name || payer?.first_name + " " + (payer?.last_name || "") || "").trim();
+    const namePartsFromFull = splitFullName(fullName);
+    const firstName = String(payer?.first_name || namePartsFromFull?.firstName || "").trim();
+    const lastName = String(payer?.last_name || namePartsFromFull?.lastName || "").trim();
+
     if (isPix) {
-      const fullName = String(payer?.full_name || "").trim();
-      const namePartsFromFull = splitFullName(fullName);
-      const firstName = String(payer?.first_name || namePartsFromFull?.firstName || "").trim();
-      const lastName = String(payer?.last_name || namePartsFromFull?.lastName || "").trim();
       const identificationType = String(payer?.identification?.type || "CPF").trim().toUpperCase();
       const cpf = onlyDigits(String(payer?.identification?.number || ""));
 
@@ -167,6 +169,8 @@ serve(async (req) => {
           },
         };
       }
+      if (firstName) payerPayload.first_name = firstName;
+      if (lastName) payerPayload.last_name = lastName;
     }
 
     const paymentPayload: Record<string, unknown> = {
@@ -176,7 +180,32 @@ serve(async (req) => {
       payer: payerPayload,
       external_reference: `${user.id}:${selectedPlan.slug}`,
       notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook`,
+      additional_info: {
+        items: [
+          {
+            id: selectedPlan.slug,
+            title: selectedPlan.name,
+            description: `Assinatura ${selectedPlan.name}`,
+            category_id: "services",
+            quantity: 1,
+            unit_price: Number(selectedPlan.price),
+          }
+        ],
+        payer: {
+          first_name: firstName || undefined,
+          last_name: lastName || undefined,
+          phone: payerPhone ? {
+            area_code: payerPhone.length >= 10 ? payerPhone.slice(0, 2) : undefined,
+            number: payerPhone.length >= 10 ? payerPhone.slice(2) : payerPhone
+          } : undefined,
+        }
+      }
     };
+
+    // Pontuação máxima: device_id é fundamental para prevenção de fraude
+    if (device_id) {
+      paymentPayload.metadata = { device_id };
+    }
 
     if (!isPix) {
       paymentPayload.token = cardToken;
