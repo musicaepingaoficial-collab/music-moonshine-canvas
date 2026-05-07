@@ -48,7 +48,7 @@ export function AddToRepertorioDialog({ musicaId, title }: AddToRepertorioDialog
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors"
+          className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
           aria-label={`Salvar "${title}" em repertório`}
         >
           <ListPlus className="h-4 w-4" />
