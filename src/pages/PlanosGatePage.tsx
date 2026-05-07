@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useAssinatura, useProfile } from "@/hooks/useUser";
@@ -10,6 +10,8 @@ import { Loader2, LogOut } from "lucide-react";
 const PlanosGatePage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const initialPlanSlug = searchParams.get("plano");
   const { user, loading } = useAuth();
   const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
   const { data: assinatura, isLoading: subLoading } = useAssinatura(user?.id);
@@ -66,7 +68,16 @@ const PlanosGatePage = () => {
         </p>
       </div>
 
-      <SubscriptionDialog open={true} onTrialStarted={handleDone} />
+      <SubscriptionDialog
+        open={true}
+        onTrialStarted={handleDone}
+        initialPlanSlug={initialPlanSlug}
+        prefill={{
+          fullName: (profile as any)?.name || (user?.user_metadata as any)?.full_name || "",
+          cpf: (profile as any)?.cpf || "",
+          email: user?.email || "",
+        }}
+      />
     </div>
   );
 };
