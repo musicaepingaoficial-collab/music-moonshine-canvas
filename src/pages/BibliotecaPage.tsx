@@ -131,28 +131,6 @@ const BibliotecaPage = () => {
         )}
       </section>
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Categorias</h2>
-        {loadingCats ? (
-          <CategorySkeleton />
-        ) : (categorias?.length ?? 0) > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {categorias!.map((cat) => (
-              <Link
-                key={cat.id}
-                to={`/categoria/${cat.slug}`}
-                className="group rounded-xl bg-card p-4 transition-all duration-200 hover:bg-accent hover:scale-[1.02]"
-              >
-                <p className="font-semibold text-foreground">{cat.name}</p>
-                <p className="text-xs text-muted-foreground">{cat.count} músicas</p>
-              </Link>
-            ))}
-          </div>
-        ) : !errorCats ? (
-          <EmptyState icon={Library} title="Nenhuma categoria disponível." />
-        ) : null}
-      </section>
-
       <AdBanner position="inline" />
 
     </div>
