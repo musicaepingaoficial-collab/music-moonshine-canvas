@@ -30,6 +30,7 @@ const FavoritosPage = () => {
               coverUrl={f.musicas.cover_url}
               fileUrl={f.musicas.file_url}
               driveId={f.musicas.drive_id}
+              queueContext={favoritos!.map(fav => fav.musicas)}
             />
           ))}
         </div>
