@@ -67,7 +67,7 @@ const splitFullName = (fullName: string) => {
 export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess, prefill }: CheckoutFormProps) {
   const [status, setStatus] = useState<PaymentStatus>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
   const [pixEmail, setPixEmail] = useState(prefill?.email ?? "");
   const [pixFullName, setPixFullName] = useState(prefill?.fullName ?? "");
   const [pixCpf, setPixCpf] = useState(prefill?.cpf ? formatCpf(prefill.cpf) : "");
@@ -559,21 +559,21 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
       <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"
-          variant={paymentMethod === "card" ? "default" : "outline"}
-          onClick={() => handleSelectMethod("card")}
-          className="gap-2"
-        >
-          <CreditCard className="h-4 w-4" />
-          CARTÃO
-        </Button>
-        <Button
-          type="button"
           variant={paymentMethod === "pix" ? "default" : "outline"}
           onClick={() => handleSelectMethod("pix")}
           className="gap-2"
         >
           <QrCode className="h-4 w-4" />
           Pix
+        </Button>
+        <Button
+          type="button"
+          variant={paymentMethod === "card" ? "default" : "outline"}
+          onClick={() => handleSelectMethod("card")}
+          className="gap-2"
+        >
+          <CreditCard className="h-4 w-4" />
+          CARTÃO
         </Button>
       </div>
 
