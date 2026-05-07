@@ -1,72 +1,49 @@
+# Plano: Repertórios do admin como catálogo global
+
 ## Objetivo
+Todo repertório criado por um admin deve ficar visível para qualquer usuário autenticado. Usuários comuns continuam vendo, além disso, os próprios repertórios.
 
-Permitir que o admin cadastre um popup de boas-vindas (com grupos/promoções) que aparece para usuários logados conforme regras de público, e fica oculto após o usuário fechar.
+## Causa raiz (diagnóstico)
+A política RLS atual de `repertorios` só permite SELECT quando `user_id = auth.uid()` (ou se o leitor for admin). Como os 3 repertórios existentes pertencem ao admin, qualquer outro usuário (mesmo vitalício) recebe 0 linhas e vê o estado "Nenhum repertório criado ainda."
 
-## Modelo de dados
+O mesmo se aplica à tabela `repertorio_musicas`, que hoje só libera leitura ao dono do repertório ou a admins — então mesmo abrindo a visibilidade dos repertórios, as músicas dentro dele continuariam ocultas.
 
-Nova tabela `welcome_popup` (singleton — apenas 1 registro ativo por vez):
+## Mudanças (somente no banco — RLS)
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `id` | uuid PK | |
-| `active` | boolean | Liga/desliga o popup |
-| `title` | text | Título exibido |
-| `description` | text | Texto/descrição (multilinha) |
-| `image_url` | text nullable | Imagem opcional (topo) |
-| `links` | jsonb | Array `[{ label, url, icon? }]` para grupos/promoções |
-| `show_to_new` | boolean | Exibir para usuários sem assinatura ativa / recém-cadastrados |
-| `show_to_subscribers` | boolean | Exibir para assinantes ativos |
-| `new_user_days` | integer | Considera "novo" usuários cadastrados há ≤ N dias (default 7) |
-| `version` | integer | Incrementa a cada save no admin — força reaparecer se admin atualizar |
-| `updated_at` | timestamptz | |
+### 1. Tabela `repertorios`
+Adicionar uma política SELECT que libera leitura de qualquer repertório cujo dono (`user_id`) seja um admin:
 
-**RLS:**
-- SELECT público (anon + authenticated) — necessário para o popup carregar.
-- ALL apenas para admins (`has_role(auth.uid(), 'admin')`).
+```sql
+CREATE POLICY "Anyone can view admin repertorios"
+ON public.repertorios
+FOR SELECT
+TO authenticated
+USING (public.has_role(user_id, 'admin'::app_role));
+```
 
-**Bucket de storage:** reutiliza `anuncios-images` (já público) para imagem do popup.
+As políticas existentes ("Admins can manage all repertorios" e "Users can manage own repertorios") permanecem — usuário comum continua podendo criar/editar/excluir os próprios.
 
-## Tela de admin
+### 2. Tabela `repertorio_musicas`
+Adicionar política SELECT espelhada para liberar a lista de músicas de repertórios cujo dono seja admin:
 
-Nova página `src/pages/admin/AdminPopupPage.tsx` em `/admin/popup`:
-- Toggle "Popup ativo".
-- Inputs: título (max 120), descrição (textarea, max 1000), upload de imagem (preview + botão remover).
-- Editor de **lista de links** (add/remover linhas): label (max 60) + URL (validar `https://`) + opcional ícone (select: WhatsApp, Telegram, Instagram, Link).
-- Configuração de público: 2 switches (`show_to_new`, `show_to_subscribers`) + input numérico "considerar novo até X dias".
-- Botão Salvar — incrementa `version` automaticamente.
-- Pré-visualização do popup ao lado do formulário.
+```sql
+CREATE POLICY "Anyone can view musicas of admin repertorios"
+ON public.repertorio_musicas
+FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.repertorios r
+    WHERE r.id = repertorio_musicas.repertorio_id
+      AND public.has_role(r.user_id, 'admin'::app_role)
+  )
+);
+```
 
-Adicionar entrada "Popup de Boas-vindas" no `AdminSidebar.tsx` e rota em `App.tsx` (dentro de `/admin`).
+## O que NÃO muda
+- Nenhuma alteração no frontend — `useRepertorios`, `DashboardPage`, `RepertorioPage` continuam iguais; o RLS passa a devolver os repertórios do admin automaticamente.
+- Repertórios criados por usuários comuns continuam privados a eles.
+- Permissões de escrita (insert/update/delete) ficam inalteradas.
 
-## Componente do popup (frontend do app)
-
-Novo `src/components/popup/WelcomePopup.tsx`:
-- Hook `useWelcomePopup()` que lê o registro via React Query (`welcome_popup`), cruza com `useAuth` + `useAssinatura`.
-- Lógica de visibilidade:
-  1. `active === true`.
-  2. Usuário autenticado e está dentro de uma rota do `AppLayout` (não landing/login).
-  3. Verifica audiência:
-     - Se assinante ativo → mostra apenas se `show_to_subscribers`.
-     - Senão → mostra apenas se `show_to_new` **e** (`profiles.created_at` ≤ `new_user_days` dias OU usuário sem assinatura, conforme as duas opções estarem ligadas — implementação: se `show_to_new` ligado, mostra a quem se enquadra; `new_user_days = 0` significa "qualquer não-assinante").
-  4. Lê localStorage `welcome_popup_dismissed_v{version}_{userId}`. Se existir → não mostra. Quando admin atualiza, `version` muda e o popup reaparece.
-- UI: usa `Dialog` do shadcn. Cabeçalho com imagem (se houver), título, descrição. Lista de links como botões grandes (ícone + label, abrem em nova aba com `rel="noreferrer"`). Botão "Fechar" no rodapé que grava o dismiss.
-- Montar dentro de `AppLayout.tsx` para aparecer só nas rotas autenticadas.
-
-## Validações
-
-- Admin: zod schema (título obrigatório, max lengths, URLs válidas começando com `http(s)://`).
-- Frontend: `encodeURI` não é necessário pois URLs são salvas pelo admin; apenas garantir `target="_blank" rel="noopener noreferrer"`.
-
-## Arquivos
-
-**Migration:** criar tabela `welcome_popup` + RLS + seed de 1 linha vazia (`active=false`).
-
-**Novos**
-- `src/pages/admin/AdminPopupPage.tsx`
-- `src/components/popup/WelcomePopup.tsx`
-- `src/hooks/useWelcomePopup.ts`
-
-**Editados**
-- `src/App.tsx` — rota `/admin/popup`.
-- `src/components/layout/AdminSidebar.tsx` — item de menu.
-- `src/components/layout/AppLayout.tsx` — montar `<WelcomePopup />`.
+## Resultado esperado
+Após aprovar a migração, qualquer usuário logado (vitalício ou assinante) verá no Dashboard / página de Repertórios todos os repertórios criados pelo admin, com suas músicas acessíveis.
