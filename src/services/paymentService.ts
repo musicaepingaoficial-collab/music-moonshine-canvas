@@ -9,10 +9,12 @@ export interface TransparentPaymentData {
   transaction_amount: number;
   installments: number;
   plan: string;
+  device_id?: string;
   payer: {
     email: string;
     first_name?: string;
     last_name?: string;
+    phone?: string;
     identification: { type: string; number: string };
   };
 }
