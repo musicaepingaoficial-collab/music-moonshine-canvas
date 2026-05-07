@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Trash2, Loader2, Eraser } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Loader2, Eraser } from "lucide-react";
 import { downloadMultiple, hasFileSystemAccess, pickZipDestination, type DownloadArchiveItem } from "@/services/zipService";
 import {
   AlertDialog,
