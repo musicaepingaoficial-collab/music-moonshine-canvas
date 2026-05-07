@@ -159,6 +159,7 @@ export function MusicPlayer() {
                 side="top" 
                 sideOffset={10}
                 onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
               >
                 <div className="p-3 border-b border-border/50">
                   <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
@@ -242,6 +243,7 @@ export function MusicPlayer() {
                 side="top" 
                 sideOffset={10}
                 onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
               >
                 <div className="p-3 border-b border-border/50">
                   <h3 className="font-semibold text-sm">Lista de Reprodução</h3>
