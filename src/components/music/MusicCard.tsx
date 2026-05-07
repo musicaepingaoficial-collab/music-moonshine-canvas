@@ -7,7 +7,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useHasActiveSubscription } from "@/hooks/useUser";
 import { downloadSingle } from "@/services/zipService";
-import { AddToRepertorioDialog } from "./AddToRepertorioDialog";
+import { AddToQueueButton } from "./AddToQueueButton";
 
 interface MusicCardProps {
   id: string;
@@ -114,11 +114,12 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             </button>
             
-            {isAdmin && (
-              <div className="ml-auto">
-                <AddToRepertorioDialog musicaId={id} title={title} />
-              </div>
-            )}
+            <div className="ml-auto">
+              <AddToQueueButton 
+                musica={{ id, title, artist, cover_url: coverUrl, file_url: fileUrl, drive_id: driveId }} 
+                title={title} 
+              />
+            </div>
           </div>
         </div>
       </div>
