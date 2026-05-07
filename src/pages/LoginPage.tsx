@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent, sendCapi } from "@/lib/pixels";
 
 async function registerPendingReferral() {
   try {
@@ -87,6 +88,12 @@ const LoginPage = () => {
           },
         });
         if (error) throw error;
+        trackEvent("complete_registration", { content_name: "signup" });
+        sendCapi({
+          event_name: "CompleteRegistration",
+          user_data: { email, phone: whatsapp, external_id: data.user?.id },
+          custom_data: { content_name: "signup" },
+        });
         if (data.session) {
           await registerPendingReferral();
           navigate("/planos");
