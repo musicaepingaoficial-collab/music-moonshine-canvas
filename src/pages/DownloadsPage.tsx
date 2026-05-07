@@ -30,6 +30,7 @@ const DownloadsPage = () => {
               coverUrl={d.musicas.cover_url}
               fileUrl={d.musicas.file_url}
               driveId={d.musicas.drive_id}
+              queueContext={downloads!.map((item: any) => item.musicas)}
             />
           ))}
         </div>
