@@ -8,11 +8,12 @@ import { useMusicasByCategoria } from "@/hooks/useMusics";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Music, Folder, ArrowLeft, Download } from "lucide-react";
+import { Music, Folder, ArrowLeft, Download, ListPlus } from "lucide-react";
 import { downloadMultiple, hasFileSystemAccess, pickZipDestination } from "@/services/zipService";
 
 import { toast } from "sonner";
 import { useAssinatura, useAuth, useHasActiveSubscription } from "@/hooks/useUser";
+import { usePlayerStore } from "@/stores/playerStore";
 import { useNavigate } from "react-router-dom";
 import { usePagination } from "@/hooks/usePagination";
 
@@ -127,6 +128,19 @@ const CategoriaPage = () => {
 
         {!isLoading && !error && (
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const selectedTracks = selectedSubfolder ? filteredTracks : tracks ?? [];
+                const addToQueue = usePlayerStore.getState().addToQueue;
+                selectedTracks.forEach(t => addToQueue(t));
+                toast.success(`${selectedTracks.length} músicas adicionadas à lista de reprodução`);
+              }}
+            >
+              <ListPlus className="mr-1.5 h-4 w-4" />
+              Adicionar à lista
+            </Button>
             <Button
               size="sm"
               variant="outline"
