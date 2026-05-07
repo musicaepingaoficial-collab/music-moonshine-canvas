@@ -81,6 +81,7 @@ export async function createPixPayment(data: PixPaymentData & { device_id?: stri
         plan: data.plan,
         payment_method_id: "pix",
         payer: data.payer,
+        device_id: data.device_id,
       }),
     }
   );
