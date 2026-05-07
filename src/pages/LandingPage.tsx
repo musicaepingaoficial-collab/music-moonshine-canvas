@@ -666,15 +666,17 @@ export default function LandingPage() {
       </footer>
 
       {/* Floating WhatsApp */}
-      <a
-        href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20quero%20tirar%20uma%20d%C3%BAvida"
-        target="_blank"
-        rel="noreferrer"
-        className="fixed bottom-5 right-5 z-40 h-14 w-14 rounded-full bg-gradient-cta text-primary-foreground shadow-glow flex items-center justify-center transition-transform hover:scale-110 animate-glow-pulse"
-        aria-label="Falar no WhatsApp"
-      >
-        <MessageCircle className="h-6 w-6" />
-      </a>
+      {waNumber && (
+        <a
+          href={`https://wa.me/${waNumber}?text=${encodeURIComponent("Olá, quero tirar uma dúvida")}`}
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-5 right-5 z-40 h-14 w-14 rounded-full bg-gradient-cta text-primary-foreground shadow-glow flex items-center justify-center transition-transform hover:scale-110 animate-glow-pulse"
+          aria-label="Falar no WhatsApp"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </a>
+      )}
 
       <PublicCheckoutDialog
         open={!!checkoutPlan}
