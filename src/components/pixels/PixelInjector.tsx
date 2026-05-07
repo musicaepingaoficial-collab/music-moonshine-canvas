@@ -65,25 +65,8 @@ export function PixelInjector() {
   // Meta Pixel
   useEffect(() => {
     if (s?.meta_enabled && s.meta_pixel_id) {
-      const events = s.meta_events || {};
-      const trackEvents = Object.entries(events)
-        .filter(([k, v]) => v && k !== "page_view")
-        .map(([k]) => {
-          const eventMap: Record<string, string> = {
-            view_content: "ViewContent",
-            add_to_cart: "AddToCart",
-            initiate_checkout: "InitiateCheckout",
-            add_payment_info: "AddPaymentInfo",
-            purchase: "Purchase",
-            lead: "Lead",
-            complete_registration: "CompleteRegistration",
-          };
-          return eventMap[k];
-        })
-        .filter(Boolean);
-
-      const pageView = events.page_view !== false ? "fbq('track', 'PageView');" : "";
-
+      // PageView is handled by RouteTracker (so SPA navigations also fire it),
+      // not by the snippet — avoids duplicate PageViews on first load.
       injectScript(
         SCRIPT_IDS.meta,
         `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -91,13 +74,9 @@ n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
 n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
 document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${s.meta_pixel_id}');
-${pageView}`,
+fbq('init', '${s.meta_pixel_id}');`,
         false
       );
-
-      // Stash list of events to track on demand for app code that fires them later
-      (window as any).__lovEnabledMetaEvents = trackEvents;
     } else {
       removeById(SCRIPT_IDS.meta);
       removeById(SCRIPT_IDS.metaNoscript);

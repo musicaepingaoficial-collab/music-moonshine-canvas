@@ -12,6 +12,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
 import { PixelInjector } from "@/components/pixels/PixelInjector";
+import { RouteTracker } from "@/components/pixels/RouteTracker";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { Loader2 } from "lucide-react";
 
@@ -83,6 +84,7 @@ const App = () => (
       <ErrorBoundary>
         <BrowserRouter>
           <PixelInjector />
+          <RouteTracker />
           <CookieBanner />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
