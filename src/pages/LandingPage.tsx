@@ -35,6 +35,7 @@ import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import heroMockup from "@/assets/hero-mockup.jpg";
 import { PublicCheckoutDialog } from "@/components/subscription/PublicCheckoutDialog";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const GENRES = [
   "Sertanejo", "Funk", "Forró", "Piseiro", "Arrocha", "Flash Back",
