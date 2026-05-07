@@ -344,6 +344,11 @@ export default function LandingPage() {
                         <Check className="h-4 w-4 shrink-0 mt-0.5" />Acesso vitalício
                       </li>
                     )}
+                    {(p.slug === "vitalicio" || p.slug === "anual") && (
+                      <li className="flex gap-2 font-medium text-primary">
+                        <Crown className="h-4 w-4 shrink-0 mt-0.5" />Discografias completas inclusas
+                      </li>
+                    )}
                   </ul>
                   <Button
                     onClick={() => setCheckoutPlan({ slug: p.slug, name: p.name, price: Number(p.price) })}
