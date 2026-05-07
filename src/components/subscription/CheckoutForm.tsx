@@ -16,6 +16,7 @@ interface CheckoutFormProps {
     fullName?: string;
     cpf?: string;
     email?: string;
+    whatsapp?: string;
   };
 }
 
@@ -70,6 +71,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
   const [pixEmail, setPixEmail] = useState(prefill?.email ?? "");
   const [pixFullName, setPixFullName] = useState(prefill?.fullName ?? "");
   const [pixCpf, setPixCpf] = useState(prefill?.cpf ? formatCpf(prefill.cpf) : "");
+  const [pixWhatsapp, setPixWhatsapp] = useState(prefill?.whatsapp ? prefill.whatsapp : "");
   const [pixData, setPixData] = useState<{
     qrCode?: string;
     qrCodeBase64?: string;
@@ -89,15 +91,16 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     if (!pixEmail && (prefill?.email || user?.email)) {
       setPixEmail(prefill?.email || user?.email || "");
     }
-
     if (!pixFullName && metadataName.trim()) {
       setPixFullName(metadataName.trim());
     }
-
     if (!pixCpf && prefill?.cpf) {
       setPixCpf(formatCpf(prefill.cpf));
     }
-  }, [metadataName, pixEmail, pixFullName, pixCpf, user?.email, prefill?.email, prefill?.cpf]);
+    if (!pixWhatsapp && (prefill?.whatsapp || user?.user_metadata?.whatsapp)) {
+      setPixWhatsapp(prefill?.whatsapp || user?.user_metadata?.whatsapp || "");
+    }
+  }, [metadataName, pixEmail, pixFullName, pixCpf, pixWhatsapp, user?.email, user?.user_metadata, prefill?.email, prefill?.cpf, prefill?.whatsapp]);
 
   // Initiate checkout once on mount
   useEffect(() => {
@@ -225,7 +228,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               payer: {
                 email: formData.payer.email,
                 identification: formData.payer.identification,
-                phone: (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
+                phone: pixWhatsapp || (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
               },
             });
 
@@ -327,7 +330,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           email,
           first_name: nameParts.firstName,
           last_name: nameParts.lastName,
-          phone: (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
+          phone: pixWhatsapp || (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
           identification: {
             type: "CPF",
             number: cpf,
