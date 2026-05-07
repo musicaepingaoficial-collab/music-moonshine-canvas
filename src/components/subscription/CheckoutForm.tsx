@@ -291,12 +291,21 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     setErrorMsg("");
 
     try {
+      // Get deviceId for Pix as well
+      let deviceId = "";
+      try {
+        // @ts-ignore
+        const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
+        deviceId = await mp.getDeviceSolution();
+      } catch {}
+
       const result = await createPixPayment({
         plan: planSlug,
         payer: {
           email,
           first_name: nameParts.firstName,
           last_name: nameParts.lastName,
+          phone: (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
           identification: {
             type: "CPF",
             number: cpf,
