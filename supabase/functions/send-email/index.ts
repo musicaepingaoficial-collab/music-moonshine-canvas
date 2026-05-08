@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import nodemailer from "npm:nodemailer@6.9.10";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,40 +31,33 @@ serve(async (req) => {
       throw new Error("SMTP configuration is missing");
     }
 
-    // Usando uma API de terceiros ou um serviço de relay, 
-    // mas como o usuário quer SMTP da Hostinger e estamos em Deno Edge Functions,
-    // a melhor forma sem bibliotecas complexas é usar uma API de envio ou Resend.
-    // No entanto, para SMTP puro em Deno, costumamos usar a biblioteca 'smtp' do deno.land/x.
-    
-    // Para simplificar e garantir funcionamento, vou sugerir o uso de uma biblioteca compatível.
-    // Mas note: Supabase Edge Functions têm limitações com sockets diretos (SMTP).
-    // Geralmente recomenda-se Resend ou similar.
-    
-    // Se o usuário INSISTE em SMTP Hostinger, vamos tentar usar o port 465/587.
-    // Infelizmente, Deno Deploy (onde rodam as functions) não suporta sockets TCP arbitrários facilmente sem bibliotecas específicas.
-    
-    // VOU USAR A BIBLIOTECA SmtpClient para Deno.
-    const { SmtpClient } = await import("https://deno.land/x/smtp@v0.7.0/mod.ts");
-    const client = new SmtpClient();
-
-    await client.connectTLS({
-      hostname: SMTP_HOST,
+    // Configuração do nodemailer
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
       port: parseInt(SMTP_PORT),
-      username: SMTP_USER,
-      password: SMTP_PASS,
+      secure: parseInt(SMTP_PORT) === 465, // true para 465, false para outros (como 587)
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+      // Configurações extras para evitar problemas de certificado em alguns servidores
+      tls: {
+        rejectUnauthorized: false
+      }
     });
 
-    await client.send({
-      from: SMTP_FROM!,
-      to: to,
-      subject: subject,
-      content: html,
-      html: html,
+    console.log(`Tentando enviar e-mail para ${to} via ${SMTP_HOST}:${SMTP_PORT}`);
+
+    const info = await transporter.sendMail({
+      from: `"Música e Pinga" <${SMTP_FROM}>`,
+      to,
+      subject,
+      html,
     });
 
-    await client.close();
+    console.log("E-mail enviado com sucesso:", info.messageId);
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, messageId: info.messageId }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

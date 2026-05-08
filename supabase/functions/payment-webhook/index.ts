@@ -99,7 +99,7 @@ serve(async (req) => {
             });
 
             // Disparar e-mail de backup para o usuário
-            const siteUrl = Deno.env.get("SITE_URL") || "https://sua-plataforma.com";
+            const siteUrl = (Deno.env.get("SITE_URL") || "https://sua-plataforma.com").replace(/\\/g, "/");
             const claimLink = `${siteUrl}/finalizar-cadastro?token=${pending.claim_token}`;
             
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
