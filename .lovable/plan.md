@@ -1,61 +1,104 @@
-# Correções no fluxo de checkout
+## Objetivo
 
-## 1. "Mercado Pago não configurado"
+Inverter o fluxo de aquisição: hoje o usuário cria a conta antes de pagar; passaremos a coletar apenas os dados fiscais (nome, CPF, WhatsApp, e-mail) antes do pagamento, e só pedir a senha (criação efetiva da conta) **depois** que o pagamento for confirmado.
 
-**Causa:** o secret `MERCADO_PAGO_ACCESS_TOKEN` não está cadastrado nas Edge Function Secrets. A função `create-payment` retorna esse erro literalmente quando `Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")` é vazio.
+## Novo fluxo do usuário
 
-**Correção:** adicionar o secret `MERCADO_PAGO_ACCESS_TOKEN` no projeto. Vou pedir o token (Access Token de produção ou de teste do painel do Mercado Pago) e cadastrá-lo via `add_secret`. Sem isso nenhuma das outras correções de pagamento funciona.
+```
+Landing → escolhe plano
+   ↓
+[1] Modal "Seus dados" — Nome, CPF, WhatsApp, E-mail
+   ↓ (verifica se e-mail já existe)
+   ├─ Sim → redireciona para Login com retorno ao checkout do plano
+   └─ Não → segue
+   ↓
+[2] Modal "Pagamento" — Cartão ou PIX (já com dados pré-preenchidos)
+   ↓
+[3a] Cartão aprovado na hora           [3b] PIX gerado
+        ↓                                    ↓
+                                        Tela de espera com QR Code
+                                        (polling automático)
+                                        + e-mail de backup com link
+                                        para finalizar quando confirmar
+        ↓                                    ↓
+[4] Tela "Crie sua senha" (e-mail já travado)
+   ↓
+[5] Conta criada + assinatura vinculada → Dashboard
+```
 
-Também vou melhorar a mensagem de erro mostrada na tela "Pagamento recusado" para diferenciar erro de configuração de erro real do cartão.
+## Mudanças no backend
 
-## 2. "CartÃ£o" e outros textos com encoding quebrado
+### 1. Nova tabela `pending_subscriptions`
+Armazena pagamentos feitos antes da conta existir.
 
-**Causa:** vários arquivos foram salvos com mojibake (UTF‑8 lido como Latin‑1). Aparece em:
-- `src/components/subscription/CheckoutForm.tsx` — botão `CartÃ£o` (linha 488), toasts `CÃ³digo Pix copiado`, `NÃ£o foi possÃ­vel...`, mensagens `valido`/`Nao` sem acento.
-- Tela de erro com `Mercado Pago nao configurado` (vem do edge function — corrigir as mensagens em `supabase/functions/create-payment/index.ts`).
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | uuid PK | |
+| email | text (lower) | chave de vínculo |
+| full_name, cpf, whatsapp | text | dados fiscais coletados |
+| plan | text | slug do plano |
+| price | numeric | |
+| mp_payment_id | bigint | ID do Mercado Pago |
+| status | text | `pending` / `approved` / `rejected` / `claimed` |
+| claim_token | text | token único enviado por e-mail |
+| created_at, approved_at, claimed_at | timestamptz | |
 
-**Correção:** reescrever todas as strings com acentuação correta. O botão Cartão fica `CARTÃO` (uppercase como pediu).
+RLS: leitura/escrita apenas via service role (edge functions). Sem acesso direto do cliente.
 
-## 3. Após cadastro o usuário cai em "Escolha seu plano" novamente
+### 2. Edge function `create-payment` (modificada)
+- Aceita chamadas **sem JWT** quando recebe os dados completos do pagador.
+- Cria registro em `pending_subscriptions` no lugar de vincular a `user_id`.
+- Retorna `pending_id` além do resultado MP.
 
-**Causa:** ao concluir o cadastro dentro do `PublicCheckoutDialog`, o componente faz `signUp` + `signIn`. Quando o `user` da `useAuth` atualiza, qualquer rota protegida que o usuário acesse em seguida (ou a navegação interna após o pagamento) leva a `/planos`, que renderiza o `PlanosGatePage` com o `SubscriptionDialog` mostrando a grade de planos do zero. Isso descarta o plano que ele já tinha clicado.
+### 3. Edge function `payment-webhook` (modificada)
+- Ao receber confirmação, atualiza `pending_subscriptions.status`.
+- Se `approved`: gera `claim_token` e dispara e-mail transacional com link `/finalizar-cadastro?token=...&email=...` (backup caso o usuário tenha saído da tela).
 
-**Correção:**
-- Após `signIn`, manter o `PublicCheckoutDialog` aberto direto em `step="payment"` com o plano selecionado (já é o comportamento desejado), e impedir que a `LandingPage` navegue para `/dashboard` enquanto o checkout estiver aberto (já existe a guarda `!checkoutPlan`, mas vou reforçar para não navegar enquanto `step === "payment"`).
-- Aceitar um query param `?plano=<slug>` em `/planos` (`PlanosGatePage`). Quando presente, abrir o `SubscriptionDialog` já com aquele plano selecionado e pular a tela de grade indo direto para o `CheckoutForm`.
-- Em qualquer redirecionamento que aconteça pós-cadastro (Protected/PlanosGate), preservar o slug do plano via query string.
+### 4. Nova edge function `claim-pending-subscription`
+- Recebe `pending_id` (ou `claim_token`) + dados do novo usuário.
+- Verifica status `approved` e que e-mail bate.
+- Cria usuário via Admin API (`auth.admin.createUser`) com senha definida, marca e-mail confirmado.
+- Cria registro em `assinaturas` vinculado ao novo `user_id`.
+- Marca `pending_subscriptions.status = claimed`.
+- Retorna sessão (ou orienta frontend a fazer `signInWithPassword`).
 
-## 4. Botão "Voltar" do navegador leva a uma tela "Hostinger" infinita
+### 5. Nova edge function `check-email-exists`
+- Pública. Recebe e-mail, retorna `{ exists: boolean }` consultando `auth.users` via service role.
+- Usada na etapa [1] para desviar usuários existentes ao login.
 
-**Causa provável:** o domínio antigo da Hostinger ainda redireciona para a landing nova via 302/meta-refresh. Quando o usuário clica em Voltar, o browser revisita a URL antiga, que redireciona de novo, criando o loop. O cookie/cache da Hostinger é o que prende a tela de erro.
+### 6. E-mail transacional (Lovable Emails)
+- Template "Pagamento confirmado — finalize seu cadastro" com botão para `/finalizar-cadastro?token=...`.
+- Requer infraestrutura de e-mail transacional habilitada no projeto.
 
-**Correção dentro do app (mitigação real):**
-- Na `LandingPage`, ao montar, executar `window.history.replaceState(null, "", window.location.href)` quando o `document.referrer` apontar para um domínio externo conhecido (ex.: `*.hostinger.*`). Isso substitui a entrada de histórico para que o Voltar não retorne ao redirect quebrado.
-- No `PublicCheckoutDialog`, ao fechar o dialog usar `navigate(-1)` somente se a entrada anterior for da mesma origem; caso contrário, ficar na própria landing.
+## Mudanças no frontend
 
-**Fora do app (recomendação para o usuário):** remover o redirect 302 do domínio antigo na Hostinger ou trocá-lo por 301 com `Cache-Control: no-store`. Isso é a solução definitiva — o app só consegue mitigar.
+### `PublicCheckoutDialog.tsx` (refatorado)
+Três etapas no mesmo modal:
+1. **`form-fiscal`**: nome, CPF, WhatsApp, e-mail, aceite de termos. Botão "Continuar". Antes de avançar, chama `check-email-exists`. Se existir, mostra aviso e botão "Ir para login" (envia para `/login?redirect=/planos?plano={slug}`).
+2. **`payment`**: reaproveita `CheckoutForm`, agora chamando o `create-payment` em modo anônimo. PIX mantém polling; quando aprovar, avança automaticamente para `set-password`.
+3. **`set-password`**: campos senha + confirmar senha. Submete para `claim-pending-subscription` e, em sucesso, faz login e navega para `/dashboard`.
 
-## 5. Reaproveitar dados já cadastrados no checkout
+### Novo `FinalizarCadastroPage.tsx`
+- Rota pública `/finalizar-cadastro`.
+- Lê `token` e `email` da URL.
+- Mostra a mesma tela "Crie sua senha" e finaliza pelo mesmo `claim-pending-subscription`.
+- Útil quando o usuário fechou a aba antes do PIX confirmar.
 
-**Causa:** o `CheckoutForm` só preenche `email` e `nome` a partir de `user_metadata`. O CPF cadastrado no `PublicCheckoutDialog` (e depois salvo em `profiles.cpf` pelo trigger `handle_new_user`) não é lido. O formulário do cartão (Mercado Pago) também não recebe nada via prefill.
+### Login — retorno ao checkout
+- `LoginPage` já aceita `?redirect=`. Após login, se `redirect` apontar para `/planos?plano=...`, abre o checkout direto naquele plano (passando o usuário pelo fluxo atual autenticado, sem a etapa de senha).
 
-**Correção:**
-- `PublicCheckoutDialog` passa `prefill={ fullName, cpf, email, whatsapp }` como props para `CheckoutForm` ao avançar para `step="payment"`.
-- `CheckoutForm` usa o prefill para popular `pixFullName`, `pixCpf`, `pixEmail` automaticamente.
-- Quando vier de `/planos` (usuário já logado), buscar `profiles` (`name`, `cpf`, `whatsapp`) e usar para prefill.
-- Para o card form do Mercado Pago, preencher os inputs `mp-cardholder-email`, `mp-cardholder-name`, `mp-identification-type` (CPF) e `mp-identification-number` via `value` inicial após o `onFormMounted`.
+### Remoções
+- Etapa de criação de conta dentro de `PublicCheckoutDialog` (linhas que chamam `supabase.auth.signUp` antes do pagamento).
+- Tela `CompleteProfilePage` continua, mas só será atingida em casos antigos — não é mais parte do fluxo novo.
 
-## Arquivos afetados
+## Considerações importantes
 
-- `supabase/functions/create-payment/index.ts` — corrigir encoding das mensagens.
-- `src/components/subscription/CheckoutForm.tsx` — encoding, prefill, uppercase "CARTÃO", melhor mensagem de erro de configuração.
-- `src/components/subscription/PublicCheckoutDialog.tsx` — passar prefill e impedir fechamento prematuro.
-- `src/components/subscription/SubscriptionDialog.tsx` — aceitar `initialPlanSlug` para pular grade.
-- `src/pages/PlanosGatePage.tsx` — ler `?plano=` e passar para o dialog; preencher prefill via profile.
-- `src/pages/LandingPage.tsx` — `replaceState` quando referrer for externo; preservar `?plano=` em redirects.
-- Secret novo: `MERCADO_PAGO_ACCESS_TOKEN`.
+- **Reembolso/PIX expirado**: registros `pending_subscriptions` com status diferente de `approved` após X horas são ignorados (não permitem claim). Sem alterações no MP em si.
+- **Pagamento aprovado, usuário nunca volta**: o e-mail de backup garante que ele consegue finalizar a qualquer momento via link com token.
+- **Segurança**: `claim_token` é gerado server-side, single-use, expira em 30 dias. `check-email-exists` retorna apenas booleano, sem enumerar dados.
+- **Pixels/analytics**: eventos `purchase` continuam disparando no momento certo (aprovação), agora antes da existência da conta — `external_id` fica vazio nesse momento e é reenviado via CAPI após o claim.
+- **Admin/allowlist**: o trigger `assign_admin_for_allowlisted_email` continua funcionando porque o usuário ainda é criado via `auth.admin.createUser`.
 
-## O que preciso confirmar antes de implementar
+## Pré-requisito
 
-1. Você tem o **Access Token do Mercado Pago** em mãos para eu cadastrar no secret? (é o token que começa com `APP_USR-...` da seção "Suas integrações" → "Credenciais de produção" no painel MP).
-2. O domínio Hostinger antigo ainda está com redirect ativo? Se sim, recomendo desligar; senão a mitigação no app cobre só parte dos casos.
+Para o e-mail de backup, o projeto precisa ter o domínio de e-mail configurado e a infraestrutura de e-mails transacionais habilitada. Se ainda não estiver, pedirei para configurar o domínio antes (ou podemos lançar primeiro só com a tela de espera e adicionar o e-mail depois — me avise se preferir essa entrega em duas fases).
