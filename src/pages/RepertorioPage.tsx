@@ -393,6 +393,8 @@ const RepertorioPage = () => {
     };
   }, [pendingDownload]);
 
+  const isLoading = loadingRep || loadingMusicas;
+
   if (isLoading) {
     return (
       <div className="space-y-6">
