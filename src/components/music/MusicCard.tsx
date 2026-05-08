@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useHasActiveSubscription } from "@/hooks/useUser";
 import { downloadSingle } from "@/services/zipService";
 import { AddToQueueButton } from "./AddToQueueButton";
+import trackPlaceholder from "@/assets/track-placeholder.png";
 
 interface MusicCardProps {
   id: string;
