@@ -123,3 +123,23 @@ Copie o código HTML abaixo para cada seção correspondente no seu Dashboard do
 </body>
 </html>
 ```
+
+---
+
+## 4. Mensagens SMS (SMS Templates)
+
+Para as mensagens de texto (SMS), você pode usar um formato simples e direto:
+
+**Confirmação de Código (SMS OTP):**
+`Música e Pinga: Seu código de confirmação é {{ .Token }}.`
+
+---
+
+## Como configurar no Supabase:
+
+1. Acesse o [Dashboard do Supabase](https://supabase.com/dashboard).
+2. Vá em **Authentication** -> **Email Templates**.
+3. Escolha o template (Confirm Signup, Reset Password, etc).
+4. Desmarque a opção "Enable default template" (se houver) e cole o HTML acima no campo **Body**.
+5. Salve as alterações.
+
