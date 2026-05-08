@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { emailTemplate } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,20 +112,18 @@ serve(async (req) => {
               body: JSON.stringify({
                 to: pending.email,
                 subject: "Pagamento confirmado! Finalize seu cadastro",
-                html: `
-                  <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2>Olá, ${pending.full_name}!</h2>
-                    <p>Seu pagamento para o plano <strong>${pending.plan}</strong> foi confirmado com sucesso.</p>
-                    <p>Agora falta apenas um passo: criar sua senha de acesso.</p>
-                    <div style="margin: 30px 0;">
-                      <a href="${claimLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                        Criar minha senha agora
-                      </a>
-                    </div>
-                    <p style="color: #666; font-size: 14px;">Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
-                    <p style="color: #666; font-size: 14px;">${claimLink}</p>
+                html: emailTemplate(`
+                  <h2>Olá, ${pending.full_name}!</h2>
+                  <p>Seu pagamento para o plano <strong>${pending.plan}</strong> foi confirmado com sucesso.</p>
+                  <p>Agora falta apenas um passo: criar sua senha de acesso para começar a aproveitar nossa plataforma.</p>
+                  <div style="text-align: center;">
+                    <a href="${claimLink}" class="button">
+                      Criar minha senha agora
+                    </a>
                   </div>
-                `,
+                  <p style="color: #888; font-size: 14px; margin-top: 30px;">Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
+                  <p class="link-alt">${claimLink}</p>
+                `),
               }),
             });
           }
