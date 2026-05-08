@@ -12,9 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    const { pending_id, claim_token, password } = await req.json();
+    const { pending_id, claim_token, password, check_only } = await req.json();
 
-    if (!password || String(password).length < 6) {
+    if (!check_only && (!password || String(password).length < 6)) {
       return new Response(JSON.stringify({ error: "Senha precisa ter ao menos 6 caracteres." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
