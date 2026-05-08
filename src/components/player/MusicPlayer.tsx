@@ -1,4 +1,5 @@
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Loader2, X, ListMusic, Trash2, Eraser, Heart, Shuffle, Repeat, Maximize2, MonitorSpeaker, Music2 } from "lucide-react";
+import trackPlaceholder from "@/assets/track-placeholder.png";
 import { Slider } from "@/components/ui/slider";
 import { usePlayerStore } from "@/stores/playerStore";
 import { AnimatePresence, motion } from "framer-motion";
