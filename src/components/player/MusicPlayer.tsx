@@ -65,7 +65,7 @@ export function MusicPlayer() {
         >
           {/* LEFT: Cover + Title + Heart */}
           <div className="flex w-full md:w-[28%] min-w-0 items-center gap-3">
-            <div className="h-12 w-12 md:h-14 md:w-14 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-[hsl(142,76%,25%)] to-[hsl(142,76%,15%)] ring-1 ring-[hsl(142,76%,45%)]/40 shadow-[0_0_20px_-5px_rgba(34,197,94,0.5)] flex items-center justify-center">
+            <div className="h-12 w-12 md:h-14 md:w-14 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-[#0d1410] to-[#050805] ring-1 ring-[hsl(142,76%,45%)]/40 shadow-[0_0_20px_-5px_rgba(34,197,94,0.5)] flex items-center justify-center">
               {currentTrack.cover_url ? (
                 <img
                   src={currentTrack.cover_url}
@@ -74,7 +74,7 @@ export function MusicPlayer() {
                   loading="lazy"
                 />
               ) : (
-                <Music2 className="h-6 w-6 text-[hsl(142,76%,55%)]" />
+                <img src={trackPlaceholder} alt="" aria-hidden="true" className="h-full w-full object-contain p-1" />
               )}
             </div>
             <div className="min-w-0 flex-1">
