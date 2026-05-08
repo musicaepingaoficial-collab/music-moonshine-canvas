@@ -71,17 +71,19 @@ serve(async (req) => {
             mp_payment_id: payment.id,
           })
           .eq("id", pendingId)
-          .neq("status", "claimed");
+            .neq("status", "claimed");
 
         if (updErr) console.error("update pending err:", updErr);
 
         try {
           const { data: pending } = await supabase
             .from("pending_subscriptions")
-            .select("full_name, email, plan, price")
+            .select("full_name, email, plan, price, claim_token")
             .eq("id", pendingId)
             .maybeSingle();
+            
           if (pending) {
+            // Disparar notificação admin
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
               method: "POST",
               headers: {
@@ -95,7 +97,38 @@ serve(async (req) => {
                 url: "/admin/assinaturas",
               }),
             });
+
+            // Disparar e-mail de backup para o usuário
+            const siteUrl = Deno.env.get("SITE_URL") || "https://sua-plataforma.com";
+            const claimLink = `${siteUrl}/finalizar-cadastro?token=${pending.claim_token}`;
+            
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                to: pending.email,
+                subject: "Pagamento confirmado! Finalize seu cadastro",
+                html: `
+                  <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>Olá, ${pending.full_name}!</h2>
+                    <p>Seu pagamento para o plano <strong>${pending.plan}</strong> foi confirmado com sucesso.</p>
+                    <p>Agora falta apenas um passo: criar sua senha de acesso.</p>
+                    <div style="margin: 30px 0;">
+                      <a href="${claimLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                        Criar minha senha agora
+                      </a>
+                    </div>
+                    <p style="color: #666; font-size: 14px;">Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
+                    <p style="color: #666; font-size: 14px;">${claimLink}</p>
+                  </div>
+                `,
+              }),
+            });
           }
+
         } catch (err) {
           console.error("[push pending approved]", err);
         }
