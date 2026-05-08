@@ -42,6 +42,13 @@ serve(async (req) => {
       });
     }
 
+    // Modo verificação de status (não cria conta) — sempre retorna o status atual
+    if (check_only) {
+      return new Response(JSON.stringify({ status: pending.status, email: pending.email }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (pending.status === "claimed") {
       return new Response(JSON.stringify({ error: "Este pagamento já foi finalizado. Faça login.", code: "already_claimed" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -55,13 +62,6 @@ serve(async (req) => {
         status: pending.status,
       }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Modo verificação de status (não cria conta)
-    if (check_only) {
-      return new Response(JSON.stringify({ status: pending.status, email: pending.email }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
