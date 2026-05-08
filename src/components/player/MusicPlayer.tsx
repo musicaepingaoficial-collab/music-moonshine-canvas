@@ -95,14 +95,21 @@ export function MusicPlayer() {
               />
             </button>
 
-            {/* Mobile play + close */}
-            <div className="flex items-center gap-1 md:hidden">
+            {/* Mobile actions: fav + prev + play + next + close */}
+            <div className="flex items-center gap-0.5 md:hidden">
               <button
                 onClick={() => currentTrack && toggleFav.mutate(currentTrack.id)}
                 className="p-1.5"
                 aria-label="Favoritar"
               >
                 <Heart className={`h-5 w-5 ${isFavorite ? "fill-[hsl(142,76%,55%)] text-[hsl(142,76%,55%)]" : "text-white/60"}`} />
+              </button>
+              <button
+                onClick={previous}
+                className="p-1.5 text-white/80"
+                aria-label="Anterior"
+              >
+                <SkipBack className="h-4 w-4" fill="currentColor" />
               </button>
               <button
                 onClick={handlePlayPause}
@@ -117,6 +124,13 @@ export function MusicPlayer() {
                   <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
                 )}
               </button>
+              <button
+                onClick={next}
+                className="p-1.5 text-white/80"
+                aria-label="Próxima"
+              >
+                <SkipForward className="h-4 w-4" fill="currentColor" />
+              </button>
               <button onClick={close} className="text-white/60 p-1.5" aria-label="Fechar">
                 <X className="h-4 w-4" />
               </button>
@@ -125,6 +139,88 @@ export function MusicPlayer() {
 
           {/* CENTER: Controls + Progress */}
           <div className="flex w-full md:flex-1 flex-col items-center gap-1.5">
+            {/* Mobile: queue + volume row */}
+            <div className="flex md:hidden w-full items-center justify-between px-1 -mt-1">
+              <Popover open={isQueueOpen} onOpenChange={setIsQueueOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className={`p-1 ${isQueueOpen ? 'text-[hsl(142,76%,55%)]' : 'text-white/60'}`}
+                    aria-label="Lista"
+                  >
+                    <ListMusic className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-72 p-0 bg-[#0d1410]/95 backdrop-blur-lg border-[hsl(142,76%,40%)]/30"
+                  align="start"
+                  side="top"
+                  sideOffset={10}
+                >
+                  <div className="p-3 border-b border-[hsl(142,76%,40%)]/20 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-sm text-white">Lista de Reprodução</h3>
+                      <p className="text-[10px] text-white/50">{queue.length} músicas</p>
+                    </div>
+                    {queue.length > 1 && (
+                      <button onClick={clearQueue} className="text-xs text-white/60 flex items-center gap-1">
+                        <Eraser className="h-3 w-3" /> Limpar
+                      </button>
+                    )}
+                  </div>
+                  <ScrollArea className="h-64">
+                    <div className="p-2 space-y-1">
+                      {queue.map((track, i) => (
+                        <div
+                          key={`${track.id}-${i}`}
+                          onClick={() => { play(track); setIsQueueOpen(false); }}
+                          className={`w-full flex items-center gap-2 p-2 rounded-md cursor-pointer ${currentTrack.id === track.id ? 'bg-[hsl(142,76%,45%)]/15 text-[hsl(142,76%,55%)]' : 'hover:bg-white/5 text-white/90'}`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium truncate">{track.title}</p>
+                            <p className="text-[10px] text-white/50 truncate">{track.artist}</p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); removeFromQueue(track.id); }}
+                            className="p-1 text-white/50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+              <div className="flex items-center gap-2 flex-1 max-w-[55%]">
+                <button onClick={toggleMute} className="text-white/60" aria-label="Volume">
+                  {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </button>
+                <Slider
+                  value={muted ? [0] : [volume]}
+                  onValueChange={([v]) => setVolume(v)}
+                  max={100}
+                  step={1}
+                  className={`flex-1 ${greenSliderClass}`}
+                  aria-label="Volume"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShuffle((v) => !v)}
+                  className={shuffle ? "text-[hsl(142,76%,55%)]" : "text-white/60"}
+                  aria-label="Aleatório"
+                >
+                  <Shuffle className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setRepeat((v) => !v)}
+                  className={repeat ? "text-[hsl(142,76%,55%)]" : "text-white/60"}
+                  aria-label="Repetir"
+                >
+                  <Repeat className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
             <div className="hidden md:flex items-center gap-5">
               <button
                 onClick={() => setShuffle((v) => !v)}
