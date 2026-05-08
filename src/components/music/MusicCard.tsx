@@ -73,8 +73,14 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            <Play className="h-10 w-10 opacity-20" />
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-[#0d1410] via-[#0a0f0a] to-[#050805]">
+            <img
+              src={trackPlaceholder}
+              alt=""
+              aria-hidden="true"
+              className="h-3/4 w-3/4 object-contain opacity-90 drop-shadow-[0_0_24px_rgba(34,197,94,0.35)] transition-transform duration-500 group-hover:scale-110"
+              loading="lazy"
+            />
           </div>
         )}
         
