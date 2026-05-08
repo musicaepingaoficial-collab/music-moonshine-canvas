@@ -508,6 +508,60 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_subscriptions: {
+        Row: {
+          approved_at: string | null
+          claim_token: string
+          claimed_at: string | null
+          claimed_user_id: string | null
+          cpf: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          mp_payment_id: number | null
+          payment_method: string | null
+          plan: string
+          price: number
+          status: string
+          whatsapp: string
+        }
+        Insert: {
+          approved_at?: string | null
+          claim_token?: string
+          claimed_at?: string | null
+          claimed_user_id?: string | null
+          cpf: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          mp_payment_id?: number | null
+          payment_method?: string | null
+          plan: string
+          price?: number
+          status?: string
+          whatsapp: string
+        }
+        Update: {
+          approved_at?: string | null
+          claim_token?: string
+          claimed_at?: string | null
+          claimed_user_id?: string | null
+          cpf?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          mp_payment_id?: number | null
+          payment_method?: string | null
+          plan?: string
+          price?: number
+          status?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       pixel_settings: {
         Row: {
           ga4_enabled: boolean
