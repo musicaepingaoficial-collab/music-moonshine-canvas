@@ -153,9 +153,8 @@ export async function claimPendingSubscription(params: {
   return data;
 }
 
-// Polling: como RLS bloqueia o cliente, usamos a edge claim em modo "verificação"
-export async function pollPendingApproved(pendingId: string): Promise<boolean> {
-  // Tentamos um claim com senha vazia só para sondar status — falhará, mas o erro indica o estado
+// Verifica status de um pending_subscription sem criar conta
+export async function pollPendingApproved(pendingId: string): Promise<{ status: string } | null> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/claim-pending-subscription`, {
     method: "POST",
     headers: {
@@ -163,12 +162,8 @@ export async function pollPendingApproved(pendingId: string): Promise<boolean> {
       "Content-Type": "application/json",
       apikey: ANON_KEY,
     },
-    body: JSON.stringify({ pending_id: pendingId, password: "__poll__" }),
+    body: JSON.stringify({ pending_id: pendingId, check_only: true }),
   });
-  const data = await res.json().catch(() => ({}));
-  // Senha curta → 400 antes da checagem? Não — checamos password.length < 6 primeiro.
-  // Então usamos uma senha "válida" mas reservada que nunca será usada — não, isso CRIARIA conta.
-  // Melhor: ler error.code: "not_approved" significa pending; ausência → approved (mas claim teria executado).
-  // Para evitar criar conta acidentalmente, usamos uma rota dedicada de polling abaixo.
-  return data?.code !== "not_approved";
+  if (!res.ok) return null;
+  return res.json();
 }
