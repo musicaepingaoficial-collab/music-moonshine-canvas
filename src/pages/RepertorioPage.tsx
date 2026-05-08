@@ -1,5 +1,5 @@
 ﻿import { useParams, Link, useNavigate } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MusicCard } from "@/components/music/MusicCard";
@@ -400,10 +400,10 @@ const RepertorioPage = () => {
     return (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
-          <Skeleton className="h-24 w-24 sm:h-28 sm:w-28 rounded-xl" />
+          <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-xl bg-muted animate-pulse" />
           <div className="flex-1 space-y-2 pt-1">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-32" />
+            <div className="h-8 w-48 rounded-md bg-muted animate-pulse" />
+            <div className="h-4 w-32 rounded-md bg-muted animate-pulse" />
           </div>
         </div>
         <MusicGridSkeleton count={12} />
