@@ -56,6 +56,55 @@ serve(async (req) => {
     if (payment.status === "approved") {
       const ref = String(payment.external_reference || "");
 
+      // ==== Pagamento anônimo (pré-cadastro) ====
+      if (ref.startsWith("pending:")) {
+        const pendingId = ref.split(":")[1];
+        if (!pendingId) {
+          return new Response("Invalid pending ref", { status: 400 });
+        }
+
+        const { error: updErr } = await supabase
+          .from("pending_subscriptions")
+          .update({
+            status: "approved",
+            approved_at: new Date().toISOString(),
+            mp_payment_id: payment.id,
+          })
+          .eq("id", pendingId)
+          .neq("status", "claimed");
+
+        if (updErr) console.error("update pending err:", updErr);
+
+        try {
+          const { data: pending } = await supabase
+            .from("pending_subscriptions")
+            .select("full_name, email, plan, price")
+            .eq("id", pendingId)
+            .maybeSingle();
+          if (pending) {
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                type: "purchase",
+                title: "💰 Pagamento aprovado (pré-cadastro)",
+                body: `${pending.full_name} (${pending.email}) — ${pending.plan} R$ ${Number(pending.price).toFixed(2)}`,
+                url: "/admin/assinaturas",
+              }),
+            });
+          }
+        } catch (err) {
+          console.error("[push pending approved]", err);
+        }
+
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // ==== Compra avulsa de PDF ====
       if (ref.startsWith("pdf:")) {
         const [, userId, pdfId] = ref.split(":");
