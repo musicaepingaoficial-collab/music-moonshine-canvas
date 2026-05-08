@@ -58,6 +58,13 @@ serve(async (req) => {
       });
     }
 
+    // Modo verificação de status (não cria conta)
+    if (check_only) {
+      return new Response(JSON.stringify({ status: pending.status, email: pending.email }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const email = String(pending.email).trim().toLowerCase();
 
     // Cria usuário (e-mail confirmado para não exigir verificação)
