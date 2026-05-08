@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import nodemailer from "npm:nodemailer@6.9.10";
+import { emailTemplate } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,7 @@ interface EmailPayload {
   to: string;
   subject: string;
   html: string;
+  useTemplate?: boolean;
 }
 
 serve(async (req) => {
@@ -18,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, html } = await req.json() as EmailPayload;
+    const { to, subject, html, useTemplate = true } = await req.json() as EmailPayload;
 
     const SMTP_HOST = Deno.env.get("SMTP_HOST");
     const SMTP_PORT = Deno.env.get("SMTP_PORT");
@@ -48,11 +50,13 @@ serve(async (req) => {
 
     console.log(`Tentando enviar e-mail para ${to} via ${SMTP_HOST}:${SMTP_PORT}`);
 
+    const finalHtml = useTemplate ? emailTemplate(html, subject) : html;
+
     const info = await transporter.sendMail({
       from: `"Música e Pinga" <${SMTP_FROM}>`,
       to,
       subject,
-      html,
+      html: finalHtml,
     });
 
     console.log("E-mail enviado com sucesso:", info.messageId);
