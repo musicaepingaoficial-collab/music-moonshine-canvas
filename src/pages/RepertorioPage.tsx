@@ -393,7 +393,20 @@ const RepertorioPage = () => {
     };
   }, [pendingDownload]);
 
-  const isLoading = loadingRep || loadingMusicas;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
+          <Skeleton className="h-24 w-24 sm:h-28 sm:w-28 rounded-xl" />
+          <div className="flex-1 space-y-2 pt-1">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <MusicGridSkeleton count={12} />
+      </div>
+    );
+  }
 
   const renderMusicGrid = (tracks: Musica[]) => (
     <motion.div

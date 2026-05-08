@@ -64,7 +64,7 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
       transition={{ duration: 0.3, ease: "easeOut" }}
       className={`group relative overflow-hidden rounded-md bg-card transition-all duration-300 hover:shadow-2xl hover:z-10 ${isActive ? "ring-2 ring-primary" : ""}`}
     >
-      <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted">
         {coverUrl ? (
           <img
             src={coverUrl}

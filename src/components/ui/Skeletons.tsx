@@ -2,13 +2,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function MusicCardSkeleton() {
   return (
-    <div className="rounded-xl bg-card p-4">
-      <Skeleton className="aspect-square w-full rounded-lg" />
-      <Skeleton className="mt-3 h-4 w-3/4" />
-      <Skeleton className="mt-1.5 h-3 w-1/2" />
-      <div className="mt-2 flex gap-1">
-        <Skeleton className="h-7 w-7 rounded-full" />
-        <Skeleton className="h-7 w-7 rounded-full" />
+    <div className="group relative overflow-hidden rounded-md bg-card">
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted">
+        <Skeleton className="h-full w-full" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
+        <div className="absolute inset-0 flex flex-col justify-end p-3">
+          <Skeleton className="h-4 w-3/4 bg-white/20" />
+          <Skeleton className="mt-2 h-3 w-1/2 bg-white/10" />
+          <div className="mt-3 flex gap-2">
+            <Skeleton className="h-8 w-8 rounded-full bg-white/20" />
+            <Skeleton className="h-8 w-8 rounded-full bg-white/20" />
+            <Skeleton className="h-8 w-8 rounded-full bg-white/20" />
+          </div>
+        </div>
       </div>
     </div>
   );
