@@ -469,20 +469,20 @@ const RepertorioPage = () => {
               </Button>
             </Link>
             <div className="flex items-center gap-2">
-              {/* Botão limpar removido da tela principal do aplicativo conforme solicitado */}
               {(musicas?.length ?? 0) > 0 && (
                 <div className="flex items-center gap-2">
                   <Button
-                    onClick={() => {
-                      const addToQueue = usePlayerStore.getState().addToQueue;
-                      musicas?.forEach(m => addToQueue(m));
-                      toast.success(`${musicas?.length} músicas adicionadas à lista de reprodução`);
-                    }}
-                    variant="outline"
                     size="sm"
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive/10 border-destructive/20"
+                    onClick={() => {
+                      if (confirm("Deseja realmente limpar toda a lista de reprodução atual?")) {
+                        usePlayerStore.getState().clearQueue();
+                        toast.success("Lista de reprodução limpa");
+                      }
+                    }}
                   >
-                    <ListPlus className="mr-1 h-4 w-4" />
-                    Adicionar à lista
+                    Limpar lista
                   </Button>
                   <Button
                     onClick={handleDownloadAll}

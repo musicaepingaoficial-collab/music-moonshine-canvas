@@ -20,16 +20,17 @@ const FavoritosPage = () => {
         <Banner title="Favoritos" subtitle="Suas músicas mais queridas." />
         {!isLoading && !error && (favoritos?.length ?? 0) > 0 && (
           <Button
-            variant="outline"
             size="sm"
+            variant="outline"
+            className="text-destructive hover:bg-destructive/10 border-destructive/20"
             onClick={() => {
-              const addToQueue = usePlayerStore.getState().addToQueue;
-              favoritos?.forEach(f => addToQueue(f.musicas));
-              toast.success(`${favoritos?.length} músicas adicionadas à lista de reprodução`);
+              if (confirm("Deseja realmente limpar toda a lista de reprodução atual?")) {
+                usePlayerStore.getState().clearQueue();
+                toast.success("Lista de reprodução limpa");
+              }
             }}
           >
-            <ListPlus className="mr-2 h-4 w-4" />
-            Adicionar tudo à lista
+            Limpar lista
           </Button>
         )}
       </div>
