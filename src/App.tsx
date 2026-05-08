@@ -35,6 +35,7 @@ const TodasMusicasPage = lazy(() => import("./pages/TodasMusicasPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
 const PlanosGatePage = lazy(() => import("./pages/PlanosGatePage"));
 const InstalarPage = lazy(() => import("./pages/InstalarPage"));
+const FinalizarCadastroPage = lazy(() => import("./pages/FinalizarCadastroPage"));
 const PdfsPage = lazy(() => import("./pages/PdfsPage"));
 const IndicacoesPage = lazy(() => import("./pages/IndicacoesPage"));
 const ComoBaixarPage = lazy(() => import("./pages/ComoBaixarPage"));
@@ -101,6 +102,7 @@ const App = () => (
               <Route path="/completar-perfil" element={<CompleteProfilePage />} />
               <Route path="/planos" element={<PlanosGatePage />} />
               <Route path="/instalar" element={<InstalarPage />} />
+              <Route path="/finalizar-cadastro" element={<FinalizarCadastroPage />} />
 
               {/* App routes */}
               <Route element={<ProtectedRoute />}>
