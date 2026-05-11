@@ -201,7 +201,7 @@ export default function AdminDiscografiasPage() {
               <Plus className="mr-2 h-4 w-4" /> Nova Discografia
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{isEditing ? "Editar Discografia" : "Nova Discografia"}</DialogTitle>
             </DialogHeader>
@@ -278,7 +278,7 @@ export default function AdminDiscografiasPage() {
               
               <div className="space-y-4 pt-4 border-t">
                 <label className="text-sm font-medium">Links de Download</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input 
                     placeholder="Nome (Ex: Álbum 2024)" 
                     value={newLinkLabel}
@@ -289,7 +289,7 @@ export default function AdminDiscografiasPage() {
                     value={newLinkUrl}
                     onChange={(e) => setNewLinkUrl(e.target.value)}
                   />
-                  <Button type="button" variant="secondary" onClick={addLink}>
+                  <Button type="button" variant="secondary" onClick={addLink} className="sm:w-auto w-full">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -309,7 +309,7 @@ export default function AdminDiscografiasPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="sticky bottom-0 bg-background pt-3 border-t -mx-6 px-6 pb-2">
               <Button variant="outline" onClick={handleClose}>Cancelar</Button>
               <Button 
                 onClick={() => upsertMutation.mutate()}

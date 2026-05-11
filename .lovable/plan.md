@@ -1,34 +1,21 @@
-## Objetivo
+## Causa provável
 
-Permitir alternar entre visualização de pastas em **Grade** (atual) e **Lista** (largura cheia, mostra o nome da pasta completo).
+No mobile (você está em viewport de 390x638), o diálogo "Nova Discografia" não tem altura máxima nem scroll interno. Como o formulário tem vários campos (nome, gênero, upload de foto, lista de links), o conteúdo ultrapassa a altura da tela e o **botão "Criar Discografia" fica fora da área visível**. Por isso, ao clicar em "salvar", o clique cai em outro elemento (ou o botão está atrás do teclado/barra do navegador) e nada acontece.
 
-## Mudanças
+Confirmei que:
+- Sua conta tem papel `admin` no banco.
+- As políticas RLS da tabela `discografias` permitem inserção por admins.
+- O bucket `discografias` tem políticas corretas para upload por admins.
+- O schema da tabela está correto (sem colunas faltando).
 
-Tudo em `src/pages/RepertorioPage.tsx`.
+Ou seja, o problema é puramente de UI mobile do diálogo de cadastro.
 
-### 1. Estado e toggle
+## O que vou ajustar
 
-- Adicionar `const [folderViewMode, setFolderViewMode] = useState<"grid" | "list">("grid")`.
-- Persistir em `localStorage` com chave `repertorio:folderViewMode` (read no init, write no toggle) para manter a preferência do usuário.
-- Adicionar um pequeno toggle de duas opções acima do grid de pastas (linha ~624), à direita: dois botões com ícones `LayoutGrid` e `List` (lucide-react), mostrando o ativo com `bg-primary/10` e `text-primary`.
+Em `src/pages/admin/AdminDiscografiasPage.tsx`, no `<DialogContent>`:
 
-### 2. Renderização condicional
+1. Adicionar `max-h-[90vh] overflow-y-auto` para o diálogo virar rolável.
+2. Tornar o `DialogFooter` "sticky" no rodapé do diálogo (`sticky bottom-0 bg-background pt-3 border-t`) para que os botões "Cancelar" e "Criar Discografia" fiquem sempre visíveis enquanto você rola.
+3. Ajustar a linha de adicionar links (`flex gap-2`) para empilhar no mobile (`flex-col sm:flex-row`), evitando estouro lateral.
 
-Substituir o bloco do grid de subpastas (linhas 625-658) por:
-
-- Wrapper que adapta classes:
-  - `grid` mode: classes atuais (`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3`).
-  - `list` mode: `flex flex-col gap-2 w-full`.
-- Cada item (`Button`):
-  - `grid` mode: classes atuais.
-  - `list` mode: `w-full justify-start gap-3 px-4 py-3` e remover `truncate` do `<span>` (trocar por `whitespace-normal break-words text-left`) para permitir nome completo em múltiplas linhas; ou `truncate` removido só nesse modo.
-  - Ícone `FolderOpen` mantém-se à esquerda; contador de músicas vai à direita (em list mode usar `ml-auto shrink-0`).
-
-### 3. Acessibilidade
-
-- Botões do toggle com `aria-label` ("Visualizar em grade" / "Visualizar em lista") e `aria-pressed`.
-
-## Fora de escopo
-
-- Mudar o grid de músicas (apenas pastas).
-- Mudanças em business logic, navegação ou store.
+Sem mudanças em banco, RLS, storage ou lógica de negócio — só CSS/layout do formulário.
