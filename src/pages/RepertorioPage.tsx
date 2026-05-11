@@ -594,23 +594,23 @@ const RepertorioPage = () => {
           {isLoading ? (
             <MusicGridSkeleton count={6} />
           ) : (musicas?.length ?? 0) > 0 ? (
-            <div className="space-y-6">
-              <div className="space-y-4 mb-6">
+              <div className="min-w-0 max-w-full space-y-6 overflow-hidden">
+              <div className="mb-6 min-w-0 max-w-full space-y-4 overflow-hidden">
                 {/* Breadcrumbs */}
-                <div className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto pb-2 scrollbar-none">
+                <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden pb-2 text-xs text-muted-foreground">
                   <button 
                     onClick={() => handleBreadcrumbClick(-1)}
-                    className={`hover:text-primary transition-colors whitespace-nowrap flex items-center gap-1 ${navigationPath.length === 0 ? 'text-primary font-bold' : ''}`}
+                    className={`flex shrink-0 items-center gap-1 whitespace-nowrap transition-colors hover:text-primary ${navigationPath.length === 0 ? 'text-primary font-bold' : ''}`}
                   >
                     <FolderOpen className="h-3 w-3" />
                     Raiz
                   </button>
                   {navigationPath.map((part, i) => (
-                    <div key={i} className="flex items-center gap-1 shrink-0">
-                      <ChevronRight className="h-3 w-3" />
+                    <div key={i} className="flex min-w-0 items-center gap-1 overflow-hidden">
+                      <ChevronRight className="h-3 w-3 shrink-0" />
                       <button 
                         onClick={() => handleBreadcrumbClick(i)}
-                        className={`hover:text-primary transition-colors whitespace-nowrap ${i === navigationPath.length - 1 ? 'text-primary font-bold' : ''}`}
+                        className={`min-w-0 truncate transition-colors hover:text-primary ${i === navigationPath.length - 1 ? 'text-primary font-bold' : ''}`}
                       >
                         {part}
                       </button>
@@ -620,14 +620,14 @@ const RepertorioPage = () => {
 
                 {/* Subfolders Grid */}
                 {currentLevelFolders.length > 0 && (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                  <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                     {currentLevelFolders.map((folder) => {
                       const folderName = folder.split('/').pop() || folder;
                       const isSelected = selectedFolder === folder;
                       const hasFiles = groups.some(g => g.name === folder);
                       
                       return (
-                        <div key={folder} className="group relative">
+                        <div key={folder} className="group relative min-w-0 overflow-hidden">
                           <Button
                             variant="outline"
                             className={`w-full justify-start gap-2 h-auto py-3 px-3 border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all ${
