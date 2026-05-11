@@ -1,49 +1,78 @@
-# Corrigir responsividade dos cards de música
+# Corrigir overflow horizontal em pastas com nomes longos
 
-## Problema identificado
+## Problema
 
-Em telas pequenas (~390px), o grid de músicas em pastas de repertório quebra: a segunda coluna do `grid-cols-2` aparece cortada, exigindo scroll horizontal.
+Em `/repertorio/:id`, ao abrir uma subpasta cujo nome é longo (ex.: "13. TATY GIRL - RELIQUIAS CAIXA TOP PRODUÇÕES com vinheta"), a página inteira ganha largura maior que a viewport no mobile:
 
-### Causa raiz
+- Cabeçalho ("3738 Musicas • 10.76 GB") fica cortado à direita
+- Botão "Voltar" desalinha
+- Breadcrumb fica cortado
+- Grid de cards aparece com 1 card ocupando quase toda a tela em vez de 2 colunas
 
-No `MusicCard.tsx`, a barra de ações tem **4 botões** (Play, Favoritar, Download, Fila) com:
+Em pastas com nome curto ("01. HITS") o layout fica certo — confirmando que o problema é texto longo, não os cards.
 
-- `h-10 w-10` no mobile e `sm:h-8 sm:w-8` no desktop — ou seja, **maiores no celular**, o oposto do esperado
-- `gap-2` entre eles
-- Sem `flex-wrap` nem `min-w-0`
+## Causa raiz
 
-Largura mínima da barra: `4 × 40px + 3 × 8px = 184px`, mais o padding `p-3` (24px) = **~208px de min-content**.
+Em `src/pages/RepertorioPage.tsx`, na seção que renderiza o título da pasta selecionada (linhas ~657-695):
 
-Como flex items têm `min-width: auto`, o grid `grid-cols-2` (que usa `minmax(0, 1fr)`) acaba sendo empurrado pelo conteúdo: cada coluna passa de ~171px (esperado) para ~210px+, gerando overflow horizontal — exatamente o sintoma do screenshot.
+```tsx
+<div className="flex items-center justify-between">
+  <h3 className="text-sm font-semibold flex items-center gap-2">
+    <Music2 className="h-4 w-4 text-primary" />
+    Músicas em {selectedFolder.split('/').pop()}
+  </h3>
+  {selectedFolder && (
+    <div className="flex items-center gap-2">
+      <Button>Baixar pasta</Button>
+    </div>
+  )}
+</div>
+```
 
-O `AddToQueueButton.tsx` repete a mesma lógica `h-10 w-10 sm:h-8 sm:w-8`.
+Problemas:
+
+1. O `<h3>` não tem `truncate` nem `min-w-0`, então cresce até o tamanho do texto inteiro
+2. O wrapper `<div className="flex items-center justify-between">` também não tem `min-w-0`, então é empurrado pelo h3
+3. Resultado: o bloco fica mais largo que `w-full`, estourando o `overflow-x-hidden` do `<main>` (em alguns browsers o overflow-hidden não contém filhos com tamanho intrínseco maior em certas combinações de flex)
+4. O grid `grid-cols-2` abaixo herda essa largura inflada e cada card vira ~340px
 
 ## Solução
 
-### 1. `src/components/music/MusicCard.tsx`
+### 1. Tornar o título truncável
 
-Ajustar a barra de ações para realmente caber em 2 colunas no mobile:
-
-- Mudar todos os 4 botões para `h-8 w-8` em todas as larguras (ou `h-7 w-7` no mobile, `sm:h-8 sm:w-8`)
-- Reduzir `gap-2` para `gap-1.5` no mobile (`sm:gap-2`)
-- Trocar `p-3` do container interno para `p-2 sm:p-3`
-- Adicionar `min-w-0` no flex container das ações para impedir que empurrem o grid
-- Reduzir o tamanho dos ícones no mobile (`h-3.5 w-3.5 sm:h-4 sm:w-4`)
-
-### 2. `src/components/music/AddToQueueButton.tsx`
-
-Mesma correção: trocar `h-10 w-10 sm:h-8 sm:w-8` por `h-8 w-8` consistente.
-
-### 3. `src/pages/RepertorioPage.tsx` (defensivo)
-
-No `renderMusicGrid`, adicionar `min-w-0` no `motion.div` wrapper de cada card para garantir que o grid track nunca seja empurrado por conteúdo interno:
+No header da seção de músicas em `RepertorioPage.tsx`:
 
 ```tsx
-<motion.div key={t.id} className="min-w-0" variants={...}>
+<div className="flex items-center justify-between gap-3 min-w-0">
+  <h3 className="text-sm font-semibold flex items-center gap-2 min-w-0 flex-1">
+    <Music2 className="h-4 w-4 text-primary shrink-0" />
+    <span className="truncate">
+      {selectedFolder
+        ? `Músicas em ${selectedFolder.split('/').pop()}`
+        : 'Músicas na Raiz'}
+    </span>
+  </h3>
+  {selectedFolder && (
+    <div className="flex items-center gap-2 shrink-0">
+      <Button>Baixar pasta</Button>
+    </div>
+  )}
+</div>
 ```
+
+Aplicar o mesmo padrão (`min-w-0 flex-1` + `<span className="truncate">` + `shrink-0` no ícone) nas três variantes do `h3` (selectedFolder, raiz, "Selecione uma subpasta").
+
+### 2. Garantir contenção no wrapper da seção
+
+Adicionar `min-w-0` no `<div className="space-y-3">` que envolve o header + grid (linha ~657), para que o grid de baixo nunca herde largura inflada.
+
+### 3. Defensivo no header superior do repertório
+
+Verificar o bloco de cabeçalho com nome do repertório (linhas ~447-479) — o `<h1>` já tem `truncate`, mas o wrapper `<div className="flex-1 min-w-0 ...">` está OK. Sem mudanças necessárias ali, apenas confirmar.
 
 ## Resultado esperado
 
-- A 390px: dois cards lado a lado, sem scroll horizontal, com todos os botões visíveis e proporcionais
-- A 768px+: layout atual de 3/4/6 colunas mantido sem alterações visuais
-- Sem mudanças de business logic, apenas presentation
+- Pastas com nome longo passam a ter o título truncado com "…" e os cards ficam em 2 colunas perfeitas no mobile, igual à pasta "01. HITS" do screenshot correto
+- Sem scroll horizontal em nenhuma resolução
+- Layout idêntico para nomes curtos e longos
+- Apenas mudanças de presentation, sem alterar lógica

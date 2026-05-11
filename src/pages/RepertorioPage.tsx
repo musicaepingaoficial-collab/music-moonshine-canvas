@@ -655,28 +655,28 @@ const RepertorioPage = () => {
                 )}
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold flex items-center gap-2">
+              <div className="space-y-3 min-w-0">
+                <div className="flex items-center justify-between gap-3 min-w-0">
+                  <h3 className="text-sm font-semibold flex items-center gap-2 min-w-0 flex-1">
                     {selectedFolder ? (
                       <>
-                        <Music2 className="h-4 w-4 text-primary" />
-                        Músicas em {selectedFolder.split('/').pop()}
+                        <Music2 className="h-4 w-4 text-primary shrink-0" />
+                        <span className="truncate">Músicas em {selectedFolder.split('/').pop()}</span>
                       </>
                     ) : navigationPath.length === 0 ? (
                       <>
-                        <Music2 className="h-4 w-4 text-primary" />
-                        Músicas na Raiz
+                        <Music2 className="h-4 w-4 text-primary shrink-0" />
+                        <span className="truncate">Músicas na Raiz</span>
                       </>
                     ) : (
                       <>
-                        <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                        Selecione uma subpasta acima
+                        <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="truncate">Selecione uma subpasta acima</span>
                       </>
                     )}
                   </h3>
                   {selectedFolder && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
