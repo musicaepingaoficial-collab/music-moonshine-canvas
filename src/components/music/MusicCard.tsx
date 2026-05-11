@@ -63,7 +63,7 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
     <motion.div
       whileHover={{ scale: 1.05 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className={`group relative overflow-hidden rounded-md bg-card transition-all duration-300 hover:shadow-2xl hover:z-10 ${isActive ? "ring-2 ring-primary" : ""}`}
+      className={`group relative min-w-0 w-full overflow-hidden rounded-md bg-card transition-all duration-300 hover:shadow-2xl hover:z-10 ${isActive ? "ring-2 ring-primary" : ""}`}
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted">
         {coverUrl ? (
@@ -94,7 +94,7 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
           </Link>
           <p className="truncate text-[10px] text-white/70 mb-2">{artist}</p>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 delay-75">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0 overflow-hidden opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 delay-75">
             <button
               onClick={handlePlay}
               className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white text-black hover:scale-110 transition-transform shadow-lg"
