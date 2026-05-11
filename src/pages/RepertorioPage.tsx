@@ -416,7 +416,7 @@ const RepertorioPage = () => {
       initial="hidden"
       animate="show"
       variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+      className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6"
     >
       {tracks.map((t) => (
         <motion.div
@@ -439,7 +439,7 @@ const RepertorioPage = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
       {errorRep ? (
         <ErrorState message="Erro ao carregar repertÃ³rio." onRetry={() => refetch()} />
       ) : (
@@ -479,19 +479,19 @@ const RepertorioPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center justify-between gap-3 overflow-hidden">
             <Link to="/repertorios">
               <Button variant="ghost" size="sm" aria-label="Voltar para repertÃ³rios">
                 <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">
               {(musicas?.length ?? 0) > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-destructive hover:bg-destructive/10 border-destructive/20"
+                    className="max-w-[88px] truncate border-destructive/20 px-2 text-destructive hover:bg-destructive/10 sm:max-w-none sm:px-3"
                     onClick={() => {
                       if (confirm("Deseja realmente limpar toda a lista de reprodução atual?")) {
                         usePlayerStore.getState().clearQueue();
