@@ -11,7 +11,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MusicGridSkeleton } from "@/components/ui/Skeletons";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Loader2, Eraser, ListPlus } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, ChevronRight, Download, FolderOpen, HardDrive, Music2, Loader2, Eraser, ListPlus, LayoutGrid, List } from "lucide-react";
 import { downloadMultiple, hasFileSystemAccess, pickZipDestination, type DownloadArchiveItem } from "@/services/zipService";
 import {
   AlertDialog,
@@ -83,6 +83,14 @@ const RepertorioPage = () => {
     label: string;
   } | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+  const [folderViewMode, setFolderViewMode] = useState<"grid" | "list">(() => {
+    if (typeof window === "undefined") return "grid";
+    return (localStorage.getItem("repertorio:folderViewMode") as "grid" | "list") || "grid";
+  });
+  const handleSetFolderViewMode = (mode: "grid" | "list") => {
+    setFolderViewMode(mode);
+    try { localStorage.setItem("repertorio:folderViewMode", mode); } catch {}
+  };
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
@@ -621,40 +629,91 @@ const RepertorioPage = () => {
                   ))}
                 </div>
 
-                {/* Subfolders Grid */}
+                {/* Subfolders */}
                 {currentLevelFolders.length > 0 && (
-                  <div className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                    {currentLevelFolders.map((folder) => {
-                      const folderName = folder.split('/').pop() || folder;
-                      const isSelected = selectedFolder === folder;
-                      const hasFiles = groups.some(g => g.name === folder);
-                      
-                      return (
-                        <div key={folder} className="group relative min-w-0 overflow-hidden">
-                          <Button
-                            variant="outline"
-                            className={`h-auto w-full min-w-0 justify-start gap-2 border-dashed px-3 py-3 transition-all hover:border-primary/50 hover:bg-primary/5 ${
-                              isSelected ? "border-primary bg-primary/10" : ""
-                            }`}
-                            onClick={() => handleFolderClick(folder)}
-                          >
-                            <FolderOpen className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`} />
-                            <div className="flex min-w-0 flex-1 flex-col items-start overflow-hidden">
-                              <span className="text-sm font-medium truncate w-full text-left">
-                                {folderName}
-                              </span>
-                              {hasFiles && (
-                                <span className="text-[10px] text-muted-foreground">
-                                  {groups.find(g => g.name === folder)?.musicas.length} músicas
-                                </span>
+                  <>
+                    {/* View mode toggle */}
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSetFolderViewMode("grid")}
+                        aria-label="Visualizar em grade"
+                        aria-pressed={folderViewMode === "grid"}
+                        className={`flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                          folderViewMode === "grid"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetFolderViewMode("list")}
+                        aria-label="Visualizar em lista"
+                        aria-pressed={folderViewMode === "list"}
+                        className={`flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                          folderViewMode === "list"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <List className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div
+                      className={
+                        folderViewMode === "grid"
+                          ? "grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+                          : "flex w-full min-w-0 max-w-full flex-col gap-2 overflow-hidden"
+                      }
+                    >
+                      {currentLevelFolders.map((folder) => {
+                        const folderName = folder.split('/').pop() || folder;
+                        const isSelected = selectedFolder === folder;
+                        const hasFiles = groups.some(g => g.name === folder);
+                        const count = groups.find(g => g.name === folder)?.musicas.length;
+
+                        return (
+                          <div key={folder} className="group relative min-w-0 overflow-hidden">
+                            <Button
+                              variant="outline"
+                              className={`h-auto w-full min-w-0 justify-start gap-2 border-dashed px-3 py-3 transition-all hover:border-primary/50 hover:bg-primary/5 ${
+                                isSelected ? "border-primary bg-primary/10" : ""
+                              }`}
+                              onClick={() => handleFolderClick(folder)}
+                            >
+                              <FolderOpen className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`} />
+                              {folderViewMode === "grid" ? (
+                                <div className="flex min-w-0 flex-1 flex-col items-start overflow-hidden">
+                                  <span className="text-sm font-medium truncate w-full text-left">
+                                    {folderName}
+                                  </span>
+                                  {hasFiles && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {count} músicas
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <>
+                                  <span className="min-w-0 flex-1 whitespace-normal break-words text-left text-sm font-medium">
+                                    {folderName}
+                                  </span>
+                                  {hasFiles && (
+                                    <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                                      {count} músicas
+                                    </span>
+                                  )}
+                                </>
                               )}
-                            </div>
-                          </Button>
-                          {/* Botão de excluir pasta removido conforme solicitação */}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
 
