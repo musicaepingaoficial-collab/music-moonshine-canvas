@@ -95,6 +95,7 @@ const App = () => (
           <PixelInjector />
           <RouteTracker />
           <CookieBanner />
+          <SingleSessionGuard />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
             <Routes>
