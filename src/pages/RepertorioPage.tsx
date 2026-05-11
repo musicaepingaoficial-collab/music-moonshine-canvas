@@ -485,7 +485,7 @@ const RepertorioPage = () => {
                 <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
               </Button>
             </Link>
-            <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-2 overflow-hidden">
               {(musicas?.length ?? 0) > 0 && (
                 <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">
                   <Button
@@ -507,9 +507,12 @@ const RepertorioPage = () => {
                     size="sm"
                     title={isTrial ? "Disponível apenas para assinantes" : undefined}
                     aria-label="Baixar repertório completo"
+                    className="min-w-0 max-w-[116px] px-2 sm:max-w-none sm:px-3"
                   >
-                    <Download className="mr-1 h-4 w-4" />
-                    {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
+                    <Download className="h-4 w-4 shrink-0 sm:mr-1" />
+                    <span className="truncate sm:inline">
+                      {isTrial ? "Assine" : downloading ? "Baixando..." : "Baixar tudo"}
+                    </span>
                   </Button>
                 </div>
               )}
