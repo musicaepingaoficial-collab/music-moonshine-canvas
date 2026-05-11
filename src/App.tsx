@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { useSingleSession } from "@/hooks/useSingleSession";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
@@ -78,6 +79,11 @@ function PageLoader() {
   );
 }
 
+function SingleSessionGuard() {
+  useSingleSession();
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -89,6 +95,7 @@ const App = () => (
           <PixelInjector />
           <RouteTracker />
           <CookieBanner />
+          <SingleSessionGuard />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
             <Routes>

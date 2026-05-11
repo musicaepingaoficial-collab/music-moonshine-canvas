@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_sessions: {
+        Row: {
+          device_info: string | null
+          session_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          device_info?: string | null
+          session_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          device_info?: string | null
+          session_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_notification_prefs: {
         Row: {
           notify_pix_generated: boolean
