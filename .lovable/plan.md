@@ -1,78 +1,29 @@
-# Corrigir overflow horizontal em pastas com nomes longos
+## Objetivo
 
-## Problema
+Reorganizar os 4 botões de ação (Play, Favorito, Download, Fila) no `MusicCard` aplicando o estilo **Pill Control Bar** escolhido, deixando-os maiores e mais bem distribuídos para uso no mobile.
 
-Em `/repertorio/:id`, ao abrir uma subpasta cujo nome é longo (ex.: "13. TATY GIRL - RELIQUIAS CAIXA TOP PRODUÇÕES com vinheta"), a página inteira ganha largura maior que a viewport no mobile:
+## Mudanças
 
-- Cabeçalho ("3738 Musicas • 10.76 GB") fica cortado à direita
-- Botão "Voltar" desalinha
-- Breadcrumb fica cortado
-- Grid de cards aparece com 1 card ocupando quase toda a tela em vez de 2 colunas
+### 1. `src/components/music/MusicCard.tsx` — linhas 96-132
 
-Em pastas com nome curto ("01. HITS") o layout fica certo — confirmando que o problema é texto longo, não os cards.
+Substituir a `div` que envolve os 4 botões por um layout com `flex` distribuído (`gap-2`), onde cada botão secundário usa `flex-1 aspect-square max-w-[52px]` e o Play é destacado com `flex-[1.6] h-12`.
 
-## Causa raiz
+- **Wrapper**: `flex items-center gap-2 w-full` (sem `ml-auto` no botão de fila — distribuição uniforme).
+- **Play (primário)**: `flex-[1.6] h-11 sm:h-12 rounded-full bg-white text-black shadow-lg active:scale-95`, ícone `h-5 w-5`.
+- **Favorito / Download / Fila (secundários)**: `flex-1 aspect-square max-w-[52px] rounded-full bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:scale-90`, ícone `h-4 w-4 sm:h-[18px] sm:w-[18px]`.
+- Estado ativo do favorito: preencher `Heart` com `fill-current text-red-500` quando favoritado (manter comportamento atual; só ajustar visual se já existir flag — caso contrário manter como está).
+- Remover `ml-auto` do `AddToQueueButton` para que ele entre na mesma distribuição.
 
-Em `src/pages/RepertorioPage.tsx`, na seção que renderiza o título da pasta selecionada (linhas ~657-695):
+### 2. `src/components/music/AddToQueueButton.tsx` — linhas 48-53
 
-```tsx
-<div className="flex items-center justify-between">
-  <h3 className="text-sm font-semibold flex items-center gap-2">
-    <Music2 className="h-4 w-4 text-primary" />
-    Músicas em {selectedFolder.split('/').pop()}
-  </h3>
-  {selectedFolder && (
-    <div className="flex items-center gap-2">
-      <Button>Baixar pasta</Button>
-    </div>
-  )}
-</div>
-```
+Atualizar o `<button>` do `PopoverTrigger` para herdar o mesmo padrão dos secundários: `flex-1 aspect-square max-w-[52px] rounded-full bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:scale-90`, ícone `h-4 w-4 sm:h-[18px] sm:w-[18px]`.
 
-Problemas:
+### 3. Comportamento de exibição
 
-1. O `<h3>` não tem `truncate` nem `min-w-0`, então cresce até o tamanho do texto inteiro
-2. O wrapper `<div className="flex items-center justify-between">` também não tem `min-w-0`, então é empurrado pelo h3
-3. Resultado: o bloco fica mais largo que `w-full`, estourando o `overflow-x-hidden` do `<main>` (em alguns browsers o overflow-hidden não contém filhos com tamanho intrínseco maior em certas combinações de flex)
-4. O grid `grid-cols-2` abaixo herda essa largura inflada e cada card vira ~340px
+Manter a regra atual: no mobile sempre visível (`opacity-100`), no desktop só aparece em hover (`lg:opacity-0 lg:group-hover:opacity-100`). Sem mudança de lógica.
 
-## Solução
+## Fora de escopo
 
-### 1. Tornar o título truncável
-
-No header da seção de músicas em `RepertorioPage.tsx`:
-
-```tsx
-<div className="flex items-center justify-between gap-3 min-w-0">
-  <h3 className="text-sm font-semibold flex items-center gap-2 min-w-0 flex-1">
-    <Music2 className="h-4 w-4 text-primary shrink-0" />
-    <span className="truncate">
-      {selectedFolder
-        ? `Músicas em ${selectedFolder.split('/').pop()}`
-        : 'Músicas na Raiz'}
-    </span>
-  </h3>
-  {selectedFolder && (
-    <div className="flex items-center gap-2 shrink-0">
-      <Button>Baixar pasta</Button>
-    </div>
-  )}
-</div>
-```
-
-Aplicar o mesmo padrão (`min-w-0 flex-1` + `<span className="truncate">` + `shrink-0` no ícone) nas três variantes do `h3` (selectedFolder, raiz, "Selecione uma subpasta").
-
-### 2. Garantir contenção no wrapper da seção
-
-Adicionar `min-w-0` no `<div className="space-y-3">` que envolve o header + grid (linha ~657), para que o grid de baixo nunca herde largura inflada.
-
-### 3. Defensivo no header superior do repertório
-
-Verificar o bloco de cabeçalho com nome do repertório (linhas ~447-479) — o `<h1>` já tem `truncate`, mas o wrapper `<div className="flex-1 min-w-0 ...">` está OK. Sem mudanças necessárias ali, apenas confirmar.
-
-## Resultado esperado
-
-- Pastas com nome longo passam a ter o título truncado com "…" e os cards ficam em 2 colunas perfeitas no mobile, igual à pasta "01. HITS" do screenshot correto
-- Sem scroll horizontal em nenhuma resolução
-- Layout idêntico para nomes curtos e longos
-- Apenas mudanças de presentation, sem alterar lógica
+- Sem alterações em business logic (handlers, store, hooks).
+- Sem alterações em outras páginas/cards.
+- Sem mudanças no layout do card (capa, título, artista).

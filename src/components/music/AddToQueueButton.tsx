@@ -46,10 +46,10 @@ export function AddToQueueButton({ musica, title, side = "bottom" }: AddToQueueB
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
+          className="flex-1 aspect-square max-w-[52px] flex items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm hover:bg-white/30 active:scale-90 transition-all shadow-lg"
           aria-label={`Opções de lista para "${title}"`}
         >
-          <ListPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <ListPlus className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-48 p-1 bg-background/95 backdrop-blur-lg border-border" align="end" side={side} sideOffset={10}>
