@@ -28,6 +28,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import capaMaioLaranja from "@/assets/repertorios/capa-maio-laranja.jpg";
+import capaMaioRosa from "@/assets/repertorios/capa-maio-rosa.jpg";
+import capaFestaJunina from "@/assets/repertorios/capa-festa-junina.jpg";
+import capaMusicaPinga from "@/assets/repertorios/capa-musica-pinga.jpg";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useUser";
@@ -420,6 +424,52 @@ export default function LandingPage() {
               >
                 <Music2 className="h-4 w-4 text-primary/70 mx-auto mb-1.5 group-hover:text-primary transition-colors" />
                 <span className="text-sm font-medium">{g}</span>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* COVERS GALLERY */}
+      <section className="py-20 sm:py-28 border-t border-border/40 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div {...fadeUp} className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-block text-xs uppercase tracking-[0.2em] text-primary font-semibold mb-3">
+              Atualizações constantes
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
+              Capas <span className="text-gradient-brand">profissionais</span>, conteúdo novo toda semana
+            </h2>
+            <p className="mt-4 text-muted-foreground text-base sm:text-lg">
+              Repertórios prontos, organizados e atualizados — basta escolher e baixar.
+            </p>
+          </motion.div>
+
+          <motion.div
+            {...fadeUp}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6"
+          >
+            {[
+              { src: capaMaioLaranja, label: "MAIO/26", alt: "Atualização Maio 2026" },
+              { src: capaMaioRosa, label: "PREMIUM", alt: "Atualização Maio 2026 Premium" },
+              { src: capaFestaJunina, label: "FESTA JUNINA", alt: "Especial Festa Junina" },
+              { src: capaMusicaPinga, label: "SÓ MODÃO", alt: "Seleção Música e Pinga" },
+            ].map((c) => (
+              <div
+                key={c.label}
+                className="group relative aspect-[3/5] overflow-hidden rounded-xl border border-border/60 bg-card shadow-xl transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:border-primary/60"
+              >
+                <img
+                  src={c.src}
+                  alt={c.alt}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
+                <span className="absolute top-3 left-3 inline-flex items-center rounded-full bg-primary/90 px-2.5 py-1 text-[10px] font-bold tracking-wider text-primary-foreground shadow-md">
+                  {c.label}
+                </span>
               </div>
             ))}
           </motion.div>
