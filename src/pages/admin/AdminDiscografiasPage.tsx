@@ -201,7 +201,7 @@ export default function AdminDiscografiasPage() {
               <Plus className="mr-2 h-4 w-4" /> Nova Discografia
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{isEditing ? "Editar Discografia" : "Nova Discografia"}</DialogTitle>
             </DialogHeader>
