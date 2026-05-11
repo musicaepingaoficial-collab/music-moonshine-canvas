@@ -79,6 +79,11 @@ function PageLoader() {
   );
 }
 
+function SingleSessionGuard() {
+  useSingleSession();
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
