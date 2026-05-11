@@ -1,29 +1,72 @@
 ## Objetivo
 
-Reorganizar os 4 botões de ação (Play, Favorito, Download, Fila) no `MusicCard` aplicando o estilo **Pill Control Bar** escolhido, deixando-os maiores e mais bem distribuídos para uso no mobile.
+Melhorar o `MusicPlayer` no mobile:
+1. Corrigir o bug em que a lista (Popover) "pisca e some" ao tentar abrir.
+2. Adicionar botão para esconder/mostrar o player (minimizar).
+3. Aumentar o player no mobile e centralizar as ações mais usadas (anterior, play, próxima, lista).
 
 ## Mudanças
 
-### 1. `src/components/music/MusicCard.tsx` — linhas 96-132
+Tudo em `src/components/player/MusicPlayer.tsx`.
 
-Substituir a `div` que envolve os 4 botões por um layout com `flex` distribuído (`gap-2`), onde cada botão secundário usa `flex-1 aspect-square max-w-[52px]` e o Play é destacado com `flex-[1.6] h-12`.
+### 1. Corrigir o "piscar" da lista (Popover mobile)
 
-- **Wrapper**: `flex items-center gap-2 w-full` (sem `ml-auto` no botão de fila — distribuição uniforme).
-- **Play (primário)**: `flex-[1.6] h-11 sm:h-12 rounded-full bg-white text-black shadow-lg active:scale-95`, ícone `h-5 w-5`.
-- **Favorito / Download / Fila (secundários)**: `flex-1 aspect-square max-w-[52px] rounded-full bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:scale-90`, ícone `h-4 w-4 sm:h-[18px] sm:w-[18px]`.
-- Estado ativo do favorito: preencher `Heart` com `fill-current text-red-500` quando favoritado (manter comportamento atual; só ajustar visual se já existir flag — caso contrário manter como está).
-- Remover `ml-auto` do `AddToQueueButton` para que ele entre na mesma distribuição.
+Causa provável: o `PopoverTrigger` mobile (linhas 144-152) está dentro de um `motion.div` com animações e o Popover não tem `onOpenAutoFocus`/`onCloseAutoFocus` prevenidos como o desktop tem (linhas 302-303). Em mobile o autofocus do Radix devolve foco ao trigger animado e o `outside-click` detecta o toque inicial como clique fora, fechando imediatamente.
 
-### 2. `src/components/music/AddToQueueButton.tsx` — linhas 48-53
+Correções:
+- Adicionar `onOpenAutoFocus={(e) => e.preventDefault()}` e `onCloseAutoFocus={(e) => e.preventDefault()}` no `PopoverContent` mobile.
+- Adicionar `collisionPadding={12}` e `avoidCollisions` para garantir posicionamento.
+- Adicionar `modal={false}` no `<Popover>` mobile (e desktop) para evitar conflito com a `AnimatePresence` do player.
+- Garantir `z-[70]` no `PopoverContent` (acima do player `z-[60]`).
 
-Atualizar o `<button>` do `PopoverTrigger` para herdar o mesmo padrão dos secundários: `flex-1 aspect-square max-w-[52px] rounded-full bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:scale-90`, ícone `h-4 w-4 sm:h-[18px] sm:w-[18px]`.
+### 2. Botão minimizar/expandir
 
-### 3. Comportamento de exibição
+Adicionar estado local `const [minimized, setMinimized] = useState(false)`.
 
-Manter a regra atual: no mobile sempre visível (`opacity-100`), no desktop só aparece em hover (`lg:opacity-0 lg:group-hover:opacity-100`). Sem mudança de lógica.
+- Quando `minimized = true`: renderizar uma barra fina (~48px) com apenas: capa (32px) + título truncado + botão Play/Pause + botão expandir (`ChevronUp`). Mantém-se fixa no rodapé.
+- Quando `minimized = false`: layout completo atual (com melhorias do item 3).
+- Botão `ChevronDown` adicionado no canto direito do layout completo (mobile e desktop) para minimizar.
+- Substitui parcialmente o `X` (close): manter o `X` apenas no estado expandido como ação secundária. No estado minimizado, o `X` continua acessível ao lado do expand.
+
+### 3. Player maior no mobile com ações centralizadas
+
+Reorganizar a parte mobile (linhas 67-138 e 141-223):
+
+**Nova estrutura mobile (vertical, ~140px de altura):**
+
+```text
+┌──────────────────────────────────────────┐
+│ [capa 56] título / artista     ♥   ⌄  ✕ │  ← linha 1: info + favorito + minimizar + fechar
+│ ─── slider de progresso ───              │  ← linha 2: progresso (00:00 / 03:21)
+│        ⏮   ▶ (56px)   ⏭   ☰              │  ← linha 3: controles centrais grandes
+└──────────────────────────────────────────┘
+```
+
+Especificações:
+- Linha 1: capa `h-14 w-14`, info truncada, favorito (`Heart`), minimizar (`ChevronDown`), fechar (`X`).
+- Linha 2: slider de progresso com timestamps `text-[10px]`.
+- Linha 3: `flex items-center justify-center gap-6`:
+  - `SkipBack` 24px (`h-6 w-6`)
+  - Play/Pause em círculo `h-14 w-14` verde
+  - `SkipForward` 24px
+  - `ListMusic` 22px (abre o popover da fila)
+- Remover do mobile: shuffle, repeat, volume slider (pouco usados em mobile). Mute fica acessível via `Volume2/VolumeX` opcional dentro do popover de lista ou removido por completo no mobile.
+- Padding total `py-3 px-4`, `gap-2` entre linhas.
+
+**Estado minimizado mobile (~52px):**
+- `flex items-center gap-3 px-3 py-2`
+- Capa 32px + título truncado + Play/Pause 36px + `ChevronUp` para expandir + `X` para fechar.
+
+**Desktop:** manter o layout atual (3 colunas) sem grandes mudanças, apenas adicionar o botão minimizar (`ChevronDown`) ao lado do `X` no canto direito. No estado minimizado desktop, mesma barra fina centralizada.
+
+### 4. Higiene
+
+- Importar `ChevronDown`, `ChevronUp` do `lucide-react`.
+- Sem mudanças no `playerStore` (apenas estado local de `minimized`).
+- Sem mudanças em business logic (play/pause/next/previous continuam iguais).
 
 ## Fora de escopo
 
-- Sem alterações em business logic (handlers, store, hooks).
-- Sem alterações em outras páginas/cards.
-- Sem mudanças no layout do card (capa, título, artista).
+- Persistir estado `minimized` entre páginas/refresh.
+- Mudanças no desktop além de adicionar o botão minimizar.
+- Animações de transição entre minimizado/expandido (usar fade simples do `AnimatePresence` já existente).
