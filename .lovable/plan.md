@@ -1,21 +1,55 @@
-## Causa provável
+## Objetivo
 
-No mobile (você está em viewport de 390x638), o diálogo "Nova Discografia" não tem altura máxima nem scroll interno. Como o formulário tem vários campos (nome, gênero, upload de foto, lista de links), o conteúdo ultrapassa a altura da tela e o **botão "Criar Discografia" fica fora da área visível**. Por isso, ao clicar em "salvar", o clique cai em outro elemento (ou o botão está atrás do teclado/barra do navegador) e nada acontece.
+Permitir apenas **uma sessão ativa por conta**. Quando o usuário fizer login em outro dispositivo/navegador, a sessão anterior deve ser deslogada automaticamente.
 
-Confirmei que:
-- Sua conta tem papel `admin` no banco.
-- As políticas RLS da tabela `discografias` permitem inserção por admins.
-- O bucket `discografias` tem políticas corretas para upload por admins.
-- O schema da tabela está correto (sem colunas faltando).
+## Como funciona
 
-Ou seja, o problema é puramente de UI mobile do diálogo de cadastro.
+Supabase permite múltiplas sessões simultâneas por padrão. Para forçar sessão única, vamos:
 
-## O que vou ajustar
+1. Registrar a sessão "ativa" do usuário em uma tabela no banco a cada login.
+2. Cada cliente (aba/navegador) escuta mudanças nessa tabela em tempo real (Supabase Realtime).
+3. Se o `session_id` registrado no banco for diferente do `session_id` local, o cliente faz `signOut()` e mostra um aviso: *"Sua conta foi acessada em outro dispositivo."*
 
-Em `src/pages/admin/AdminDiscografiasPage.tsx`, no `<DialogContent>`:
+## Implementação técnica
 
-1. Adicionar `max-h-[90vh] overflow-y-auto` para o diálogo virar rolável.
-2. Tornar o `DialogFooter` "sticky" no rodapé do diálogo (`sticky bottom-0 bg-background pt-3 border-t`) para que os botões "Cancelar" e "Criar Discografia" fiquem sempre visíveis enquanto você rola.
-3. Ajustar a linha de adicionar links (`flex gap-2`) para empilhar no mobile (`flex-col sm:flex-row`), evitando estouro lateral.
+### 1. Banco de dados (migração)
 
-Sem mudanças em banco, RLS, storage ou lógica de negócio — só CSS/layout do formulário.
+Nova tabela `active_sessions`:
+- `user_id` (uuid, PK) — uma linha por usuário
+- `session_id` (text) — identificador único gerado no cliente a cada login
+- `device_info` (text, opcional) — user agent
+- `updated_at` (timestamptz)
+
+RLS:
+- SELECT: usuário vê apenas a própria linha
+- INSERT/UPDATE: usuário só pode escrever a própria linha (`user_id = auth.uid()`)
+
+Habilitar Realtime (`replica identity full` + adicionar à publicação `supabase_realtime`).
+
+### 2. Frontend — novo hook `useSingleSession`
+
+Criado em `src/hooks/useSingleSession.ts` e chamado uma vez no `App.tsx` (ou no `ProtectedRoute`):
+
+- Ao detectar usuário logado:
+  1. Gera um `sessionId` (uuid) e guarda em `localStorage` (chave `mp_session_id`).
+  2. Faz `upsert` na tabela `active_sessions` com esse `sessionId`.
+  3. Abre canal Realtime escutando `UPDATE` na própria linha.
+  4. Quando recebe um update com `session_id ≠ sessionId local`, chama `supabase.auth.signOut()`, limpa `localStorage` e mostra toast: *"Você foi desconectado porque sua conta foi acessada em outro dispositivo."*
+- Ao fazer logout: remove `mp_session_id` do localStorage.
+
+### 3. Considerações
+
+- **Admins**: aplicar a mesma regra (sem exceção), salvo se você quiser excluir admins — me avise.
+- **PWA / refresh de token**: o `session_id` persiste no localStorage e só muda em novo login, então refreshes de token não disparam logout.
+- **Reconexão Realtime**: ao reconectar, o hook refaz a checagem comparando o valor atual do banco com o local.
+
+## Arquivos afetados
+
+- **Migração SQL** (nova tabela + RLS + realtime).
+- `src/hooks/useSingleSession.ts` (novo).
+- `src/App.tsx` (montar o hook após auth).
+- `src/pages/LoginPage.tsx` (gerar/salvar `session_id` após login bem-sucedido — alternativamente o hook cobre isso sozinho ao detectar o `SIGNED_IN`).
+
+## Confirmação
+
+Posso prosseguir? Se quiser excluir admins dessa regra, me diga antes.
