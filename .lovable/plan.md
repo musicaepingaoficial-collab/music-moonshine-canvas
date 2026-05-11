@@ -1,72 +1,44 @@
-## Objetivo
+## Problema
 
-Melhorar o `MusicPlayer` no mobile:
-1. Corrigir o bug em que a lista (Popover) "pisca e some" ao tentar abrir.
-2. Adicionar botão para esconder/mostrar o player (minimizar).
-3. Aumentar o player no mobile e centralizar as ações mais usadas (anterior, play, próxima, lista).
+Toques duplicados ou bugs disparam `play()` mais de uma vez antes do primeiro terminar de carregar. Como `play()` é assíncrono e cria um novo `Audio` depois de `await getStreamUrl(...)`, duas instâncias podem tocar simultaneamente — incluindo a mesma música em paralelo.
+
+### Causa raiz (em `src/stores/playerStore.ts`)
+
+1. `cleanupAudio()` só limpa a variável `audio` no momento em que roda. Se a chamada A está aguardando `getStreamUrl`, a chamada B entra, faz `cleanupAudio()` (não há nada para limpar ainda) e cria seu próprio `Audio`. Quando A retorna, ela também atribui `audio = new Audio(...)` e dá `audio.play()`. Ambas tocam.
+2. Não há proteção contra cliques repetidos no mesmo track enquanto está em `isLoading`.
+3. URLs criadas com `URL.createObjectURL` nunca são revogadas — vazam memória além do bug de overlap.
 
 ## Mudanças
 
-Tudo em `src/components/player/MusicPlayer.tsx`.
+Tudo em `src/stores/playerStore.ts`.
 
-### 1. Corrigir o "piscar" da lista (Popover mobile)
+### 1. Token de execução por chamada (`playToken`)
 
-Causa provável: o `PopoverTrigger` mobile (linhas 144-152) está dentro de um `motion.div` com animações e o Popover não tem `onOpenAutoFocus`/`onCloseAutoFocus` prevenidos como o desktop tem (linhas 302-303). Em mobile o autofocus do Radix devolve foco ao trigger animado e o `outside-click` detecta o toque inicial como clique fora, fechando imediatamente.
+- Adicionar contador module-scoped `let playToken = 0`.
+- No início de `play()`: `const myToken = ++playToken`.
+- Após cada `await` (busca de stream URL e `audio.play()`), verificar `if (myToken !== playToken) { /* abort: revoke blob, dispose audio */ return }`.
+- Isso garante que apenas a chamada mais recente "vence". Chamadas anteriores abortam silenciosamente sem tocar.
 
-Correções:
-- Adicionar `onOpenAutoFocus={(e) => e.preventDefault()}` e `onCloseAutoFocus={(e) => e.preventDefault()}` no `PopoverContent` mobile.
-- Adicionar `collisionPadding={12}` e `avoidCollisions` para garantir posicionamento.
-- Adicionar `modal={false}` no `<Popover>` mobile (e desktop) para evitar conflito com a `AnimatePresence` do player.
-- Garantir `z-[70]` no `PopoverContent` (acima do player `z-[60]`).
+### 2. Cleanup robusto
 
-### 2. Botão minimizar/expandir
+- `cleanupAudio()` passa a:
+  - Remover listeners (guardar refs ou usar `audio.onloadedmetadata = null`, `onended = null`, `onerror = null`).
+  - `audio.pause()`, `audio.src = ""`, `audio.load()` (força reset).
+  - Revogar blob URL anterior se existir (`URL.revokeObjectURL(prevSrc)` quando começar com `blob:`).
+  - Limpar `progressInterval`.
+- Guardar a URL atual em `let currentBlobUrl: string | null = null` para revogar corretamente.
 
-Adicionar estado local `const [minimized, setMinimized] = useState(false)`.
+### 3. Guarda anti-toque-duplo
 
-- Quando `minimized = true`: renderizar uma barra fina (~48px) com apenas: capa (32px) + título truncado + botão Play/Pause + botão expandir (`ChevronUp`). Mantém-se fixa no rodapé.
-- Quando `minimized = false`: layout completo atual (com melhorias do item 3).
-- Botão `ChevronDown` adicionado no canto direito do layout completo (mobile e desktop) para minimizar.
-- Substitui parcialmente o `X` (close): manter o `X` apenas no estado expandido como ação secundária. No estado minimizado, o `X` continua acessível ao lado do expand.
+- No início de `play()`: se `isLoading === true` E `currentTrack?.id === track.id`, retornar imediatamente (ignora cliques repetidos no mesmo track durante o carregamento).
+- Se `currentTrack?.id === track.id` E `!isLoading` E o áudio existe, em vez de recriar tudo, apenas dar `seek(0)` + `audio.play()` (reinicia a faixa atual sem disparar novo download/Audio).
 
-### 3. Player maior no mobile com ações centralizadas
+### 4. Cleanup antes do await
 
-Reorganizar a parte mobile (linhas 67-138 e 141-223):
-
-**Nova estrutura mobile (vertical, ~140px de altura):**
-
-```text
-┌──────────────────────────────────────────┐
-│ [capa 56] título / artista     ♥   ⌄  ✕ │  ← linha 1: info + favorito + minimizar + fechar
-│ ─── slider de progresso ───              │  ← linha 2: progresso (00:00 / 03:21)
-│        ⏮   ▶ (56px)   ⏭   ☰              │  ← linha 3: controles centrais grandes
-└──────────────────────────────────────────┘
-```
-
-Especificações:
-- Linha 1: capa `h-14 w-14`, info truncada, favorito (`Heart`), minimizar (`ChevronDown`), fechar (`X`).
-- Linha 2: slider de progresso com timestamps `text-[10px]`.
-- Linha 3: `flex items-center justify-center gap-6`:
-  - `SkipBack` 24px (`h-6 w-6`)
-  - Play/Pause em círculo `h-14 w-14` verde
-  - `SkipForward` 24px
-  - `ListMusic` 22px (abre o popover da fila)
-- Remover do mobile: shuffle, repeat, volume slider (pouco usados em mobile). Mute fica acessível via `Volume2/VolumeX` opcional dentro do popover de lista ou removido por completo no mobile.
-- Padding total `py-3 px-4`, `gap-2` entre linhas.
-
-**Estado minimizado mobile (~52px):**
-- `flex items-center gap-3 px-3 py-2`
-- Capa 32px + título truncado + Play/Pause 36px + `ChevronUp` para expandir + `X` para fechar.
-
-**Desktop:** manter o layout atual (3 colunas) sem grandes mudanças, apenas adicionar o botão minimizar (`ChevronDown`) ao lado do `X` no canto direito. No estado minimizado desktop, mesma barra fina centralizada.
-
-### 4. Higiene
-
-- Importar `ChevronDown`, `ChevronUp` do `lucide-react`.
-- Sem mudanças no `playerStore` (apenas estado local de `minimized`).
-- Sem mudanças em business logic (play/pause/next/previous continuam iguais).
+- Mover `cleanupAudio()` para ANTES de qualquer `await`, e setar `isLoading: true` imediatamente. Isso garante que qualquer Audio anterior seja parado antes de começar o trabalho assíncrono.
 
 ## Fora de escopo
 
-- Persistir estado `minimized` entre páginas/refresh.
-- Mudanças no desktop além de adicionar o botão minimizar.
-- Animações de transição entre minimizado/expandido (usar fade simples do `AnimatePresence` já existente).
+- Mudanças visuais no player.
+- Mudanças no comportamento de `next/previous/queue`.
+- Persistência de estado.
