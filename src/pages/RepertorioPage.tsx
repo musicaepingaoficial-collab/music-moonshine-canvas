@@ -658,8 +658,8 @@ const RepertorioPage = () => {
                 )}
               </div>
 
-              <div className="space-y-3 min-w-0">
-                <div className="flex items-center justify-between gap-3 min-w-0">
+              <div className="min-w-0 max-w-full space-y-3 overflow-hidden">
+                <div className="flex min-w-0 max-w-full items-center justify-between gap-3 overflow-hidden">
                   <h3 className="text-sm font-semibold flex items-center gap-2 min-w-0 flex-1">
                     {selectedFolder ? (
                       <>
@@ -679,20 +679,20 @@ const RepertorioPage = () => {
                     )}
                   </h3>
                   {selectedFolder && (
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex min-w-0 shrink-0 items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDownloadFolder(selectedFolder, displayMusicas)}
                         disabled={downloading || isTrial}
-                        className="h-8"
+                        className="h-8 max-w-[118px] px-2 sm:max-w-none sm:px-3"
                       >
                         {downloading ? (
-                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin sm:mr-1" />
                         ) : (
-                          <Download className="mr-1 h-3.5 w-3.5" />
+                          <Download className="h-3.5 w-3.5 shrink-0 sm:mr-1" />
                         )}
-                        Baixar pasta
+                        <span className="truncate">Baixar pasta</span>
                       </Button>
                     </div>
                   )}
