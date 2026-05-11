@@ -633,13 +633,13 @@ const RepertorioPage = () => {
                         <div key={folder} className="group relative min-w-0 overflow-hidden">
                           <Button
                             variant="outline"
-                            className={`w-full justify-start gap-2 h-auto py-3 px-3 border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all ${
+                            className={`h-auto w-full min-w-0 justify-start gap-2 border-dashed px-3 py-3 transition-all hover:border-primary/50 hover:bg-primary/5 ${
                               isSelected ? "border-primary bg-primary/10" : ""
                             }`}
                             onClick={() => handleFolderClick(folder)}
                           >
                             <FolderOpen className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`} />
-                            <div className="flex flex-col items-start min-w-0">
+                            <div className="flex min-w-0 flex-1 flex-col items-start overflow-hidden">
                               <span className="text-sm font-medium truncate w-full text-left">
                                 {folderName}
                               </span>
