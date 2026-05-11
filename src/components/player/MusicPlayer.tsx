@@ -38,7 +38,8 @@ export function MusicPlayer() {
   const removeFromQueue = usePlayerStore((s) => s.removeFromQueue);
   const clearQueue = usePlayerStore((s) => s.clearQueue);
 
-  const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [isMobileQueueOpen, setIsMobileQueueOpen] = useState(false);
+  const [isDesktopQueueOpen, setIsDesktopQueueOpen] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [minimized, setMinimized] = useState(false);
@@ -53,7 +54,7 @@ export function MusicPlayer() {
 
   const greenSliderClass = "[&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:border-0 [&_[role=slider]]:bg-white [&_[role=slider]]:shadow-md [&>span:first-child]:bg-white/15 [&>span:first-child>span]:bg-[hsl(142,76%,55%)]";
 
-  const renderQueueContent = () => (
+  const renderQueueContent = (onClose: () => void) => (
     <>
       <div className="p-3 border-b border-[hsl(142,76%,40%)]/20 flex items-center justify-between">
         <div>
@@ -71,7 +72,7 @@ export function MusicPlayer() {
           {queue.map((track, i) => (
             <div
               key={`${track.id}-${i}`}
-              onClick={() => { play(track); setIsQueueOpen(false); }}
+              onClick={() => { play(track); onClose(); }}
               className={`w-full flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${currentTrack?.id === track.id ? 'bg-[hsl(142,76%,45%)]/15 text-[hsl(142,76%,55%)]' : 'hover:bg-white/5 text-white/90'}`}
             >
               <div className="h-8 w-8 shrink-0 rounded overflow-hidden bg-white/5">
@@ -213,10 +214,10 @@ export function MusicPlayer() {
                   <button onClick={next} className="text-white/85 active:scale-90 transition-transform" aria-label="Próxima">
                     <SkipForward className="h-7 w-7" fill="currentColor" />
                   </button>
-                  <Popover open={isQueueOpen} onOpenChange={setIsQueueOpen} modal={false}>
+                  <Popover open={isMobileQueueOpen} onOpenChange={setIsMobileQueueOpen} modal={false}>
                     <PopoverTrigger asChild>
                       <button
-                        className={`p-1 active:scale-90 transition-transform ${isQueueOpen ? 'text-[hsl(142,76%,55%)]' : 'text-white/85'}`}
+                        className={`p-1 active:scale-90 transition-transform ${isMobileQueueOpen ? 'text-[hsl(142,76%,55%)]' : 'text-white/85'}`}
                         aria-label="Ver lista de reprodução"
                       >
                         <ListMusic className="h-6 w-6" />
@@ -231,7 +232,7 @@ export function MusicPlayer() {
                       onOpenAutoFocus={(e) => e.preventDefault()}
                       onCloseAutoFocus={(e) => e.preventDefault()}
                     >
-                      {renderQueueContent()}
+                      {renderQueueContent(() => setIsMobileQueueOpen(false))}
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -294,10 +295,10 @@ export function MusicPlayer() {
 
                 {/* RIGHT */}
                 <div className="flex w-[28%] items-center justify-end gap-3">
-                  <Popover open={isQueueOpen} onOpenChange={setIsQueueOpen} modal={false}>
+                  <Popover open={isDesktopQueueOpen} onOpenChange={setIsDesktopQueueOpen} modal={false}>
                     <PopoverTrigger asChild>
                       <button
-                        className={`transition-all duration-200 hover:scale-110 ${isQueueOpen ? 'text-[hsl(142,76%,55%)]' : 'text-white/70 hover:text-white'}`}
+                        className={`transition-all duration-200 hover:scale-110 ${isDesktopQueueOpen ? 'text-[hsl(142,76%,55%)]' : 'text-white/70 hover:text-white'}`}
                         aria-label="Ver lista de reprodução"
                       >
                         <ListMusic className="h-5 w-5" />
@@ -312,7 +313,7 @@ export function MusicPlayer() {
                       onOpenAutoFocus={(e) => e.preventDefault()}
                       onCloseAutoFocus={(e) => e.preventDefault()}
                     >
-                      {renderQueueContent()}
+                      {renderQueueContent(() => setIsDesktopQueueOpen(false))}
                     </PopoverContent>
                   </Popover>
 
