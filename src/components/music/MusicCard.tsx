@@ -88,40 +88,40 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
         {/* Overlay degrade estilo Netflix */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
         
-        <div className="absolute inset-0 flex flex-col justify-end p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <Link to={`/musica/${id}`} className="block hover:underline underline-offset-2">
+        <div className="absolute inset-0 flex flex-col justify-end p-2 sm:p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300 min-w-0">
+          <Link to={`/musica/${id}`} className="block hover:underline underline-offset-2 min-w-0">
             <h3 className="truncate text-sm font-bold text-white drop-shadow-md">{title}</h3>
           </Link>
           <p className="truncate text-[10px] text-white/70 mb-2">{artist}</p>
 
-          <div className="flex items-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 delay-75">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 delay-75">
             <button
               onClick={handlePlay}
-              className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white text-black hover:scale-110 transition-transform shadow-lg"
+              className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white text-black hover:scale-110 transition-transform shadow-lg"
               aria-label={`Tocar ${title}`}
             >
-              <Play className="h-4 w-4 translate-x-0.5" fill="currentColor" />
+              <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 translate-x-0.5" fill="currentColor" />
             </button>
             
             <button
               onClick={handleFavorite}
               disabled={toggleFav.isPending}
-              className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
+              className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
               aria-label={`Favoritar ${title}`}
             >
-              <Heart className={`h-4 w-4 ${toggleFav.isPending ? "animate-pulse" : ""}`} />
+              <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${toggleFav.isPending ? "animate-pulse" : ""}`} />
             </button>
 
             <button
               onClick={handleDownload}
               disabled={downloading || accessLoading}
-              className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
+              className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
               aria-label={`Baixar ${title}`}
             >
-              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {downloading ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
             </button>
             
-            <div className="ml-auto">
+            <div className="ml-auto shrink-0">
               <AddToQueueButton 
                 musica={{ id, title, artist, cover_url: coverUrl, file_url: fileUrl, drive_id: driveId }} 
                 title={title} 

@@ -421,6 +421,7 @@ const RepertorioPage = () => {
       {tracks.map((t) => (
         <motion.div
           key={t.id}
+          className="min-w-0"
           variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
         >
           <MusicCard
