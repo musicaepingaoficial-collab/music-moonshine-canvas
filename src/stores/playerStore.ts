@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 let audio: HTMLAudioElement | null = null;
 let progressInterval: ReturnType<typeof setInterval> | null = null;
+let currentBlobUrl: string | null = null;
+let playToken = 0;
 
 function cleanupAudio() {
   if (progressInterval) {
@@ -12,9 +14,19 @@ function cleanupAudio() {
     progressInterval = null;
   }
   if (audio) {
-    audio.pause();
-    audio.src = "";
+    try {
+      audio.onloadedmetadata = null;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+    } catch {}
     audio = null;
+  }
+  if (currentBlobUrl) {
+    try { URL.revokeObjectURL(currentBlobUrl); } catch {}
+    currentBlobUrl = null;
   }
 }
 
@@ -88,28 +100,57 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isLoading: false,
 
   play: async (track, queueContext) => {
-    const { queue, volume, muted } = get();
-    
+    const { queue, volume, muted, currentTrack, isLoading } = get();
+
+    // Anti double-tap: ignore repeated clicks while same track is loading
+    if (isLoading && currentTrack?.id === track.id) {
+      return;
+    }
+
+    // Same track already loaded → just restart instead of recreating audio
+    if (!isLoading && currentTrack?.id === track.id && audio && !queueContext) {
+      try {
+        audio.currentTime = 0;
+        await audio.play();
+        set({ isPlaying: true, progress: 0, currentTime: 0 });
+      } catch (err) {
+        console.error("[Player] Restart error:", err);
+      }
+      return;
+    }
+
+    // Claim ownership of this play invocation
+    const myToken = ++playToken;
+
+    // Stop any prior audio synchronously BEFORE awaiting anything
+    cleanupAudio();
+
     // If a new queue context is provided, update the queue
     if (queueContext && queueContext.length > 0) {
       set({ queue: queueContext });
     } else {
-      // Fallback: check if exists in current queue, if not add it
       const exists = queue.find((t) => t.id === track.id);
       if (!exists) {
         set({ queue: [...queue, track] });
       }
     }
-    
-    set({ currentTrack: track, isPlaying: false, progress: 0, isLoading: true });
 
-    cleanupAudio();
+    set({ currentTrack: track, isPlaying: false, progress: 0, currentTime: 0, duration: 0, isLoading: true });
 
     try {
-      // If file_url is a Google Drive file ID (not a full URL)
       let src = track.file_url || "";
+      let createdBlobUrl: string | null = null;
       if (src && !src.startsWith("http") && !src.startsWith("blob")) {
         src = await getStreamUrl(src);
+        createdBlobUrl = src;
+      }
+
+      // Aborted by a newer play() call → discard work
+      if (myToken !== playToken) {
+        if (createdBlobUrl) {
+          try { URL.revokeObjectURL(createdBlobUrl); } catch {}
+        }
+        return;
       }
 
       if (!src) {
@@ -118,32 +159,52 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         return;
       }
 
-      audio = new Audio(src);
-      audio.volume = muted ? 0 : volume / 100;
+      const localAudio = new Audio(src);
+      localAudio.volume = muted ? 0 : volume / 100;
+      audio = localAudio;
+      currentBlobUrl = createdBlobUrl;
 
-      audio.addEventListener("loadedmetadata", () => {
-        set({ duration: audio?.duration || 0, isLoading: false });
-      });
-
-      audio.addEventListener("ended", () => {
+      localAudio.onloadedmetadata = () => {
+        if (myToken !== playToken) return;
+        set({ duration: localAudio.duration || 0, isLoading: false });
+      };
+      localAudio.onended = () => {
+        if (myToken !== playToken) return;
         get().next();
-      });
-
-      audio.addEventListener("error", (e) => {
+      };
+      localAudio.onerror = (e) => {
+        if (myToken !== playToken) return;
         console.error("[Player] Audio error:", e);
         set({ isPlaying: false, isLoading: false });
-      });
+      };
 
-      await audio.play();
+      await localAudio.play();
+
+      // Aborted while waiting for play() to start
+      if (myToken !== playToken) {
+        try {
+          localAudio.pause();
+          localAudio.removeAttribute("src");
+          localAudio.load();
+        } catch {}
+        if (createdBlobUrl) {
+          try { URL.revokeObjectURL(createdBlobUrl); } catch {}
+        }
+        return;
+      }
+
       set({ isPlaying: true, isLoading: false });
 
+      if (progressInterval) clearInterval(progressInterval);
       progressInterval = setInterval(() => {
-        if (audio && !audio.paused) {
-          const prog = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
-          set({ progress: prog, currentTime: audio.currentTime });
+        if (myToken !== playToken) return;
+        if (localAudio && !localAudio.paused) {
+          const prog = localAudio.duration ? (localAudio.currentTime / localAudio.duration) * 100 : 0;
+          set({ progress: prog, currentTime: localAudio.currentTime });
         }
       }, 250);
     } catch (err) {
+      if (myToken !== playToken) return;
       console.error("[Player] Play error:", err);
       set({ isPlaying: false, isLoading: false });
     }
