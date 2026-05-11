@@ -309,7 +309,7 @@ export default function AdminDiscografiasPage() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="sticky bottom-0 bg-background pt-3 border-t -mx-6 px-6 pb-2">
               <Button variant="outline" onClick={handleClose}>Cancelar</Button>
               <Button 
                 onClick={() => upsertMutation.mutate()}
