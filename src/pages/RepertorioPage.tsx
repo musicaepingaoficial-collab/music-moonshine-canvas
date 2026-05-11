@@ -416,12 +416,12 @@ const RepertorioPage = () => {
       initial="hidden"
       animate="show"
       variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-      className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6"
+      className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6"
     >
       {tracks.map((t) => (
         <motion.div
           key={t.id}
-          className="min-w-0"
+          className="min-w-0 max-w-full overflow-hidden"
           variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
         >
           <MusicCard
@@ -623,7 +623,7 @@ const RepertorioPage = () => {
 
                 {/* Subfolders Grid */}
                 {currentLevelFolders.length > 0 && (
-                  <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                  <div className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                     {currentLevelFolders.map((folder) => {
                       const folderName = folder.split('/').pop() || folder;
                       const isSelected = selectedFolder === folder;
