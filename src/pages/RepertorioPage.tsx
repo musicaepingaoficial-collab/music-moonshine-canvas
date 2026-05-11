@@ -416,12 +416,12 @@ const RepertorioPage = () => {
       initial="hidden"
       animate="show"
       variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+      className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6"
     >
       {tracks.map((t) => (
         <motion.div
           key={t.id}
-          className="min-w-0"
+          className="min-w-0 max-w-full overflow-hidden"
           variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
         >
           <MusicCard
@@ -439,7 +439,7 @@ const RepertorioPage = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
       {errorRep ? (
         <ErrorState message="Erro ao carregar repertÃ³rio." onRetry={() => refetch()} />
       ) : (
@@ -479,19 +479,19 @@ const RepertorioPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center justify-between gap-3 overflow-hidden">
             <Link to="/repertorios">
               <Button variant="ghost" size="sm" aria-label="Voltar para repertÃ³rios">
                 <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-2 overflow-hidden">
               {(musicas?.length ?? 0) > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-destructive hover:bg-destructive/10 border-destructive/20"
+                    className="max-w-[88px] truncate border-destructive/20 px-2 text-destructive hover:bg-destructive/10 sm:max-w-none sm:px-3"
                     onClick={() => {
                       if (confirm("Deseja realmente limpar toda a lista de reprodução atual?")) {
                         usePlayerStore.getState().clearQueue();
@@ -507,9 +507,12 @@ const RepertorioPage = () => {
                     size="sm"
                     title={isTrial ? "Disponível apenas para assinantes" : undefined}
                     aria-label="Baixar repertório completo"
+                    className="min-w-0 max-w-[116px] px-2 sm:max-w-none sm:px-3"
                   >
-                    <Download className="mr-1 h-4 w-4" />
-                    {isTrial ? "Assine para baixar" : downloading ? "Baixando..." : "Baixar tudo"}
+                    <Download className="h-4 w-4 shrink-0 sm:mr-1" />
+                    <span className="truncate sm:inline">
+                      {isTrial ? "Assine" : downloading ? "Baixando..." : "Baixar tudo"}
+                    </span>
                   </Button>
                 </div>
               )}
@@ -594,23 +597,23 @@ const RepertorioPage = () => {
           {isLoading ? (
             <MusicGridSkeleton count={6} />
           ) : (musicas?.length ?? 0) > 0 ? (
-            <div className="space-y-6">
-              <div className="space-y-4 mb-6">
+              <div className="min-w-0 max-w-full space-y-6 overflow-hidden">
+              <div className="mb-6 min-w-0 max-w-full space-y-4 overflow-hidden">
                 {/* Breadcrumbs */}
-                <div className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto pb-2 scrollbar-none">
+                <div className="flex min-w-0 max-w-full items-center gap-1 overflow-hidden pb-2 text-xs text-muted-foreground">
                   <button 
                     onClick={() => handleBreadcrumbClick(-1)}
-                    className={`hover:text-primary transition-colors whitespace-nowrap flex items-center gap-1 ${navigationPath.length === 0 ? 'text-primary font-bold' : ''}`}
+                    className={`flex shrink-0 items-center gap-1 whitespace-nowrap transition-colors hover:text-primary ${navigationPath.length === 0 ? 'text-primary font-bold' : ''}`}
                   >
                     <FolderOpen className="h-3 w-3" />
                     Raiz
                   </button>
                   {navigationPath.map((part, i) => (
-                    <div key={i} className="flex items-center gap-1 shrink-0">
-                      <ChevronRight className="h-3 w-3" />
+                    <div key={i} className="flex min-w-0 items-center gap-1 overflow-hidden">
+                      <ChevronRight className="h-3 w-3 shrink-0" />
                       <button 
                         onClick={() => handleBreadcrumbClick(i)}
-                        className={`hover:text-primary transition-colors whitespace-nowrap ${i === navigationPath.length - 1 ? 'text-primary font-bold' : ''}`}
+                        className={`min-w-0 truncate transition-colors hover:text-primary ${i === navigationPath.length - 1 ? 'text-primary font-bold' : ''}`}
                       >
                         {part}
                       </button>
@@ -620,23 +623,23 @@ const RepertorioPage = () => {
 
                 {/* Subfolders Grid */}
                 {currentLevelFolders.length > 0 && (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                  <div className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                     {currentLevelFolders.map((folder) => {
                       const folderName = folder.split('/').pop() || folder;
                       const isSelected = selectedFolder === folder;
                       const hasFiles = groups.some(g => g.name === folder);
                       
                       return (
-                        <div key={folder} className="group relative">
+                        <div key={folder} className="group relative min-w-0 overflow-hidden">
                           <Button
                             variant="outline"
-                            className={`w-full justify-start gap-2 h-auto py-3 px-3 border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all ${
+                            className={`h-auto w-full min-w-0 justify-start gap-2 border-dashed px-3 py-3 transition-all hover:border-primary/50 hover:bg-primary/5 ${
                               isSelected ? "border-primary bg-primary/10" : ""
                             }`}
                             onClick={() => handleFolderClick(folder)}
                           >
                             <FolderOpen className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`} />
-                            <div className="flex flex-col items-start min-w-0">
+                            <div className="flex min-w-0 flex-1 flex-col items-start overflow-hidden">
                               <span className="text-sm font-medium truncate w-full text-left">
                                 {folderName}
                               </span>
@@ -655,8 +658,8 @@ const RepertorioPage = () => {
                 )}
               </div>
 
-              <div className="space-y-3 min-w-0">
-                <div className="flex items-center justify-between gap-3 min-w-0">
+              <div className="min-w-0 max-w-full space-y-3 overflow-hidden">
+                <div className="flex min-w-0 max-w-full items-center justify-between gap-3 overflow-hidden">
                   <h3 className="text-sm font-semibold flex items-center gap-2 min-w-0 flex-1">
                     {selectedFolder ? (
                       <>
@@ -676,20 +679,20 @@ const RepertorioPage = () => {
                     )}
                   </h3>
                   {selectedFolder && (
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex min-w-0 shrink-0 items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDownloadFolder(selectedFolder, displayMusicas)}
                         disabled={downloading || isTrial}
-                        className="h-8"
+                        className="h-8 max-w-[118px] px-2 sm:max-w-none sm:px-3"
                       >
                         {downloading ? (
-                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin sm:mr-1" />
                         ) : (
-                          <Download className="mr-1 h-3.5 w-3.5" />
+                          <Download className="h-3.5 w-3.5 shrink-0 sm:mr-1" />
                         )}
-                        Baixar pasta
+                        <span className="truncate">Baixar pasta</span>
                       </Button>
                     </div>
                   )}

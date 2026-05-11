@@ -10,11 +10,11 @@ import { VersionChecker } from "@/components/layout/VersionChecker";
 export function AppLayout() {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full overflow-x-hidden">
+      <div className="flex min-h-screen w-full min-w-0 overflow-x-hidden">
         <AppSidebar />
-        <div className="flex flex-1 flex-col pb-24 md:pb-20">
+        <div className="flex min-w-0 flex-1 flex-col pb-24 md:pb-20">
           <Header />
-          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden">
+          <main className="min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-6">
             <Outlet />
           </main>
         </div>

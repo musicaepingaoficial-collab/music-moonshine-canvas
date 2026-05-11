@@ -90,7 +90,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between gap-2 border-b border-border/40 bg-background/80 px-2 sm:px-4 backdrop-blur-xl md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 min-w-0 max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border/40 bg-background/80 px-2 backdrop-blur-xl sm:h-16 sm:px-4 md:px-6">
       <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
         <SidebarTrigger className="text-muted-foreground hover:text-foreground shrink-0" />
         {showBack && (
@@ -101,7 +101,7 @@ export function Header() {
             <ArrowLeft className="h-4 sm:h-5 w-4 sm:w-5" />
           </button>
         )}
-        <div className="relative flex-1 max-w-md" ref={searchRef}>
+        <div className="relative min-w-0 flex-1 max-w-md" ref={searchRef}>
           <Search className="absolute left-2.5 sm:left-3 top-1/2 h-3.5 sm:h-4 w-3.5 sm:w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar..."
@@ -165,7 +165,7 @@ export function Header() {
           )}
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
         {!loadingAssinatura && (
           assinatura ? (
             <Badge className="gap-1.5 bg-primary/15 text-primary border-primary/30 hover:bg-primary/20">
