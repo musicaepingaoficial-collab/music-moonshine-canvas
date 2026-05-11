@@ -278,7 +278,7 @@ export default function AdminDiscografiasPage() {
               
               <div className="space-y-4 pt-4 border-t">
                 <label className="text-sm font-medium">Links de Download</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input 
                     placeholder="Nome (Ex: Álbum 2024)" 
                     value={newLinkLabel}
@@ -289,7 +289,7 @@ export default function AdminDiscografiasPage() {
                     value={newLinkUrl}
                     onChange={(e) => setNewLinkUrl(e.target.value)}
                   />
-                  <Button type="button" variant="secondary" onClick={addLink}>
+                  <Button type="button" variant="secondary" onClick={addLink} className="sm:w-auto w-full">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
