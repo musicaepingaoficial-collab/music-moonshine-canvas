@@ -497,19 +497,6 @@ const RepertorioPage = () => {
               {(musicas?.length ?? 0) > 0 && (
                 <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">
                   <Button
-                    size="sm"
-                    variant="outline"
-                    className="max-w-[88px] truncate border-destructive/20 px-2 text-destructive hover:bg-destructive/10 sm:max-w-none sm:px-3"
-                    onClick={() => {
-                      if (confirm("Deseja realmente limpar toda a lista de reprodução atual?")) {
-                        usePlayerStore.getState().clearQueue();
-                        toast.success("Lista de reprodução limpa");
-                      }
-                    }}
-                  >
-                    Limpar lista
-                  </Button>
-                  <Button
                     onClick={handleDownloadAll}
                     disabled={downloading || isTrial}
                     size="sm"
