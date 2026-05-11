@@ -94,40 +94,38 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
           </Link>
           <p className="truncate text-[10px] text-white/70 mb-2">{artist}</p>
 
-          <div className="flex items-center gap-1 sm:gap-2 min-w-0 overflow-hidden opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 delay-75">
+          <div className="flex items-center gap-2 w-full min-w-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 delay-75">
             <button
               onClick={handlePlay}
-              className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white text-black hover:scale-110 transition-transform shadow-lg"
+              className="flex-[1.6] flex h-11 sm:h-12 items-center justify-center rounded-full bg-white text-black shadow-lg hover:bg-zinc-100 active:scale-95 transition-all"
               aria-label={`Tocar ${title}`}
             >
-              <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 translate-x-0.5" fill="currentColor" />
+              <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />
             </button>
-            
+
             <button
               onClick={handleFavorite}
               disabled={toggleFav.isPending}
-              className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
+              className="flex-1 aspect-square max-w-[52px] flex items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm hover:bg-white/30 active:scale-90 transition-all shadow-lg"
               aria-label={`Favoritar ${title}`}
             >
-              <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${toggleFav.isPending ? "animate-pulse" : ""}`} />
+              <Heart className={`h-4 w-4 sm:h-[18px] sm:w-[18px] ${toggleFav.isPending ? "animate-pulse" : ""}`} />
             </button>
 
             <button
               onClick={handleDownload}
               disabled={downloading || accessLoading}
-              className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 transition-colors shadow-lg"
+              className="flex-1 aspect-square max-w-[52px] flex items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm hover:bg-white/30 active:scale-90 transition-all shadow-lg"
               aria-label={`Baixar ${title}`}
             >
-              {downloading ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+              {downloading ? <Loader2 className="h-4 w-4 sm:h-[18px] sm:w-[18px] animate-spin" /> : <Download className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />}
             </button>
-            
-            <div className="ml-auto shrink-0">
-              <AddToQueueButton 
-                musica={{ id, title, artist, cover_url: coverUrl, file_url: fileUrl, drive_id: driveId }} 
-                title={title} 
-                side="top"
-              />
-            </div>
+
+            <AddToQueueButton
+              musica={{ id, title, artist, cover_url: coverUrl, file_url: fileUrl, drive_id: driveId }}
+              title={title}
+              side="top"
+            />
           </div>
         </div>
       </div>
