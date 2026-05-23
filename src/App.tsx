@@ -15,6 +15,7 @@ import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
 import { PixelInjector } from "@/components/pixels/PixelInjector";
 import { RouteTracker } from "@/components/pixels/RouteTracker";
 import { CookieBanner } from "@/components/legal/CookieBanner";
+import { CookiePreferencesDialog } from "@/components/legal/CookiePreferencesDialog";
 import { Loader2 } from "lucide-react";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
@@ -95,6 +96,7 @@ const App = () => (
           <PixelInjector />
           <RouteTracker />
           <CookieBanner />
+          <CookiePreferencesDialog />
           <SingleSessionGuard />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
