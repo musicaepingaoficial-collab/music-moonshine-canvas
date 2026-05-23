@@ -3,11 +3,13 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent, sendCapi } from "@/lib/pixels";
+import { CONSENT_VERSION } from "@/hooks/useCookieConsent";
 
 async function registerPendingReferral() {
   try {
@@ -49,6 +51,7 @@ const LoginPage = () => {
   const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -75,6 +78,15 @@ const LoginPage = () => {
       return;
     }
 
+    if (isSignUp && !acceptedTerms) {
+      toast({
+        title: "Aceite necessário",
+        description: "Você precisa aceitar os Termos e a Política de Privacidade.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -88,6 +100,14 @@ const LoginPage = () => {
           },
         });
         if (error) throw error;
+        // Log consentimento de termos e privacidade
+        if (data.user?.id) {
+          const ua = typeof navigator !== "undefined" ? navigator.userAgent : null;
+          await supabase.from("consent_logs").insert([
+            { user_id: data.user.id, consent_type: "terms", granted: true, version: CONSENT_VERSION, user_agent: ua },
+            { user_id: data.user.id, consent_type: "privacy", granted: true, version: CONSENT_VERSION, user_agent: ua },
+          ]);
+        }
         trackEvent("complete_registration", { content_name: "signup" });
         sendCapi({
           event_name: "CompleteRegistration",
@@ -219,6 +239,21 @@ const LoginPage = () => {
                 minLength={6}
               />
             </div>
+          )}
+          {isSignUp && (
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Checkbox
+                checked={acceptedTerms}
+                onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                Li e aceito os{" "}
+                <Link to="/termos" target="_blank" className="text-primary underline">Termos de Uso</Link>
+                {" "}e a{" "}
+                <Link to="/privacidade" target="_blank" className="text-primary underline">Política de Privacidade</Link>.
+              </span>
+            </label>
           )}
           <Button
             type="submit"

@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChangePasswordCard } from "@/components/account/ChangePasswordCard";
+import { PrivacyCenterCard } from "@/components/legal/PrivacyCenterCard";
 
 const ContaPage = () => {
   const { user } = useAuth();
@@ -114,6 +115,7 @@ const ContaPage = () => {
           </div>
 
           <ChangePasswordCard />
+          <PrivacyCenterCard />
 
           {isAdmin && (
             <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-6">
