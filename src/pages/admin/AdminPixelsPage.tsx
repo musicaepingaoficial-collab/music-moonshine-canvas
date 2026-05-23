@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { usePixelSettings, useUpdatePixelSettings, type PixelSettings } from "@/hooks/useSiteSettings";
+import {
+  usePixelSettings,
+  useUpdatePixelSettings,
+  usePixelSecrets,
+  useUpdatePixelSecrets,
+  type PixelSettings,
+  type PixelSecrets,
+} from "@/hooks/useSiteSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,26 +37,42 @@ const ADS_LABELS = [
 
 const AdminPixelsPage = () => {
   const { data: s, isLoading } = usePixelSettings();
+  const { data: secrets } = usePixelSecrets();
   const update = useUpdatePixelSettings();
+  const updateSecrets = useUpdatePixelSecrets();
 
   const [form, setForm] = useState<Partial<PixelSettings>>({});
+  const [tokens, setTokens] = useState<Partial<PixelSecrets>>({});
 
   useEffect(() => {
     if (s) setForm(s);
   }, [s]);
+  useEffect(() => {
+    if (secrets) setTokens(secrets);
+  }, [secrets]);
 
   const set = <K extends keyof PixelSettings>(k: K, v: PixelSettings[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
+  const setToken = (k: keyof PixelSecrets, v: string) =>
+    setTokens((p) => ({ ...p, [k]: v }));
 
-  const saveSection = async (values: Partial<PixelSettings>, label: string) => {
+  const saveSection = async (
+    values: Partial<PixelSettings>,
+    label: string,
+    secretValues?: Partial<PixelSecrets>,
+  ) => {
     if (!s) return;
     try {
       await update.mutateAsync({ id: s.id, values });
+      if (secretValues && Object.keys(secretValues).length) {
+        await updateSecrets.mutateAsync(secretValues);
+      }
       toast({ title: `${label} salvo`, description: "Configurações atualizadas." });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     }
   };
+
 
   if (isLoading || !s) {
     return (
