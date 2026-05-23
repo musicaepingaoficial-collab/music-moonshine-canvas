@@ -57,18 +57,14 @@ export function useIsAdmin(userId?: string | null) {
     queryKey: ["is-admin", userId],
     queryFn: async () => {
       if (!userId) return false;
-      
-      console.log("[useIsAdmin] Checking role for:", userId);
-      
+
       // Try RPC first (primary method)
       const { data, error } = await (supabase.rpc as any)("has_role", {
         _user_id: userId,
         _role: "admin",
       });
-      
+
       if (error) {
-        console.error("[useIsAdmin] RPC error, trying fallback select:", error);
-        
         // Fallback to direct select if RPC fails (resilience)
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("user_roles" as any)
@@ -76,15 +72,14 @@ export function useIsAdmin(userId?: string | null) {
           .eq("user_id", userId)
           .eq("role", "admin")
           .maybeSingle();
-          
+
         if (fallbackError) {
-          console.error("[useIsAdmin] Fallback select also failed:", fallbackError);
           throw fallbackError; // React Query will retry
         }
-        
+
         return !!fallbackData;
       }
-      
+
       return Boolean(data);
     },
     enabled: !!userId,
