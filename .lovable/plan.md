@@ -1,106 +1,100 @@
-# Plano LGPD — Aplicar tudo
+# Plano de Correções de Segurança — Música e Pinga
 
-Banco já migrado: tabelas `consent_logs`, `admin_access_logs`, colunas `anonymized_at` em `profiles` e `assinaturas`.
+Decisões confirmadas:
+- Webhook MP com HMAC → solicitar secret `MP_WEBHOOK_SECRET`.
+- Anti-enumeração de e-mail → rate-limit por IP (sem captcha).
+- CORS restrito a `https://musicaepinga.shop` (+ preview Lovable).
+- Executar **Fase 1, 2 e 3** em sequência.
 
-E-mail oficial do DPO: **privacidade@musicaepinga.com.br**
-Política de retenção: histórico financeiro (`assinaturas`, `pdf_purchases`) anonimizado mas mantido por 5 anos.
-Cookies: modelo opt-out (continuam ativos até o usuário rejeitar).
+> Observação: o backend Lovable não tem primitivos oficiais de rate-limit; faremos uma implementação ad-hoc com tabela `rate_limits` (janela deslizante por IP).
 
-## Arquivos a criar
+---
 
-### 1. `src/hooks/useCookieConsent.ts`
-Hook + utilitários que leem/gravam `cookie_consent_v2` no localStorage com categorias `essential | analytics | marketing`, status `pending|accepted|rejected|custom`, versão. Registra cada decisão em `consent_logs` (com `user_id` se logado, user-agent). Exporta `acceptAll`, `rejectAll`, `setConsent`, `openPreferences`, `isCategoryAllowed` (sync), `useCookieConsent` (React).
+## FASE 1 — Críticas
 
-### 2. `src/components/legal/CookiePreferencesDialog.tsx`
-Dialog (shadcn) com 3 switches: Essenciais (disabled), Análise, Marketing. Botões Cancelar/Salvar. Lê estado atual; salva via `setConsent`.
+### 1.1 Separar tokens de pixels (migração SQL)
+- Criar tabela `pixel_settings_secrets` (admin-only RLS): `meta_access_token`, `tiktok_access_token`, `kwai_access_token`.
+- Remover essas 3 colunas de `pixel_settings` (manter IDs e flags, leitura pública continua).
+- Atualizar `meta-capi/index.ts` para buscar token via service role na nova tabela.
+- `PixelInjector.tsx` e `pixels.ts` não mudam (já só usam IDs/flags).
+- Criar UI admin para gravar/atualizar `pixel_settings_secrets` (extensão da tela existente).
 
-### 3. `src/components/legal/PrivacyCenterCard.tsx`
-Card para `ContaPage` com botões:
-- **Gerenciar cookies** → abre `CookiePreferencesDialog`
-- **Exportar meus dados** → chama edge `export-user-data`, baixa JSON
-- **Excluir minha conta** → confirmação dupla → chama edge `delete-user-account` → signOut → redirect `/`
+### 1.2 Verificação HMAC no `payment-webhook`
+- Validar `x-signature` (`ts=...,v1=...`) e `x-request-id` com `MP_WEBHOOK_SECRET` antes de processar.
+- Rejeitar 401 se assinatura inválida ou `ts` com mais de 5 min de desvio.
 
-### 4. `supabase/functions/export-user-data/index.ts`
-Autenticada (valida JWT via `supabase.auth.getUser` com anon + header). Retorna JSON consolidado: profile, assinaturas, favoritos, downloads, repertorios, repertorio_musicas, consent_logs, active_sessions, pdf_purchases. CORS habilitado.
+### 1.3 Realtime + `pending_subscriptions` + Active sessions
+- Remover `active_sessions` do publication `supabase_realtime` (`ALTER PUBLICATION ... DROP TABLE`).
+- Adicionar policy explícita em `pending_subscriptions`: somente admins fazem SELECT/UPDATE/DELETE (INSERT só via service role).
+- Adicionar `expires_at` (default `now() + 7 days`) e índice em `claim_token`.
 
-### 5. `supabase/functions/delete-user-account/index.ts`
-Autenticada. Usa service role para:
-- anonimizar `profiles` (name='[anonimizado]', email='deleted_<uuid>@anon.local', whatsapp=null, cpf=null, avatar_url=null, anonymized_at=now())
-- anonimizar `assinaturas` (anonymized_at=now()) — mantém por 5 anos
-- anonimizar `pdf_purchases` (anonymized_at via ALTER? — vou só manter como está, pertence ao financeiro)
-- apagar `favoritos`, `downloads`, `repertorio_musicas` (via repertórios), `repertorios`, `active_sessions`, `admin_push_subscriptions`, `afiliados`, `indicacoes` (referred_user_id=null)
-- `supabase.auth.admin.deleteUser(user_id)`
-- log em `consent_logs` (type='privacy', granted=false, version='delete')
-Retorna `{ ok: true }`.
+### 1.4 Anti-enumeração em `check-email-exists`
+- Criar tabela `rate_limits (key text, window_start timestamptz, count int)`.
+- Bloquear se mais de 10 chamadas/IP em 1 min.
+- Manter retorno honesto somente para uso interno autenticado; chamadas anônimas recebem sempre `{ ok: true }`.
 
-(Adicionar `anonymized_at` em `pdf_purchases` se for necessário — fica como follow-up; por ora não anonimiza essa tabela.)
+---
 
-## Arquivos a editar
+## FASE 2 — Altas
 
-### 6. `src/components/pixels/PixelInjector.tsx`
-- Importar `useCookieConsent`.
-- Meta/TikTok/Kwai/GTM/Google Ads → só injeta se `consent.marketing` (e settings habilitados).
-- GA4 → só injeta se `consent.analytics`.
-- Listener `cookie-consent-changed` força re-render via `useState` para remover scripts ao revogar.
-- Adicionar dependências `consent.analytics` / `consent.marketing` aos `useEffect`.
-
-### 7. `src/lib/pixels.ts`
-- `dispatchEvent` lê `isCategoryAllowed("marketing")` antes de Meta/TikTok/Kwai/Google Ads e `isCategoryAllowed("analytics")` antes de GA4/GTM.
-- `sendCapi` retorna sem fazer fetch se marketing desativado.
-
-### 8. `src/pages/LoginPage.tsx`
-Adicionar checkbox obrigatório no modo cadastro:
-```tsx
-<Checkbox required checked={acceptedTerms} onCheckedChange={setAcceptedTerms} />
-Li e aceito os <Link to="/termos">Termos</Link> e a <Link to="/privacidade">Política</Link>.
-```
-Bloquear submit se `!acceptedTerms`. Após signUp, inserir em `consent_logs` (`terms`, `privacy`, granted=true, version=CONSENT_VERSION) usando `user.id` retornado.
-
-### 9. `src/pages/FinalizarCadastroPage.tsx`
-Mesmo checkbox + log de consentimento após `signInWithPassword`.
-
-### 10. `src/pages/ContaPage.tsx`
-Importar e renderizar `<PrivacyCenterCard />` no grid (depois do Super Admin).
-
-### 11. `src/pages/PrivacyPage.tsx`
-- Atualizar versão no topo (`Versão 1.1 — DATA`).
-- Adicionar seção **"Encarregado de Proteção de Dados (DPO)"** com `privacidade@musicaepinga.com.br`.
-- Adicionar `active_sessions` (user-agent) na seção "Dados que coletamos".
-- Lista de subprocessadores atualizada (Meta, Google, TikTok, Kwai, Mercado Pago, Supabase, Google Drive).
-- Bloco "Como exercer seus direitos" referenciando a Central de Privacidade em `/conta`.
-- Mencionar política de retenção: histórico financeiro anonimizado por 5 anos.
-
-### 12. `src/pages/LandingPage.tsx`
-No rodapé, adicionar botão "Gerenciar cookies" que chama `openPreferences()` (ao lado dos links Política/Termos).
-
-## Detalhes técnicos
-
-- **Edge functions:** ambas usam `verify_jwt = false` no `config.toml` (padrão Lovable). JWT validado em código via `createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization } } })` + `auth.getUser()`. Para operações privilegiadas, criar cliente paralelo com `SUPABASE_SERVICE_ROLE_KEY`.
-- **CORS:** importar `corsHeaders` de `npm:@supabase/supabase-js@2/cors`.
-- **Validação:** zod nos bodies (delete pede `confirm: "DELETAR MINHA CONTA"`).
-- **Log admin:** quando admin abre `/admin/usuarios` e clica "Ver detalhes", inserir em `admin_access_logs` (`action: 'view_user'`, `target_user_id`). Implementar via chamada no clique (não migrar agora — fora do escopo crítico).
-
-## Trecho de exemplo — gate no PixelInjector
-
-```tsx
-const { consent } = useCookieConsent();
-const marketingOk = consent.status === "pending" || consent.marketing;
-const analyticsOk = consent.status === "pending" || consent.analytics;
-
-useEffect(() => {
-  if (s?.meta_enabled && s.meta_pixel_id && marketingOk) {
-    injectScript(...);
-  } else {
-    removeById(SCRIPT_IDS.meta);
-    delete (window as any).fbq;
-  }
-}, [s?.meta_enabled, s?.meta_pixel_id, marketingOk]);
+### 2.1 REVOKE EXECUTE em DEFINER internas
+```sql
+REVOKE EXECUTE ON FUNCTION public.handle_new_user, public.assign_admin_for_allowlisted_email, public.check_profile_update FROM PUBLIC, authenticated, anon;
 ```
 
-## Fora deste plano (pode pedir depois)
-- Tela admin para visualizar `consent_logs` e `admin_access_logs`.
-- Job cron para limpar `active_sessions > 90 dias`.
-- Trigger automático de `admin_access_logs` em todas as views administrativas.
-- Habilitar "Leaked Password Protection" no painel Supabase (1 clique manual em Auth → Policies).
+### 2.2 Tabela `admin_allowlist`
+- Criar tabela admin-only com `email text PK`.
+- Migrar a função `assign_admin_for_allowlisted_email` para consultá-la (mantendo os 3 e-mails atuais).
+- Avisar usuário para ativar MFA nesses e-mails no painel Supabase.
 
-Aprove para eu aplicar todas as mudanças de código.
+### 2.3 Buckets sem LIST
+- Criar policies em `storage.objects` para `repertorio-covers`, `pdf-covers`, `anuncios-images`, `discografias` permitindo SELECT só por nome conhecido (negando LIST sem prefixo).
+
+### 2.4 SELECT explícitos
+- Adicionar `Admins can read suppliers` e `Admins can read google_drives`.
+
+### 2.5 Leaked Password Protection
+- Instrução ao usuário: Supabase Dashboard → Auth → Passwords → ativar.
+
+---
+
+## FASE 3 — Médias / Hardening
+
+### 3.1 CORS restrito
+Criar helper `_shared/cors.ts` retornando origem dinâmica entre:
+- `https://musicaepinga.shop`
+- `https://*.lovableproject.com` (preview)
+Aplicar em **todas** as edge functions (substituir o `*` atual).
+
+### 3.2 CSP / Headers de segurança
+Adicionar em `index.html`:
+- `<meta http-equiv="Content-Security-Policy" ...>` (script/style/img/connect liberando Supabase, Meta, Google, TikTok, Kwai).
+- `<meta http-equiv="X-Frame-Options" content="DENY">`
+- `<meta name="referrer" content="strict-origin-when-cross-origin">`
+
+### 3.3 Validação Zod nas edge functions
+Adicionar schemas em: `create-payment`, `create-pdf-payment`, `claim-pending-subscription`, `delete-user-account`, `export-user-data`, `affiliates`, `send-email`, `send-admin-push`.
+
+### 3.4 Rate-limit ad-hoc (IP) em
+`create-payment`, `create-pdf-payment`, `send-email`, `check-email-exists` (já feito na fase 1), usando a tabela `rate_limits`.
+
+### 3.5 Senha mínima 8 + 1 letra + 1 número
+Atualizar `claim-pending-subscription` e validações cliente em `LoginPage`, `FinalizarCadastroPage`.
+
+### 3.6 Sanitização de logs
+Criar `_shared/logger.ts` que remove campos `authorization`, `token`, `cpf`, `password` antes do `console.error`.
+
+### 3.7 Forçar e-mail lowercase
+Trigger BEFORE INSERT/UPDATE em `profiles` aplicando `lower(email)`.
+
+---
+
+## Ordem de execução
+
+1. **Migração SQL única** cobrindo 1.1, 1.3, 2.1, 2.2, 2.3, 2.4, 3.7 + tabela `rate_limits`.
+2. **Pedir secret** `MP_WEBHOOK_SECRET`.
+3. Edits em todas as edge functions (HMAC, CORS, Zod, logger, rate-limit).
+4. Edits client-side (CSP, senha mínima, UI admin para tokens secretos).
+5. Avisar usuário das ações manuais: ativar Leaked Password Protection, ativar MFA nos 3 admins, configurar webhook secret no Mercado Pago.
+
+Pronto para iniciar Fase 1 assim que aprovado.
