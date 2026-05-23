@@ -125,8 +125,8 @@ const AdminPixelsPage = () => {
                 id="meta-token"
                 type="password"
                 placeholder="••••••••••••••••"
-                value={form.meta_access_token || ""}
-                onChange={(e) => set("meta_access_token", e.target.value)}
+                value={tokens.meta_access_token || ""}
+                onChange={(e) => setToken("meta_access_token", e.target.value)}
               />
             </div>
           </div>
@@ -154,10 +154,10 @@ const AdminPixelsPage = () => {
                 {
                   meta_enabled: form.meta_enabled,
                   meta_pixel_id: form.meta_pixel_id,
-                  meta_access_token: form.meta_access_token,
                   meta_events: metaEvents,
                 },
-                "Meta"
+                "Meta",
+                { meta_access_token: tokens.meta_access_token },
               )
             }
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -332,8 +332,8 @@ const AdminPixelsPage = () => {
                 id="tt-token"
                 type="password"
                 placeholder="••••••••••••••••"
-                value={form.tiktok_access_token || ""}
-                onChange={(e) => set("tiktok_access_token", e.target.value)}
+                value={tokens.tiktok_access_token || ""}
+                onChange={(e) => setToken("tiktok_access_token", e.target.value)}
               />
             </div>
           </div>
@@ -343,9 +343,9 @@ const AdminPixelsPage = () => {
                 {
                   tiktok_enabled: form.tiktok_enabled,
                   tiktok_pixel_id: form.tiktok_pixel_id,
-                  tiktok_access_token: form.tiktok_access_token,
                 },
-                "TikTok"
+                "TikTok",
+                { tiktok_access_token: tokens.tiktok_access_token },
               )
             }
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -385,8 +385,8 @@ const AdminPixelsPage = () => {
                 id="kwai-token"
                 type="password"
                 placeholder="••••••••••••••••"
-                value={form.kwai_access_token || ""}
-                onChange={(e) => set("kwai_access_token", e.target.value)}
+                value={tokens.kwai_access_token || ""}
+                onChange={(e) => setToken("kwai_access_token", e.target.value)}
               />
             </div>
           </div>
@@ -396,9 +396,9 @@ const AdminPixelsPage = () => {
                 {
                   kwai_enabled: form.kwai_enabled,
                   kwai_pixel_id: form.kwai_pixel_id,
-                  kwai_access_token: form.kwai_access_token,
                 },
-                "Kwai"
+                "Kwai",
+                { kwai_access_token: tokens.kwai_access_token },
               )
             }
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
