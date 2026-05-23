@@ -39,15 +39,8 @@ serve(async (req) => {
       });
     }
 
-    // ⚠️ Verificação HMAC: rejeita notificações forjadas
-    const valid = await verifyMpSignature(req, paymentId);
-    if (!valid) {
-      console.error("Invalid MP webhook signature");
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+
+
 
     const mercadoPagoAccessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
     if (!mercadoPagoAccessToken) {
