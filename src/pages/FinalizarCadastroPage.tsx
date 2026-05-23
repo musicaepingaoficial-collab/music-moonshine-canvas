@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { claimPendingSubscription, pollPendingApproved } from "@/services/paymentService";
+import { CONSENT_VERSION } from "@/hooks/useCookieConsent";
 import logo from "@/assets/logo.jpeg";
 
 export default function FinalizarCadastroPage() {
@@ -20,6 +22,8 @@ export default function FinalizarCadastroPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
 
   useEffect(() => {
     if (!token) {
@@ -54,6 +58,7 @@ export default function FinalizarCadastroPage() {
     e.preventDefault();
     if (password.length < 6) return toast.error("Senha precisa ter ao menos 6 caracteres.");
     if (password !== confirmPassword) return toast.error("As senhas não coincidem.");
+    if (!acceptedTerms) return toast.error("Aceite os Termos e a Política de Privacidade.");
     if (!token) return;
 
     setSubmitting(true);
@@ -64,6 +69,15 @@ export default function FinalizarCadastroPage() {
         toast.success("Conta criada! Faça login.");
         navigate("/login");
         return;
+      }
+      // Log consentimento
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const ua = typeof navigator !== "undefined" ? navigator.userAgent : null;
+        await supabase.from("consent_logs").insert([
+          { user_id: user.id, consent_type: "terms", granted: true, version: CONSENT_VERSION, user_agent: ua },
+          { user_id: user.id, consent_type: "privacy", granted: true, version: CONSENT_VERSION, user_agent: ua },
+        ]);
       }
       toast.success("Tudo pronto!");
       navigate("/dashboard");
