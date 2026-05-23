@@ -150,6 +150,15 @@ export default function FinalizarCadastroPage() {
                 value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                 minLength={6} required />
             </div>
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Checkbox checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(v === true)} className="mt-0.5" />
+              <span>
+                Li e aceito os{" "}
+                <Link to="/termos" target="_blank" className="text-primary underline">Termos</Link>
+                {" "}e a{" "}
+                <Link to="/privacidade" target="_blank" className="text-primary underline">Política de Privacidade</Link>.
+              </span>
+            </label>
             <Button type="submit" disabled={submitting} className="w-full">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar senha e entrar"}
             </Button>

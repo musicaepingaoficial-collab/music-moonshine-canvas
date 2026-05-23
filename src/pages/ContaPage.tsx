@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChangePasswordCard } from "@/components/account/ChangePasswordCard";
+import { PrivacyCenterCard } from "@/components/legal/PrivacyCenterCard";
 
 const ContaPage = () => {
   const { user } = useAuth();
