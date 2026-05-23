@@ -751,6 +751,12 @@ export default function LandingPage() {
             <button onClick={scrollToPrices} className="hover:text-primary transition-colors">Planos</button>
             <Link to="/termos" className="hover:text-primary transition-colors">Termos de Uso</Link>
             <Link to="/privacidade" className="hover:text-primary transition-colors">Privacidade</Link>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("cookie-preferences-open"))}
+              className="hover:text-primary transition-colors"
+            >
+              Gerenciar cookies
+            </button>
           </div>
         </div>
       </footer>

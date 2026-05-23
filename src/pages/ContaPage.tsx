@@ -115,6 +115,7 @@ const ContaPage = () => {
           </div>
 
           <ChangePasswordCard />
+          <PrivacyCenterCard />
 
           {isAdmin && (
             <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-6">
