@@ -56,7 +56,8 @@ export default function FinalizarCadastroPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) return toast.error("Senha precisa ter ao menos 6 caracteres.");
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password))
+      return toast.error("A senha precisa ter ao menos 8 caracteres, incluindo letra e número.");
     if (password !== confirmPassword) return toast.error("As senhas não coincidem.");
     if (!acceptedTerms) return toast.error("Aceite os Termos e a Política de Privacidade.");
     if (!token) return;
