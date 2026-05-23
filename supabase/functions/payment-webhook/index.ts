@@ -7,55 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-signature, x-request-id",
 };
 
-// Validação HMAC da assinatura do Mercado Pago.
-// Formato do header x-signature: "ts=1234567890,v1=hex_hmac"
-// Manifest: id:<data.id>;request-id:<x-request-id>;ts:<ts>;
-async function verifyMpSignature(req: Request, dataId: string): Promise<boolean> {
-  const secret = Deno.env.get("MP_WEBHOOK_SECRET");
-  if (!secret) {
-    console.error("MP_WEBHOOK_SECRET not configured");
-    return false;
-  }
-  const sig = req.headers.get("x-signature");
-  const reqId = req.headers.get("x-request-id");
-  if (!sig || !reqId) return false;
 
-  const parts = Object.fromEntries(
-    sig.split(",").map((p) => {
-      const [k, ...rest] = p.trim().split("=");
-      return [k, rest.join("=")];
-    }),
-  );
-  const ts = parts.ts;
-  const v1 = parts.v1;
-  if (!ts || !v1) return false;
 
-  // Anti-replay: 5 min de tolerância
-  const tsNum = Number(ts);
-  if (!Number.isFinite(tsNum) || Math.abs(Date.now() - tsNum) > 5 * 60 * 1000) {
-    console.error("MP webhook ts out of range");
-    return false;
-  }
-
-  const manifest = `id:${dataId};request-id:${reqId};ts:${ts};`;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest));
-  const computed = Array.from(new Uint8Array(sigBuf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-
-  // Comparação em tempo constante
-  if (computed.length !== v1.length) return false;
-  let diff = 0;
-  for (let i = 0; i < computed.length; i++) diff |= computed.charCodeAt(i) ^ v1.charCodeAt(i);
-  return diff === 0;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
