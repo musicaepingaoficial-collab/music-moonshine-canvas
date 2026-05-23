@@ -62,6 +62,21 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_allowlist: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
       admin_notification_prefs: {
         Row: {
           notify_pix_generated: boolean
@@ -601,6 +616,7 @@ export type Database = {
           cpf: string
           created_at: string
           email: string
+          expires_at: string
           full_name: string
           id: string
           mp_payment_id: number | null
@@ -618,6 +634,7 @@ export type Database = {
           cpf: string
           created_at?: string
           email: string
+          expires_at?: string
           full_name: string
           id?: string
           mp_payment_id?: number | null
@@ -635,6 +652,7 @@ export type Database = {
           cpf?: string
           created_at?: string
           email?: string
+          expires_at?: string
           full_name?: string
           id?: string
           mp_payment_id?: number | null
@@ -656,14 +674,11 @@ export type Database = {
           gtm_container_id: string | null
           gtm_enabled: boolean
           id: string
-          kwai_access_token: string | null
           kwai_enabled: boolean
           kwai_pixel_id: string | null
-          meta_access_token: string | null
           meta_enabled: boolean
           meta_events: Json
           meta_pixel_id: string | null
-          tiktok_access_token: string | null
           tiktok_enabled: boolean
           tiktok_pixel_id: string | null
           updated_at: string
@@ -678,14 +693,11 @@ export type Database = {
           gtm_container_id?: string | null
           gtm_enabled?: boolean
           id?: string
-          kwai_access_token?: string | null
           kwai_enabled?: boolean
           kwai_pixel_id?: string | null
-          meta_access_token?: string | null
           meta_enabled?: boolean
           meta_events?: Json
           meta_pixel_id?: string | null
-          tiktok_access_token?: string | null
           tiktok_enabled?: boolean
           tiktok_pixel_id?: string | null
           updated_at?: string
@@ -700,16 +712,40 @@ export type Database = {
           gtm_container_id?: string | null
           gtm_enabled?: boolean
           id?: string
-          kwai_access_token?: string | null
           kwai_enabled?: boolean
           kwai_pixel_id?: string | null
-          meta_access_token?: string | null
           meta_enabled?: boolean
           meta_events?: Json
           meta_pixel_id?: string | null
-          tiktok_access_token?: string | null
           tiktok_enabled?: boolean
           tiktok_pixel_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      pixel_settings_secrets: {
+        Row: {
+          id: string
+          kwai_access_token: string | null
+          meta_access_token: string | null
+          tiktok_access_token: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          kwai_access_token?: string | null
+          meta_access_token?: string | null
+          tiktok_access_token?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          kwai_access_token?: string | null
+          meta_access_token?: string | null
+          tiktok_access_token?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -784,6 +820,24 @@ export type Database = {
           name?: string
           updated_at?: string
           whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
         }
         Relationships: []
       }
