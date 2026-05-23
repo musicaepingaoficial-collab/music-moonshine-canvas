@@ -35,6 +35,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_access_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_notification_prefs: {
         Row: {
           notify_pix_generated: boolean
@@ -148,6 +175,7 @@ export type Database = {
       }
       assinaturas: {
         Row: {
+          anonymized_at: string | null
           created_at: string
           expires_at: string | null
           id: string
@@ -158,6 +186,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          anonymized_at?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -168,6 +197,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          anonymized_at?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -197,6 +227,39 @@ export type Database = {
           id?: string
           name?: string
           slug?: string
+        }
+        Relationships: []
+      }
+      consent_logs: {
+        Row: {
+          consent_type: string
+          created_at: string
+          granted: boolean
+          id: string
+          ip: string | null
+          user_agent: string | null
+          user_id: string | null
+          version: string
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string
+          granted: boolean
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          version?: string
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string
+          granted?: boolean
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          version?: string
         }
         Relationships: []
       }
@@ -687,6 +750,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          anonymized_at: string | null
           avatar_url: string | null
           cpf: string | null
           created_at: string
@@ -698,6 +762,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          anonymized_at?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -709,6 +774,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          anonymized_at?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
