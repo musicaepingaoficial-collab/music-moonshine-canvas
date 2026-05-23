@@ -15,7 +15,6 @@ export interface PixelSettings {
   id: string;
   meta_enabled: boolean;
   meta_pixel_id: string | null;
-  meta_access_token: string | null;
   meta_events: Record<string, boolean>;
   google_ads_enabled: boolean;
   google_ads_conversion_id: string | null;
@@ -26,11 +25,16 @@ export interface PixelSettings {
   ga4_measurement_id: string | null;
   kwai_enabled: boolean;
   kwai_pixel_id: string | null;
-  kwai_access_token: string | null;
   tiktok_enabled: boolean;
   tiktok_pixel_id: string | null;
-  tiktok_access_token: string | null;
   updated_at: string;
+}
+
+export interface PixelSecrets {
+  id: string;
+  meta_access_token: string | null;
+  tiktok_access_token: string | null;
+  kwai_access_token: string | null;
 }
 
 export function useSiteSettings() {
@@ -88,5 +92,47 @@ export function useUpdatePixelSettings() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pixel-settings"] }),
+  });
+}
+
+// ===== Tokens secretos (admin-only) =====
+export function usePixelSecrets() {
+  return useQuery<PixelSecrets | null>({
+    queryKey: ["pixel-secrets"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("pixel_settings_secrets" as any) as any)
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as PixelSecrets | null;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useUpdatePixelSecrets() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: Partial<PixelSecrets>) => {
+      const client = supabase.from("pixel_settings_secrets" as any) as any;
+      // Pega ou cria uma única linha
+      const { data: existing } = await client
+        .select("id")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        const { error } = await client
+          .update({ ...values, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await client.insert({ ...values });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pixel-secrets"] }),
   });
 }

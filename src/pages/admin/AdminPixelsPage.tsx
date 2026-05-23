@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { usePixelSettings, useUpdatePixelSettings, type PixelSettings } from "@/hooks/useSiteSettings";
+import {
+  usePixelSettings,
+  useUpdatePixelSettings,
+  usePixelSecrets,
+  useUpdatePixelSecrets,
+  type PixelSettings,
+  type PixelSecrets,
+} from "@/hooks/useSiteSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,26 +37,42 @@ const ADS_LABELS = [
 
 const AdminPixelsPage = () => {
   const { data: s, isLoading } = usePixelSettings();
+  const { data: secrets } = usePixelSecrets();
   const update = useUpdatePixelSettings();
+  const updateSecrets = useUpdatePixelSecrets();
 
   const [form, setForm] = useState<Partial<PixelSettings>>({});
+  const [tokens, setTokens] = useState<Partial<PixelSecrets>>({});
 
   useEffect(() => {
     if (s) setForm(s);
   }, [s]);
+  useEffect(() => {
+    if (secrets) setTokens(secrets);
+  }, [secrets]);
 
   const set = <K extends keyof PixelSettings>(k: K, v: PixelSettings[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
+  const setToken = (k: keyof PixelSecrets, v: string) =>
+    setTokens((p) => ({ ...p, [k]: v }));
 
-  const saveSection = async (values: Partial<PixelSettings>, label: string) => {
+  const saveSection = async (
+    values: Partial<PixelSettings>,
+    label: string,
+    secretValues?: Partial<PixelSecrets>,
+  ) => {
     if (!s) return;
     try {
       await update.mutateAsync({ id: s.id, values });
+      if (secretValues && Object.keys(secretValues).length) {
+        await updateSecrets.mutateAsync(secretValues);
+      }
       toast({ title: `${label} salvo`, description: "Configurações atualizadas." });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     }
   };
+
 
   if (isLoading || !s) {
     return (
@@ -102,8 +125,8 @@ const AdminPixelsPage = () => {
                 id="meta-token"
                 type="password"
                 placeholder="••••••••••••••••"
-                value={form.meta_access_token || ""}
-                onChange={(e) => set("meta_access_token", e.target.value)}
+                value={tokens.meta_access_token || ""}
+                onChange={(e) => setToken("meta_access_token", e.target.value)}
               />
             </div>
           </div>
@@ -131,10 +154,10 @@ const AdminPixelsPage = () => {
                 {
                   meta_enabled: form.meta_enabled,
                   meta_pixel_id: form.meta_pixel_id,
-                  meta_access_token: form.meta_access_token,
                   meta_events: metaEvents,
                 },
-                "Meta"
+                "Meta",
+                { meta_access_token: tokens.meta_access_token },
               )
             }
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -309,8 +332,8 @@ const AdminPixelsPage = () => {
                 id="tt-token"
                 type="password"
                 placeholder="••••••••••••••••"
-                value={form.tiktok_access_token || ""}
-                onChange={(e) => set("tiktok_access_token", e.target.value)}
+                value={tokens.tiktok_access_token || ""}
+                onChange={(e) => setToken("tiktok_access_token", e.target.value)}
               />
             </div>
           </div>
@@ -320,9 +343,9 @@ const AdminPixelsPage = () => {
                 {
                   tiktok_enabled: form.tiktok_enabled,
                   tiktok_pixel_id: form.tiktok_pixel_id,
-                  tiktok_access_token: form.tiktok_access_token,
                 },
-                "TikTok"
+                "TikTok",
+                { tiktok_access_token: tokens.tiktok_access_token },
               )
             }
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -362,8 +385,8 @@ const AdminPixelsPage = () => {
                 id="kwai-token"
                 type="password"
                 placeholder="••••••••••••••••"
-                value={form.kwai_access_token || ""}
-                onChange={(e) => set("kwai_access_token", e.target.value)}
+                value={tokens.kwai_access_token || ""}
+                onChange={(e) => setToken("kwai_access_token", e.target.value)}
               />
             </div>
           </div>
@@ -373,9 +396,9 @@ const AdminPixelsPage = () => {
                 {
                   kwai_enabled: form.kwai_enabled,
                   kwai_pixel_id: form.kwai_pixel_id,
-                  kwai_access_token: form.kwai_access_token,
                 },
-                "Kwai"
+                "Kwai",
+                { kwai_access_token: tokens.kwai_access_token },
               )
             }
             className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"

@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeadersFor } from "../_shared/cors.ts";
 
 async function sha256(value: string): Promise<string> {
   const data = new TextEncoder().encode(value.trim().toLowerCase());
@@ -33,8 +29,9 @@ interface CapiBody {
 }
 
 serve(async (req) => {
+  const cors = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
   }
 
   try {
@@ -42,7 +39,7 @@ serve(async (req) => {
     if (!body?.event_name) {
       return new Response(JSON.stringify({ error: "event_name required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
@@ -53,19 +50,28 @@ serve(async (req) => {
 
     const { data: settings } = await supabase
       .from("pixel_settings")
-      .select("meta_enabled, meta_pixel_id, meta_access_token, meta_events")
+      .select("meta_enabled, meta_pixel_id, meta_events")
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (!settings?.meta_enabled || !settings.meta_pixel_id || !settings.meta_access_token) {
+    // Token vive em tabela separada (admin-only)
+    const { data: secrets } = await supabase
+      .from("pixel_settings_secrets")
+      .select("meta_access_token")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const metaToken = secrets?.meta_access_token;
+
+    if (!settings?.meta_enabled || !settings.meta_pixel_id || !metaToken) {
       return new Response(JSON.stringify({ skipped: "meta capi not configured" }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
-    // Map standard event name -> internal toggle key
     const toggleMap: Record<string, string> = {
       PageView: "page_view",
       ViewContent: "view_content",
@@ -81,7 +87,7 @@ serve(async (req) => {
     if (toggleKey && events[toggleKey] === false) {
       return new Response(JSON.stringify({ skipped: "event disabled" }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
@@ -105,7 +111,7 @@ serve(async (req) => {
       custom_data: body.custom_data || {},
     };
 
-    const url = `https://graph.facebook.com/v18.0/${settings.meta_pixel_id}/events?access_token=${settings.meta_access_token}`;
+    const url = `https://graph.facebook.com/v18.0/${settings.meta_pixel_id}/events?access_token=${metaToken}`;
     const payload: Record<string, unknown> = { data: [event] };
     if (body.test_event_code) payload.test_event_code = body.test_event_code;
 
@@ -117,22 +123,22 @@ serve(async (req) => {
     const fbJson = await fbRes.json();
 
     if (!fbRes.ok) {
-      console.error("Meta CAPI error:", fbJson);
-      return new Response(JSON.stringify({ error: fbJson }), {
+      console.error("Meta CAPI error");
+      return new Response(JSON.stringify({ error: "upstream error" }), {
         status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ ok: true, response: fbJson }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("meta-capi error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    console.error("meta-capi error");
+    return new Response(JSON.stringify({ error: "internal" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 });

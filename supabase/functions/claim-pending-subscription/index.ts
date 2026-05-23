@@ -14,10 +14,13 @@ serve(async (req) => {
   try {
     const { pending_id, claim_token, password, check_only } = await req.json();
 
-    if (!check_only && (!password || String(password).length < 6)) {
-      return new Response(JSON.stringify({ error: "Senha precisa ter ao menos 6 caracteres." }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!check_only) {
+      const pw = String(password || "");
+      if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) {
+        return new Response(JSON.stringify({ error: "A senha precisa ter ao menos 8 caracteres, incluindo letra e número." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const supabase = createClient(
@@ -46,6 +49,13 @@ serve(async (req) => {
     if (check_only) {
       return new Response(JSON.stringify({ status: pending.status, email: pending.email }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Token expirado
+    if (pending.expires_at && new Date(pending.expires_at).getTime() < Date.now()) {
+      return new Response(JSON.stringify({ error: "Link expirado. Solicite um novo no suporte.", code: "expired" }), {
+        status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
