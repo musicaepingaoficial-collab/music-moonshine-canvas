@@ -16,6 +16,7 @@
  *   track("add_to_cart", { value: 19.9, currency: "BRL", content_ids: ["sku-1"] });
  */
 import { usePixelSettings, type PixelSettings } from "@/hooks/useSiteSettings";
+import { isCategoryAllowed } from "@/hooks/useCookieConsent";
 import { useCallback } from "react";
 
 // ───────────────────────── Types ─────────────────────────

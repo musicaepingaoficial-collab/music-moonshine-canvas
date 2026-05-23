@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePixelSettings } from "@/hooks/useSiteSettings";
 import { _setCachedPixelSettings } from "@/lib/pixels";
+import { useCookieConsent } from "@/hooks/useCookieConsent";
 
 declare global {
   interface Window {
@@ -60,13 +61,16 @@ function injectGtmNoscript(id: string, containerId: string) {
 
 export function PixelInjector() {
   const { data: s } = usePixelSettings();
+  const { consent } = useCookieConsent();
   _setCachedPixelSettings(s);
+
+  // Opt-out: durante pending, libera tudo (mantém anúncios funcionando até o usuário rejeitar)
+  const marketingOk = consent.status === "pending" || consent.marketing;
+  const analyticsOk = consent.status === "pending" || consent.analytics;
 
   // Meta Pixel
   useEffect(() => {
-    if (s?.meta_enabled && s.meta_pixel_id) {
-      // PageView is handled by RouteTracker (so SPA navigations also fire it),
-      // not by the snippet — avoids duplicate PageViews on first load.
+    if (s?.meta_enabled && s.meta_pixel_id && marketingOk) {
       injectScript(
         SCRIPT_IDS.meta,
         `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -83,11 +87,11 @@ fbq('init', '${s.meta_pixel_id}');`,
       delete (window as any).fbq;
       delete (window as any)._fbq;
     }
-  }, [s?.meta_enabled, s?.meta_pixel_id, s?.meta_events]);
+  }, [s?.meta_enabled, s?.meta_pixel_id, s?.meta_events, marketingOk]);
 
   // GTM
   useEffect(() => {
-    if (s?.gtm_enabled && s.gtm_container_id) {
+    if (s?.gtm_enabled && s.gtm_container_id && (analyticsOk || marketingOk)) {
       injectScript(
         SCRIPT_IDS.gtm,
         `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -102,13 +106,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       removeById(SCRIPT_IDS.gtm);
       removeById(SCRIPT_IDS.gtmNoscript);
     }
-  }, [s?.gtm_enabled, s?.gtm_container_id]);
+  }, [s?.gtm_enabled, s?.gtm_container_id, analyticsOk, marketingOk]);
 
   // GA4 + Google Ads (compartilham gtag.js)
   useEffect(() => {
-    const ga4 = s?.ga4_enabled && s?.ga4_measurement_id ? s.ga4_measurement_id : null;
+    const ga4 = s?.ga4_enabled && s?.ga4_measurement_id && analyticsOk ? s.ga4_measurement_id : null;
     const ads =
-      s?.google_ads_enabled && s?.google_ads_conversion_id ? s.google_ads_conversion_id : null;
+      s?.google_ads_enabled && s?.google_ads_conversion_id && marketingOk ? s.google_ads_conversion_id : null;
 
     if (!ga4 && !ads) {
       removeById(SCRIPT_IDS.gtag);
@@ -139,11 +143,13 @@ ${configs.join("\n")}`,
     s?.ga4_measurement_id,
     s?.google_ads_enabled,
     s?.google_ads_conversion_id,
+    analyticsOk,
+    marketingOk,
   ]);
 
   // TikTok Pixel
   useEffect(() => {
-    if (s?.tiktok_enabled && s.tiktok_pixel_id) {
+    if (s?.tiktok_enabled && s.tiktok_pixel_id && marketingOk) {
       injectScript(
         SCRIPT_IDS.tiktok,
         `!function (w, d, t) {
@@ -157,11 +163,11 @@ ${configs.join("\n")}`,
       removeById(SCRIPT_IDS.tiktok);
       delete (window as any).ttq;
     }
-  }, [s?.tiktok_enabled, s?.tiktok_pixel_id]);
+  }, [s?.tiktok_enabled, s?.tiktok_pixel_id, marketingOk]);
 
   // Kwai Pixel
   useEffect(() => {
-    if (s?.kwai_enabled && s.kwai_pixel_id) {
+    if (s?.kwai_enabled && s.kwai_pixel_id && marketingOk) {
       injectScript(
         SCRIPT_IDS.kwai,
         `!function(w,d,s,o){w.kwaiq=w.kwaiq||function(){(w.kwaiq.q=w.kwaiq.q||[]).push(arguments)};var f=d.createElement(s);f.async=!0;f.src='https://s1.kwai.net/kos/s101/nlav11187/pixel/events.js';var g=d.getElementsByTagName(s)[0];g.parentNode.insertBefore(f,g);}(window,document,'script');
@@ -173,7 +179,7 @@ kwaiq.page();`,
       removeById(SCRIPT_IDS.kwai);
       delete (window as any).kwaiq;
     }
-  }, [s?.kwai_enabled, s?.kwai_pixel_id]);
+  }, [s?.kwai_enabled, s?.kwai_pixel_id, marketingOk]);
 
   return null;
 }
