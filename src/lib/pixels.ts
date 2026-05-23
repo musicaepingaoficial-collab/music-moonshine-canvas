@@ -223,12 +223,15 @@ export function dispatchEvent(
   const { settings, debug } = opts;
   if (!settings) return;
 
+  const marketingOk = isCategoryAllowed("marketing");
+  const analyticsOk = isCategoryAllowed("analytics");
+
   const log = (...args: unknown[]) => {
     if (debug) console.log("[pixels]", ...args);
   };
 
   // ── Meta Pixel ──
-  if (settings.meta_enabled && typeof window.fbq === "function") {
+  if (marketingOk && settings.meta_enabled && typeof window.fbq === "function") {
     const metaName = META_EVENT_MAP[event];
     const toggleKey = META_TOGGLE_KEY_MAP[event];
     const enabled = toggleKey ? settings.meta_events?.[toggleKey as keyof PixelSettings["meta_events"]] !== false : true;
@@ -245,7 +248,7 @@ export function dispatchEvent(
   }
 
   // ── GA4 ──
-  if (settings.ga4_enabled && settings.ga4_measurement_id && typeof window.gtag === "function") {
+  if (analyticsOk && settings.ga4_enabled && settings.ga4_measurement_id && typeof window.gtag === "function") {
     const ga4Name = GA4_EVENT_MAP[event];
     if (ga4Name) {
       const ga4Payload = {
@@ -259,6 +262,7 @@ export function dispatchEvent(
 
   // ── Google Ads conversion ──
   if (
+    marketingOk &&
     settings.google_ads_enabled &&
     settings.google_ads_conversion_id &&
     typeof window.gtag === "function"
@@ -277,7 +281,7 @@ export function dispatchEvent(
   }
 
   // ── TikTok Pixel ──
-  if (settings.tiktok_enabled && typeof (window as any).ttq?.track === "function") {
+  if (marketingOk && settings.tiktok_enabled && typeof (window as any).ttq?.track === "function") {
     const ttName = TIKTOK_EVENT_MAP[event];
     if (ttName) {
       const ttPayload: Record<string, unknown> = {};
@@ -299,7 +303,7 @@ export function dispatchEvent(
   }
 
   // ── Kwai Pixel ──
-  if (settings.kwai_enabled && typeof (window as any).kwaiq === "function") {
+  if (marketingOk && settings.kwai_enabled && typeof (window as any).kwaiq === "function") {
     const kwName = KWAI_EVENT_MAP[event];
     if (kwName && settings.kwai_pixel_id) {
       const kwPayload: Record<string, unknown> = {};
@@ -315,7 +319,7 @@ export function dispatchEvent(
   }
 
   // ── GTM dataLayer ──
-  if (settings.gtm_enabled && settings.gtm_container_id) {
+  if ((analyticsOk || marketingOk) && settings.gtm_enabled && settings.gtm_container_id) {
     window.dataLayer = window.dataLayer || [];
     const dlEvent = { event, ...payload };
     log("dataLayer push", dlEvent);
@@ -388,6 +392,7 @@ export interface CapiCallInput {
 
 /** Fire-and-forget call to the meta-capi edge function. */
 export function sendCapi(input: CapiCallInput): void {
+  if (!isCategoryAllowed("marketing")) return;
   try {
     const { fbp, fbc } = getFbCookies();
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-capi`;
