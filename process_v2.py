@@ -21,13 +21,22 @@ def process_html(html_content, genero_name):
             
         links = []
         link_elems = card.find_all('div', class_='btnbaixar')
+        valid_links = []
         for le in link_elems:
             a = le.find('a')
-            if a:
-                label = le.get_text(strip=True).replace('BAIXAR ', '')
-                if label == 'AGORA':
+            if a and a.get('href') and a.get('href') != '#':
+                valid_links.append((le, a))
+        
+        num_links = len(valid_links)
+        for i, (le, a) in enumerate(valid_links):
+            label = le.get_text(strip=True).replace('BAIXAR ', '')
+            if label == 'AGORA':
+                if num_links > 1:
+                    label = f"Parte {i+1:02d}"
+                else:
                     label = 'Parte Única'
-                links.append({"label": label, "url": a['href']})
+            links.append({"label": label, "url": a['href']})
+
                 
         if name not in artists:
             artists[name] = {
