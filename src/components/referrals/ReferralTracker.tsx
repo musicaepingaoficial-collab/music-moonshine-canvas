@@ -4,17 +4,24 @@ import { registerPendingReferral } from "@/lib/referrals";
 
 export const ReferralTracker = () => {
   useEffect(() => {
-    // Escuta mudanças na autenticação para tentar registrar indicações pendentes
+    // 1. Captura código da URL em qualquer página (?ref=CODE)
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      console.log("[referral] Código capturado da URL:", ref);
+      localStorage.setItem("referral_code", ref);
+    }
+
+    // 2. Escuta mudanças na autenticação para registrar indicações
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        // Se temos um código salvo e o usuário acabou de logar ou o token foi renovado
         if (localStorage.getItem("referral_code")) {
           registerPendingReferral();
         }
       }
     });
 
-    // Também tenta ao montar o componente se já houver sessão
+    // 3. Tenta ao montar se já houver sessão
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session && localStorage.getItem("referral_code")) {
         registerPendingReferral();
