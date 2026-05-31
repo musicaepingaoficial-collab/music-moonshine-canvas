@@ -169,6 +169,9 @@ const AdminUsuariosPage = () => {
                       <TableCell className="text-muted-foreground">
                         {new Date(user.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
+                      <TableCell className="text-xs text-muted-foreground italic">
+                        {user.referred_by || "—"}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
