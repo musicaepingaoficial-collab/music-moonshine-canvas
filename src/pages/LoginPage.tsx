@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent, sendCapi } from "@/lib/pixels";
 import { CONSENT_VERSION } from "@/hooks/useCookieConsent";
+import { registerPendingReferral } from "@/lib/referrals";
 
 async function registerPendingReferral() {
   try {
