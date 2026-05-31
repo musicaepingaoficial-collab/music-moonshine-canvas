@@ -163,9 +163,10 @@ const IndicacoesPage = () => {
               <li key={i.id} className="flex items-center justify-between py-3">
                 <div>
                   <p className="text-sm font-medium">
-                    Indicação #{i.id.slice(0, 8)}
+                    {i.referred_user?.email || `Indicação #${i.id.slice(0, 8)}`}
                   </p>
                   <p className="text-xs text-muted-foreground">
+                    {i.referred_user?.name ? `${i.referred_user.name} • ` : ""}
                     {new Date(i.created_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
