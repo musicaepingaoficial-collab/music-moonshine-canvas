@@ -45,5 +45,9 @@ for card in cards:
 # Output SQL for psql
 for artist in artists.values():
     links_json = json.dumps(artist['links'], ensure_ascii=False)
-    sql = f"INSERT INTO discografias (artista_nome, imagem_url, genero, links) VALUES ('{artist['artista_nome'].replace(\"'\", \"''\")}', '{artist['imagem_url']}', 'FORRÓ', '{links_json.replace(\"'\", \"''\")}') ON CONFLICT (artista_nome, genero) DO UPDATE SET links = EXCLUDED.links, imagem_url = EXCLUDED.imagem_url;"
+    name_escaped = artist['artista_nome'].replace("'", "''")
+    img_escaped = artist['imagem_url'].replace("'", "''")
+    links_escaped = links_json.replace("'", "''")
+    sql = f"INSERT INTO discografias (artista_nome, imagem_url, genero, links) VALUES ('{name_escaped}', '{img_escaped}', 'FORRÓ', '{links_escaped}') ON CONFLICT (artista_nome, genero) DO UPDATE SET links = EXCLUDED.links, imagem_url = EXCLUDED.imagem_url;"
     print(sql)
+
