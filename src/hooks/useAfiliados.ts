@@ -73,7 +73,13 @@ export function useIndicacoes() {
         .maybeSingle();
       if (!afiliado) return [];
       const { data, error } = await (supabase.from("indicacoes" as any) as any)
-        .select("*")
+        .select(`
+          *,
+          referred_user:profiles!referred_user_id (
+            email,
+            name
+          )
+        `)
         .eq("afiliado_id", afiliado.id)
         .order("created_at", { ascending: false });
       if (error) throw error;

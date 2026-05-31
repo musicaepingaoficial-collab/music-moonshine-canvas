@@ -13,7 +13,12 @@ const IndicacoesPage = () => {
   const generate = useGenerateAffiliateLink();
   const [copied, setCopied] = useState(false);
 
-  const list = (indicacoes ?? []) as Array<{ id: string; status: string; created_at: string }>;
+  const list = (indicacoes ?? []) as Array<{ 
+    id: string; 
+    status: string; 
+    created_at: string;
+    referred_user?: { email: string; name?: string }
+  }>;
   const rewarded = list.filter((i) => i.status === "rewarded").length;
   const pending = list.filter((i) => i.status === "pending").length;
   const goal = 10;
@@ -158,9 +163,10 @@ const IndicacoesPage = () => {
               <li key={i.id} className="flex items-center justify-between py-3">
                 <div>
                   <p className="text-sm font-medium">
-                    Indicação #{i.id.slice(0, 8)}
+                    {i.referred_user?.email || `Indicação #${i.id.slice(0, 8)}`}
                   </p>
                   <p className="text-xs text-muted-foreground">
+                    {i.referred_user?.name ? `${i.referred_user.name} • ` : ""}
                     {new Date(i.created_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>

@@ -19,6 +19,7 @@ interface UserWithSub {
   has_discografias: boolean;
   created_at: string;
   assinaturas: { plan: string; status: string }[];
+  referred_by?: string | null;
 }
 
 const AdminUsuariosPage = () => {
@@ -41,10 +42,28 @@ const AdminUsuariosPage = () => {
         .select("user_id, plan, status")
         .eq("status", "active");
 
-      return (data ?? []).map((u) => ({
-        ...u,
-        assinaturas: (subs ?? []).filter((s) => s.user_id === u.id),
-      })) as UserWithSub[];
+      // Fetch referral info for these users
+      const { data: refs } = await supabase
+        .from("indicacoes")
+        .select(`
+          referred_user_id,
+          afiliados (
+            profiles (
+              email
+            )
+          )
+        `);
+
+      return (data ?? []).map((u) => {
+        const userRef = (refs ?? []).find(r => r.referred_user_id === u.id);
+        const referrerEmail = (userRef?.afiliados as any)?.profiles?.email;
+
+        return {
+          ...u,
+          assinaturas: (subs ?? []).filter((s) => s.user_id === u.id),
+          referred_by: referrerEmail
+        };
+      }) as UserWithSub[];
     },
   });
 
@@ -120,6 +139,7 @@ const AdminUsuariosPage = () => {
                     <TableHead>Plano</TableHead>
                     <TableHead>Discografias</TableHead>
                     <TableHead>Cadastro</TableHead>
+                    <TableHead>Indicação de</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -148,6 +168,9 @@ const AdminUsuariosPage = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground italic">
+                        {user.referred_by || "—"}
                       </TableCell>
                     </TableRow>
                   ))}
