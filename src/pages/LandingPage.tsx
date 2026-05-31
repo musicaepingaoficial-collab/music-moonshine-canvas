@@ -439,7 +439,7 @@ export default function LandingPage() {
               Atualizações constantes
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
-              Capas <span className="text-gradient-brand">profissionais</span>, conteúdo novo toda semana
+              Capas <span className="text-gradient-brand">Atualizações e</span>, conteúdo novo toda semana
             </h2>
             <p className="mt-4 text-muted-foreground text-base sm:text-lg">
               Repertórios prontos, organizados e atualizados — basta escolher e baixar.
