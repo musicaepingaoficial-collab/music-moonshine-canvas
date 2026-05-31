@@ -447,17 +447,45 @@ function MusicManagerDialog({ repertorioId, onClose }: { repertorioId: string; o
 
   const addAllFromDrive = async (driveId: string) => {
     try {
-      const { data: driveMusicas } = await supabase.from("musicas").select("id").eq("drive_id", driveId);
-      if (driveMusicas && driveMusicas.length > 0) {
-        const idsToAdd = driveMusicas.map(m => m.id).filter(id => !repMusicaIds.has(id));
+      let allDriveMusicaIds: string[] = [];
+      let offset = 0;
+      const limit = 1000;
+
+      while (true) {
+        const { data: driveMusicas, error } = await supabase
+          .from("musicas")
+          .select("id")
+          .eq("drive_id", driveId)
+          .range(offset, offset + limit - 1);
+          
+        if (error) throw error;
+        if (!driveMusicas || driveMusicas.length === 0) break;
+        
+        allDriveMusicaIds.push(...driveMusicas.map(m => m.id));
+        if (driveMusicas.length < limit) break;
+        offset += limit;
+      }
+
+      if (allDriveMusicaIds.length > 0) {
+        const idsToAdd = allDriveMusicaIds.filter(id => !repMusicaIds.has(id));
         if (idsToAdd.length === 0) {
           toast.info("Todas as músicas deste drive já estão no repertório.");
           return;
         }
-        await addMusicas.mutateAsync({ repertorioId, musicaIds: idsToAdd });
-        toast.success(`${idsToAdd.length} música(s) do drive adicionada(s)!`);
+
+        // Add in batches of 1000 to avoid request size limits
+        const batchSize = 1000;
+        let addedCount = 0;
+        for (let i = 0; i < idsToAdd.length; i += batchSize) {
+          const batch = idsToAdd.slice(i, i + batchSize);
+          await addMusicas.mutateAsync({ repertorioId, musicaIds: batch });
+          addedCount += batch.length;
+        }
+        
+        toast.success(`${addedCount} música(s) do drive adicionada(s)!`);
       }
-    } catch {
+    } catch (error: any) {
+      console.error("Erro ao adicionar drive:", error);
       toast.error("Erro ao adicionar músicas do drive.");
     }
   };
