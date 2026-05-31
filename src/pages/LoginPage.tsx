@@ -10,30 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent, sendCapi } from "@/lib/pixels";
 import { CONSENT_VERSION } from "@/hooks/useCookieConsent";
+import { registerPendingReferral } from "@/lib/referrals";
 
-async function registerPendingReferral() {
-  try {
-    const ref = localStorage.getItem("referral_code");
-    if (!ref) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/affiliates`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({ action: "register-referral", referralCode: ref }),
-      }
-    );
-    localStorage.removeItem("referral_code");
-  } catch (e) {
-    console.warn("[referral] erro:", e);
-  }
-}
 
 function formatWhatsApp(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
