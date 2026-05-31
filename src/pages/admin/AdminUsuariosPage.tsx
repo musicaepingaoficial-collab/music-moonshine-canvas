@@ -19,6 +19,7 @@ interface UserWithSub {
   has_discografias: boolean;
   created_at: string;
   assinaturas: { plan: string; status: string }[];
+  referred_by?: string | null;
 }
 
 const AdminUsuariosPage = () => {
