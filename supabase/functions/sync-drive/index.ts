@@ -189,8 +189,9 @@ serve(async (req) => {
     
     if (authError || !user) {
       console.error("[sync-drive] Erro de autenticação:", authError?.message || "Usuário não encontrado");
+      // Use standard error response format
       return new Response(JSON.stringify({ 
-        error: "Token inválido", 
+        error: "Token inválido ou expirado. Por favor, faça login novamente.", 
         details: authError?.message 
       }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
