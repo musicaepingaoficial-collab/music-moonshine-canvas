@@ -333,10 +333,7 @@ serve(async (req) => {
           title = parts.slice(1).join(" - ").trim();
         }
 
-        const existingId = existingMap.get(f.id);
-
         return {
-          ...(existingId ? { id: existingId } : {}),
           title,
           artist,
           file_url: f.id,
