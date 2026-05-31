@@ -139,6 +139,7 @@ const AdminUsuariosPage = () => {
                     <TableHead>Plano</TableHead>
                     <TableHead>Discografias</TableHead>
                     <TableHead>Cadastro</TableHead>
+                    <TableHead>Indicação de</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
