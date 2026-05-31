@@ -22,7 +22,7 @@ const IndicacoesPage = () => {
 
   const link = useMemo(() => {
     if (!afiliado?.code) return "";
-    return `${window.location.origin}/login?ref=${afiliado.code}`;
+    return `${window.location.origin}/?ref=${afiliado.code}`;
   }, [afiliado?.code]);
 
   const handleCopy = async () => {
