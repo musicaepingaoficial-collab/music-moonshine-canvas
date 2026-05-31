@@ -98,6 +98,7 @@ const App = () => (
           <RouteTracker />
           <CookieBanner />
           <CookiePreferencesDialog />
+          <ReferralTracker />
           <SingleSessionGuard />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
