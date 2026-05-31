@@ -13,7 +13,12 @@ const IndicacoesPage = () => {
   const generate = useGenerateAffiliateLink();
   const [copied, setCopied] = useState(false);
 
-  const list = (indicacoes ?? []) as Array<{ id: string; status: string; created_at: string }>;
+  const list = (indicacoes ?? []) as Array<{ 
+    id: string; 
+    status: string; 
+    created_at: string;
+    referred_user?: { email: string; name?: string }
+  }>;
   const rewarded = list.filter((i) => i.status === "rewarded").length;
   const pending = list.filter((i) => i.status === "pending").length;
   const goal = 10;
