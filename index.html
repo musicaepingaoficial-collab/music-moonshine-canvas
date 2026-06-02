@@ -35,6 +35,33 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      // Auto-recuperação: se após 15s o app não montou, provavelmente o SW
+      // antigo está servindo um index.html com referências a chunks que não
+      // existem mais. Limpamos SW + caches e recarregamos uma única vez.
+      (function () {
+        var FLAG = "pwa-recovery-attempted";
+        setTimeout(function () {
+          var root = document.getElementById("root");
+          if (root && root.children.length > 0) return;
+          if (sessionStorage.getItem(FLAG)) return;
+          sessionStorage.setItem(FLAG, "1");
+          var done = function () { window.location.reload(); };
+          var p = [];
+          if ("serviceWorker" in navigator) {
+            p.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+              return Promise.all(rs.map(function (r) { return r.unregister(); }));
+            }).catch(function () {}));
+          }
+          if ("caches" in window) {
+            p.push(caches.keys().then(function (ks) {
+              return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+            }).catch(function () {}));
+          }
+          Promise.all(p).then(done, done);
+        }, 15000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
