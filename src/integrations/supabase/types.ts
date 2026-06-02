@@ -98,6 +98,39 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_push_logs: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_type: string
+          id: string
+          removed: number | null
+          sent: number | null
+          title: string | null
+          total_subs: number | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_type: string
+          id?: string
+          removed?: number | null
+          sent?: number | null
+          title?: string | null
+          total_subs?: number | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          removed?: number | null
+          sent?: number | null
+          title?: string | null
+          total_subs?: number | null
+        }
+        Relationships: []
+      }
       admin_push_subscriptions: {
         Row: {
           auth: string
