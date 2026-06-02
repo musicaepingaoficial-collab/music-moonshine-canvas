@@ -131,6 +131,19 @@ const AdminPixelsPage = () => {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="meta-test-code">Test Event Code (opcional)</Label>
+            <Input
+              id="meta-test-code"
+              placeholder="TEST12345"
+              value={form.meta_test_event_code || ""}
+              onChange={(e) => set("meta_test_event_code", e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Use somente para validar no "Test Events" do Meta Events Manager. Limpe este campo em produção.
+            </p>
+          </div>
+
           <div>
             <p className="mb-2 text-sm font-medium text-foreground">Eventos ativos</p>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
