@@ -2,18 +2,10 @@
  * Pixel tracking API.
  *
  * Provides typed wrappers around fbq/gtag that:
- * - Respect the toggles configured in /admin/pixels (only fires if the corresponding
- *   integration is enabled and the event is enabled in meta_events).
+ * - Respect the toggles configured in /admin/pixels.
  * - Map a unified payload to the format each platform expects.
- * - Are safe to call before the pixel scripts have loaded (calls are queued by fbq/gtag).
- *
- * Usage:
- *   import { trackEvent } from "@/lib/pixels";
- *   trackEvent("purchase", { value: 49.9, currency: "BRL", transaction_id: "abc123" });
- *
- * Or use the React hook:
- *   const { track } = usePixels();
- *   track("add_to_cart", { value: 19.9, currency: "BRL", content_ids: ["sku-1"] });
+ * - Generate a stable `event_id` per call and mirror conversion events to
+ *   Meta CAPI automatically, ensuring deduplication.
  */
 import { usePixelSettings, type PixelSettings } from "@/hooks/useSiteSettings";
 import { isCategoryAllowed } from "@/hooks/useCookieConsent";
@@ -34,33 +26,31 @@ export type PixelEvent =
   | "sign_up";
 
 export interface PixelPayload {
-  /** Monetary value (purchase, add_to_cart, etc.) */
   value?: number;
-  /** ISO currency code (default BRL) */
   currency?: string;
-  /** External transaction id (purchase) */
   transaction_id?: string;
-  /** Product/Content identifiers */
   content_ids?: string[];
-  /** Single content name (view_content) */
   content_name?: string;
-  /** Content category */
   content_category?: string;
-  /** Content type, e.g. "product" */
   content_type?: string;
-  /** Number of items */
   num_items?: number;
-  /** User email (will be passed to advanced matching when available) */
   email?: string;
-  /** User phone */
   phone?: string;
-  /** Free-form extra params merged into the event */
+  /** External user id (Supabase user.id). Used for CAPI external_id matching. */
+  external_id?: string;
+  /** Advanced matching extras (sent to CAPI, hashed server-side) */
+  first_name?: string;
+  last_name?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  date_of_birth?: string;
   [key: string]: unknown;
 }
 
 // ───────────────── Event name mappings ─────────────────
 
-/** Meta/Facebook standard event names */
 const META_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   page_view: "PageView",
   view_content: "ViewContent",
@@ -74,7 +64,6 @@ const META_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   sign_up: "CompleteRegistration",
 };
 
-/** GA4 recommended event names */
 const GA4_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   page_view: "page_view",
   view_content: "view_item",
@@ -88,8 +77,7 @@ const GA4_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   sign_up: "sign_up",
 };
 
-/** Maps a unified event name to the key inside meta_events JSONB */
-const META_TOGGLE_KEY_MAP: Partial<Record<PixelEvent, keyof PixelSettings["meta_events"] | string>> = {
+const META_TOGGLE_KEY_MAP: Partial<Record<PixelEvent, string>> = {
   page_view: "page_view",
   view_content: "view_content",
   add_to_cart: "add_to_cart",
@@ -102,7 +90,6 @@ const META_TOGGLE_KEY_MAP: Partial<Record<PixelEvent, keyof PixelSettings["meta_
   sign_up: "complete_registration",
 };
 
-/** Maps a unified event name to the key inside google_ads_labels JSONB */
 const ADS_LABEL_KEY_MAP: Partial<Record<PixelEvent, string>> = {
   page_view: "page_view",
   initiate_checkout: "begin_checkout",
@@ -112,7 +99,6 @@ const ADS_LABEL_KEY_MAP: Partial<Record<PixelEvent, string>> = {
   sign_up: "sign_up",
 };
 
-/** TikTok standard event names */
 const TIKTOK_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   page_view: "Pageview",
   view_content: "ViewContent",
@@ -126,7 +112,6 @@ const TIKTOK_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   sign_up: "CompleteRegistration",
 };
 
-/** Kwai standard event names */
 const KWAI_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   page_view: "EVENT_PAGE_VIEW",
   view_content: "EVENT_CONTENT_VIEW",
@@ -140,53 +125,58 @@ const KWAI_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   sign_up: "EVENT_COMPLETE_REGISTRATION",
 };
 
+/** Events for which we mirror to Meta CAPI server-side by default. */
+const CAPI_EVENTS = new Set<PixelEvent>([
+  "view_content",
+  "add_to_cart",
+  "initiate_checkout",
+  "begin_checkout",
+  "add_payment_info",
+  "purchase",
+  "lead",
+  "complete_registration",
+  "sign_up",
+]);
+
 // ───────────────── Payload mapping helpers ─────────────────
 
-function buildMetaPayload(event: PixelEvent, p: PixelPayload): Record<string, unknown> {
+function buildMetaPayload(p: PixelPayload): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (p.value != null) out.value = p.value;
   if (p.value != null || p.currency) out.currency = p.currency || "BRL";
   if (p.content_ids?.length) {
     out.content_ids = p.content_ids;
     if (!p.content_type) out.content_type = "product";
+    // DPA-compatible `contents`
+    out.contents = p.content_ids.map((id) => ({
+      id,
+      quantity: 1,
+      item_price: p.value && p.content_ids!.length ? p.value / p.content_ids!.length : undefined,
+    }));
   }
   if (p.content_type) out.content_type = p.content_type;
   if (p.content_name) out.content_name = p.content_name;
   if (p.content_category) out.content_category = p.content_category;
   if (p.num_items != null) out.num_items = p.num_items;
 
-  // Pass through any other custom params (excluding the ones we mapped)
   const reserved = new Set([
-    "value",
-    "currency",
-    "transaction_id",
-    "content_ids",
-    "content_name",
-    "content_category",
-    "content_type",
-    "num_items",
-    "email",
-    "phone",
+    "value", "currency", "transaction_id", "content_ids", "content_name",
+    "content_category", "content_type", "num_items", "email", "phone",
+    "external_id", "first_name", "last_name", "city", "state", "zip",
+    "country", "date_of_birth",
   ]);
   for (const [k, v] of Object.entries(p)) {
     if (!reserved.has(k) && v != null) out[k] = v;
   }
-
-  // event_id helps deduplicate with CAPI server-side events
-  if (p.transaction_id && event === "purchase") {
-    out.event_id = p.transaction_id;
-  }
   return out;
 }
 
-function buildGa4Payload(event: PixelEvent, p: PixelPayload): Record<string, unknown> {
+function buildGa4Payload(p: PixelPayload): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (p.value != null) out.value = p.value;
   if (p.value != null || p.currency) out.currency = p.currency || "BRL";
   if (p.transaction_id) out.transaction_id = p.transaction_id;
-  if (p.content_ids?.length) {
-    out.items = p.content_ids.map((id) => ({ item_id: id }));
-  }
+  if (p.content_ids?.length) out.items = p.content_ids.map((id) => ({ item_id: id }));
   if (p.content_name) out.item_name = p.content_name;
   if (p.content_category) out.item_category = p.content_category;
   return out;
@@ -197,22 +187,29 @@ function buildAdsConversionPayload(
   label: string,
   p: PixelPayload
 ): Record<string, unknown> {
-  const out: Record<string, unknown> = {
-    send_to: `${conversionId}/${label}`,
-  };
+  const out: Record<string, unknown> = { send_to: `${conversionId}/${label}` };
   if (p.value != null) out.value = p.value;
   if (p.value != null || p.currency) out.currency = p.currency || "BRL";
   if (p.transaction_id) out.transaction_id = p.transaction_id;
   return out;
 }
 
+// ───────────────── event_id helpers ─────────────────
+
+function newEventId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `evt_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 // ───────────────── Core dispatch ─────────────────
 
 export interface DispatchOptions {
-  /** Settings snapshot. If omitted, no event fires (use the hook to access live settings). */
   settings: PixelSettings | null | undefined;
-  /** Optional debug logging */
   debug?: boolean;
+  /** Disable automatic CAPI mirror for this call. */
+  noCapi?: boolean;
 }
 
 export function dispatchEvent(
@@ -220,7 +217,7 @@ export function dispatchEvent(
   payload: PixelPayload = {},
   opts: DispatchOptions
 ): void {
-  const { settings, debug } = opts;
+  const { settings, debug, noCapi } = opts;
   if (!settings) return;
 
   const marketingOk = isCategoryAllowed("marketing");
@@ -230,20 +227,51 @@ export function dispatchEvent(
     if (debug) console.log("[pixels]", ...args);
   };
 
+  // Generate one event_id per call, shared between Pixel and CAPI
+  const eventId = (payload.event_id as string) || newEventId();
+
   // ── Meta Pixel ──
+  let metaFired = false;
   if (marketingOk && settings.meta_enabled && typeof window.fbq === "function") {
     const metaName = META_EVENT_MAP[event];
     const toggleKey = META_TOGGLE_KEY_MAP[event];
-    const enabled = toggleKey ? settings.meta_events?.[toggleKey as keyof PixelSettings["meta_events"]] !== false : true;
+    const enabled = toggleKey
+      ? (settings.meta_events as Record<string, boolean>)?.[toggleKey] !== false
+      : true;
     if (metaName && enabled) {
-      const metaPayload = buildMetaPayload(event, payload);
-      const eventId = (metaPayload.event_id as string | undefined) ?? undefined;
-      log("fbq track", metaName, metaPayload);
-      if (eventId) {
-        window.fbq("track", metaName, metaPayload, { eventID: eventId });
-      } else {
-        window.fbq("track", metaName, metaPayload);
-      }
+      const metaPayload = buildMetaPayload(payload);
+      log("fbq track", metaName, metaPayload, "eventID", eventId);
+      window.fbq("track", metaName, metaPayload, { eventID: eventId });
+      metaFired = true;
+    }
+  }
+
+  // ── Meta CAPI (mirror) ──
+  if (
+    metaFired &&
+    !noCapi &&
+    CAPI_EVENTS.has(event) &&
+    settings.meta_enabled
+  ) {
+    const metaName = META_EVENT_MAP[event];
+    if (metaName) {
+      sendCapi({
+        event_name: metaName as CapiCallInput["event_name"],
+        event_id: eventId,
+        user_data: {
+          email: payload.email,
+          phone: payload.phone,
+          external_id: payload.external_id,
+          first_name: payload.first_name,
+          last_name: payload.last_name,
+          city: payload.city,
+          state: payload.state,
+          zip: payload.zip,
+          country: payload.country,
+          date_of_birth: payload.date_of_birth,
+        },
+        custom_data: buildMetaPayload(payload),
+      });
     }
   }
 
@@ -251,48 +279,32 @@ export function dispatchEvent(
   if (analyticsOk && settings.ga4_enabled && settings.ga4_measurement_id && typeof window.gtag === "function") {
     const ga4Name = GA4_EVENT_MAP[event];
     if (ga4Name) {
-      const ga4Payload = {
-        ...buildGa4Payload(event, payload),
-        send_to: settings.ga4_measurement_id,
-      };
+      const ga4Payload = { ...buildGa4Payload(payload), send_to: settings.ga4_measurement_id };
       log("gtag GA4", ga4Name, ga4Payload);
       window.gtag("event", ga4Name, ga4Payload);
     }
   }
 
-  // ── Google Ads conversion ──
-  if (
-    marketingOk &&
-    settings.google_ads_enabled &&
-    settings.google_ads_conversion_id &&
-    typeof window.gtag === "function"
-  ) {
+  // ── Google Ads ──
+  if (marketingOk && settings.google_ads_enabled && settings.google_ads_conversion_id && typeof window.gtag === "function") {
     const labelKey = ADS_LABEL_KEY_MAP[event];
-    const label = labelKey ? settings.google_ads_labels?.[labelKey as keyof PixelSettings["google_ads_labels"]] : undefined;
+    const label = labelKey ? (settings.google_ads_labels as Record<string, string>)?.[labelKey] : undefined;
     if (label) {
-      const adsPayload = buildAdsConversionPayload(
-        settings.google_ads_conversion_id,
-        label as string,
-        payload
-      );
+      const adsPayload = buildAdsConversionPayload(settings.google_ads_conversion_id, label, payload);
       log("gtag Ads conversion", adsPayload);
       window.gtag("event", "conversion", adsPayload);
     }
   }
 
-  // ── TikTok Pixel ──
+  // ── TikTok ──
   if (marketingOk && settings.tiktok_enabled && typeof (window as any).ttq?.track === "function") {
     const ttName = TIKTOK_EVENT_MAP[event];
     if (ttName) {
       const ttPayload: Record<string, unknown> = {};
       if (payload.value != null) ttPayload.value = payload.value;
-      if (payload.value != null || payload.currency)
-        ttPayload.currency = payload.currency || "BRL";
+      if (payload.value != null || payload.currency) ttPayload.currency = payload.currency || "BRL";
       if (payload.content_ids?.length) {
-        ttPayload.contents = payload.content_ids.map((id) => ({
-          content_id: id,
-          quantity: 1,
-        }));
+        ttPayload.contents = payload.content_ids.map((id) => ({ content_id: id, quantity: 1 }));
         ttPayload.content_type = payload.content_type || "product";
       }
       if (payload.content_name) ttPayload.content_name = payload.content_name;
@@ -302,14 +314,13 @@ export function dispatchEvent(
     }
   }
 
-  // ── Kwai Pixel ──
+  // ── Kwai ──
   if (marketingOk && settings.kwai_enabled && typeof (window as any).kwaiq === "function") {
     const kwName = KWAI_EVENT_MAP[event];
     if (kwName && settings.kwai_pixel_id) {
       const kwPayload: Record<string, unknown> = {};
       if (payload.value != null) kwPayload.value = payload.value;
-      if (payload.value != null || payload.currency)
-        kwPayload.currency = payload.currency || "BRL";
+      if (payload.value != null || payload.currency) kwPayload.currency = payload.currency || "BRL";
       if (payload.content_ids?.length) kwPayload.content_id = payload.content_ids[0];
       if (payload.content_name) kwPayload.content_name = payload.content_name;
       if (payload.transaction_id) kwPayload.order_id = payload.transaction_id;
@@ -318,12 +329,10 @@ export function dispatchEvent(
     }
   }
 
-  // ── GTM dataLayer ──
+  // ── GTM ──
   if ((analyticsOk || marketingOk) && settings.gtm_enabled && settings.gtm_container_id) {
     window.dataLayer = window.dataLayer || [];
-    const dlEvent = { event, ...payload };
-    log("dataLayer push", dlEvent);
-    window.dataLayer.push(dlEvent);
+    window.dataLayer.push({ event, event_id: eventId, ...payload });
   }
 }
 
@@ -331,15 +340,10 @@ export function dispatchEvent(
 
 let cachedSettings: PixelSettings | null | undefined;
 
-/** Internal: receives a fresh settings snapshot from the hook each render. */
 export function _setCachedPixelSettings(s: PixelSettings | null | undefined) {
   cachedSettings = s;
 }
 
-/**
- * Fire-and-forget tracker. Uses the latest settings snapshot cached by the
- * `usePixels` hook (must be mounted somewhere, e.g. via PixelInjector).
- */
 export function trackEvent(event: PixelEvent, payload: PixelPayload = {}, debug = false) {
   dispatchEvent(event, payload, { settings: cachedSettings, debug });
 }
@@ -348,7 +352,6 @@ export function trackEvent(event: PixelEvent, payload: PixelPayload = {}, debug 
 
 export function usePixels() {
   const { data: settings } = usePixelSettings();
-  // Keep the standalone tracker in sync with the latest settings.
   _setCachedPixelSettings(settings);
 
   const track = useCallback(
@@ -363,7 +366,6 @@ export function usePixels() {
 
 // ───────────────── CAPI helpers ─────────────────
 
-/** Reads `_fbp` and `_fbc` cookies for richer Meta CAPI matching. */
 export function getFbCookies(): { fbp?: string; fbc?: string } {
   if (typeof document === "undefined") return {};
   const out: { fbp?: string; fbc?: string } = {};
@@ -386,7 +388,18 @@ export interface CapiCallInput {
     | "Lead"
     | "CompleteRegistration";
   event_id?: string;
-  user_data?: { email?: string; phone?: string; external_id?: string };
+  user_data?: {
+    email?: string;
+    phone?: string;
+    external_id?: string;
+    first_name?: string;
+    last_name?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+    date_of_birth?: string;
+  };
   custom_data?: Record<string, unknown>;
 }
 
