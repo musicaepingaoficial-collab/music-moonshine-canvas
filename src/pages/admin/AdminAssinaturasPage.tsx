@@ -148,7 +148,36 @@ const AdminAssinaturasPage = () => {
         price: Number(price) || 0,
         starts_at: startsAt.toISOString(),
         expires_at: expiresAt,
-      });
+  });
+
+  const cancelSub = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("assinaturas")
+        .update({ status: "cancelled", expires_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Assinatura cancelada" });
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteSub = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("assinaturas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Assinatura excluída" });
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
       if (error) throw error;
     },
     onSuccess: () => {
