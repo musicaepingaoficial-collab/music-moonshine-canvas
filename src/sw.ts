@@ -11,33 +11,31 @@ declare const self: ServiceWorkerGlobalScope & {
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
 
-// HTML navigations: NetworkFirst com fallback para o cache do index.html
+// HTML navigations: NetworkFirst puro, SEM fallback para index.html precacheado.
+// Servir o HTML antigo após um deploy faz o browser pedir chunks com hashes
+// que não existem mais → tela em branco / spinner infinito.
 registerRoute(
   new NavigationRoute(
-    async (params) => {
-      try {
-        const networkResponse = await new NetworkFirst({
-          cacheName: "html",
-          networkTimeoutSeconds: 5,
-        }).handle(params);
-        
-        if (networkResponse) return networkResponse;
-      } catch (error) {
-        console.error("Network request failed, falling back to cache", error);
-      }
-      
-      // Se falhar a rede, tenta retornar o index.html precacheado
-      const cachedResponse = await caches.match("/index.html");
-      return cachedResponse || Response.error();
-    },
+    new NetworkFirst({
+      cacheName: "html",
+      networkTimeoutSeconds: 3,
+    }),
     {
-      denylist: [/^\/~oauth/],
+      denylist: [
+        /^\/~oauth/,
+        /^\/api\//,
+        // Não interceptar pedidos diretos a assets com hash (já têm cache eterno do Vite)
+        /\.[a-f0-9]{8,}\.(js|css|mjs)$/,
+      ],
     }
   )
 );
 
-self.addEventListener("install", () => {
-  self.skipWaiting();
+// O cliente decide quando ativar o novo SW (botão "Atualizar agora")
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {
