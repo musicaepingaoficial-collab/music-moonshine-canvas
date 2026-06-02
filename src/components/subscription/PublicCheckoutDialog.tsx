@@ -19,7 +19,7 @@ import {
   checkEmailExists, claimPendingSubscription, pollPendingApproved,
   type PaymentResponse,
 } from "@/services/paymentService";
-import { trackEvent, sendCapi } from "@/lib/pixels";
+import { trackEvent } from "@/lib/pixels";
 
 interface Props {
   open: boolean;

@@ -8,7 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { trackEvent, sendCapi } from "@/lib/pixels";
+import { trackEvent } from "@/lib/pixels";
 import { CONSENT_VERSION } from "@/hooks/useCookieConsent";
 import { registerPendingReferral } from "@/lib/referrals";
 

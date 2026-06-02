@@ -4,7 +4,7 @@ import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, C
 import { createPixPayment, getSubscriptionStatus, processTransparentPayment } from "@/services/paymentService";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
-import { trackEvent, sendCapi } from "@/lib/pixels";
+import { trackEvent } from "@/lib/pixels";
 
 interface CheckoutFormProps {
   planSlug: string;
