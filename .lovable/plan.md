@@ -1,129 +1,123 @@
+# Análise: o PWA está notificando vendas ao admin?
 
-# Análise: o Meta Pixel está enviando tudo que deveria?
+## Resposta curta
 
-## Resumo do diagnóstico
+**Sim, a arquitetura está implementada e funcional**, mas com **3 pontos frágeis** que podem fazer notificações deixarem de chegar em produção sem você perceber. Hoje há **2 inscrições push de admin ativas no banco**, **2 admins** e **0 linhas em `admin_notification_prefs`** (o que é OK — o código assume `true` por padrão).
 
-A integração tem 2 lados: **Pixel no navegador** (`fbq`) e **Conversions API** (edge function `meta-capi`). Os dois funcionam, mas há **lacunas importantes** que reduzem a qualidade de matching no Meta e podem fazer eventos não atribuírem.
-
-### O que JÁ está OK
-
-- `fbq('init', PIXEL_ID)` + `PageView` automático por rota (`RouteTracker`).
-- Eventos disparados nos pontos certos: `ViewContent`, `AddToCart`, `InitiateCheckout`, `AddPaymentInfo`, `Purchase`, `CompleteRegistration`.
-- `value`, `currency`, `content_ids`, `content_name` enviados nos eventos comerciais.
-- CAPI envia `_fbp`, `_fbc`, `client_user_agent`, hash SHA-256 de email/phone/external_id.
-- `event_id` casado entre Pixel e CAPI no `Purchase` (deduplicação correta).
-- Consentimento (LGPD) respeitado antes de disparar.
-
-### O que está FALTANDO ou ERRADO (impacto real)
-
-1. **Advanced Matching no Pixel browser não está ativo.**
-   - `fbq('init', id)` é chamado **sem o 2º parâmetro** com `{em, ph, external_id, fn, ln}`. O Meta usa Advanced Matching para casar eventos do navegador a contas; sem isso, o EMQ (Event Match Quality) cai muito.
-   - Hoje o email/phone do usuário logado nunca é passado para o `fbq`.
-
-2. **Sem `event_id` na maioria dos eventos** (só `Purchase` tem).
-   - `InitiateCheckout`, `AddPaymentInfo`, `Lead`, `CompleteRegistration`, `ViewContent`, `AddToCart` disparam **sem `eventID`**, então quando você quiser duplicar via CAPI vai ter **eventos duplicados** (atribuição inflada).
-
-3. **CAPI só é chamada em `Purchase` e `CompleteRegistration`.**
-   - Faltam chamadas CAPI para `InitiateCheckout`, `AddPaymentInfo`, `ViewContent`, `AddToCart`, `Lead`, `PageView`. Bloqueadores de anúncio / iOS / Safari ITP cortam o Pixel — sem CAPI espelhada, esses eventos somem.
-
-4. **`client_ip_address` não é enviado para a CAPI.**
-   - A edge function lê `body.user_data.client_ip_address`, mas o frontend nunca preenche. O IP deveria vir do header da requisição na edge (`x-forwarded-for` / `req.headers.get("x-real-ip")`) — hoje não é extraído.
-
-5. **`fbc` montado a partir de `?fbclid=` não está sendo gravado.**
-   - Quando o usuário chega via anúncio, o cookie `_fbc` só é criado pelo Pixel **se ele já carregou antes** da navegação. Não há fallback que grave `_fbc = fb.1.{ts}.{fbclid}` manualmente a partir da query string. Resultado: usuários com adblock light ou primeira visita perdem o `fbc`.
-
-6. **Falta hash de dados adicionais úteis** no CAPI:
-   - `fn` (first name), `ln` (last name), `ct` (city), `st` (state), `zp` (zip), `country`, `db` (date of birth) — qualquer um aumenta EMQ. Hoje só `em`, `ph`, `external_id`.
-
-7. **`external_id` quase nunca é enviado.**
-   - Em `Purchase` e `CompleteRegistration`, deveria mandar o `user.id` do Supabase como `external_id` (hashed) — isso casa visitantes anônimos com usuários logados em sessões diferentes. Hoje só é enviado `email` e `phone`.
-
-8. **`PageView` server-side não existe.**
-   - Sem `PageView` na CAPI, qualquer navegação com adblock fica invisível para o Meta, prejudicando otimização de campanhas TOFU.
-
-9. **`AddToCart` na LandingPage e Ofertas** dispara com `value` correto mas sem `event_id` e sem CAPI espelhada.
-
-10. **`Lead`** (formulários, contato) nunca é disparado em nenhum lugar do app.
-
-11. **`content_type: "product"` sempre fixo.**
-    - Para planos de assinatura o ideal é `content_type: "product_group"` ou enviar `contents: [{ id, quantity, item_price }]` no padrão DPA. Sem isso, catálogos do Meta não casam.
-
-12. **CAPI não loga em tabela de auditoria** — quando o Meta responde com aviso (ex.: `fbtrace_id`, `events_received: 0`), nada fica gravado, dificultando debug.
-
-13. **`test_event_code`** existe na função mas não há UI no `/admin/pixels` para configurar/usar — então não dá pra testar no "Test Events" do Meta sem editar código.
+Não foi possível confirmar entregas reais porque **não há nenhum log recente** da função `send-admin-push` nem do `payment-webhook` no Supabase — ou nenhuma venda passou pelo webhook recentemente, ou a retenção de logs já expirou.
 
 ---
 
-## Plano de correção (em 4 etapas)
+## O que JÁ funciona (verificado no código)
 
-### Etapa 1 — Maximizar matching no Pixel browser (alta prioridade, baixo risco)
+### 1. Service Worker (`src/sw.ts`)
+- Listener `push` → mostra `Notification` com título, body, ícone, tag e url.
+- Listener `notificationclick` → foca aba existente ou abre nova em `payload.url`.
+- Funciona em background (PWA instalado fechado, celular bloqueado).
 
-**Arquivos:** `src/components/pixels/PixelInjector.tsx`, novo `src/hooks/useFbAdvancedMatching.ts`.
+### 2. Inscrição (`src/pages/admin/AdminNotificacoesPage.tsx` + `src/lib/webpush.ts`)
+- Admin habilita push → cria `PushSubscription` com VAPID e grava em `admin_push_subscriptions`.
+- Toggles individuais `notify_purchase` e `notify_pix_generated` salvos em `admin_notification_prefs`.
+- Botão "Enviar teste" chama `send-admin-push` com `type: "test"`.
 
-- Buscar `auth.getUser()` + perfil (email, telefone, nome) e re-inicializar o pixel com Advanced Matching quando o usuário logar:
-  ```
-  fbq('init', PIXEL_ID, { em, ph, external_id, fn, ln });
-  ```
-- Re-init após logout (limpar matching).
-- Capturar `?fbclid=` na primeira visita e gravar cookie `_fbc` manualmente (`fb.1.{Date.now()}.{fbclid}`) com `Max-Age` de 90 dias, antes do Pixel carregar.
+### 3. Envio (`supabase/functions/send-admin-push/index.ts`)
+- Busca todos os admins (`user_roles.role='admin'`).
+- Filtra pelas prefs do tipo (default `true` quando não há linha).
+- Lê inscrições e dispara com `web-push` + VAPID.
+- Remove inscrições expiradas (404/410).
 
-### Etapa 2 — Deduplicação Pixel ↔ CAPI em TODOS os eventos
+### 4. Disparos em eventos de venda
+Já mapeados no código:
 
-**Arquivos:** `src/lib/pixels.ts`.
+| Evento | Arquivo | Tipo | Título |
+|---|---|---|---|
+| Pix de assinatura gerado | `create-payment/index.ts` | `pix_generated` | 🟢 Pix gerado |
+| Pix de PDF gerado | `create-pdf-payment/index.ts` | `pix_generated` | 🧾 Pix gerado (PDF) |
+| Assinatura aprovada (usuário logado) | `payment-webhook/index.ts` L435 | `purchase` | 💰 Compra aprovada |
+| Assinatura aprovada (pré-cadastro/anônimo) | `payment-webhook/index.ts` L94 | `purchase` | 💰 Pagamento aprovado (pré-cadastro) |
+| PDF avulso aprovado | `payment-webhook/index.ts` L176 | `purchase` | 📕 PDF vendido |
+| Módulo Discografias | `payment-webhook/index.ts` L225 | `purchase` | 📀 Módulo Discografias vendido |
 
-- Gerar `event_id` (UUID v4) **uma única vez** por evento dentro de `dispatchEvent`, antes de chamar `fbq` e antes de chamar `sendCapi`.
-- Sempre passar `eventID` no 4º parâmetro do `fbq('track', ...)`.
-- Refatorar para que `trackEvent(...)` opcionalmente já dispare a CAPI espelhada (flag `capi: true` por padrão para eventos de conversão).
+---
 
-### Etapa 3 — Cobertura da CAPI
+## Pontos frágeis encontrados (3)
 
-**Arquivos:** `src/lib/pixels.ts`, `supabase/functions/meta-capi/index.ts`, todos os call sites de `trackEvent`.
+### Problema 1 — Botão "Teste" usa `type: "test"` que não existe
+Em `send-admin-push`, o `PREF_BY_TYPE` só tem `purchase` e `pix_generated`. Quando chega `type: "test"`, o `prefField` fica `undefined` e o filtro de prefs é pulado — **funciona por acaso**. Não é bug grave, mas se um dia alguém adicionar lógica que exija o tipo estar no mapa, o teste para de funcionar. **Solução:** adicionar `test: null` ou tratar explicitamente.
 
-- Espelhar via CAPI: `ViewContent`, `AddToCart`, `InitiateCheckout`, `AddPaymentInfo`, `Lead`, `CompleteRegistration`, `Purchase` (já tem), e opcionalmente `PageView`.
-- Na edge function, extrair `client_ip_address` do header (`x-forwarded-for` primeiro IP, fallback `x-real-ip`) e injetar no `user_data` automaticamente.
-- Aceitar e hashear `fn`, `ln`, `ct`, `st`, `zp`, `country`, `db`, `external_id` quando o frontend mandar.
-- Sempre incluir `external_id = supabase user.id` quando houver sessão.
-- Adicionar tabela `meta_capi_logs` (event_name, event_id, status, fbtrace_id, response_json, created_at) e gravar resposta do Graph API para auditoria. RLS: só admin lê.
+### Problema 2 — Notificação só é disparada em PIX e em `payment.approved`
+- **Cartão recusado/pendente:** não notifica nada. O admin não fica sabendo de tentativas falhas.
+- **Boleto/outros métodos:** se o MP não mandar `payment.approved` no webhook, o disparo nunca acontece.
+- **Reembolso/cancelamento:** sem notificação.
 
-### Etapa 4 — Qualidade do payload + ferramentas
+### Problema 3 — Falhas no `send-admin-push` são silenciosas
+Todos os `fetch(...send-admin-push)` no webhook estão dentro de `try/catch` que só faz `console.error`. Se a função estiver fora do ar, com VAPID errado, ou o admin tiver bloqueado notifications, **você não tem nenhuma visibilidade**. Não há tabela de log como existe agora para `meta_capi_logs`.
 
-**Arquivos:** `src/lib/pixels.ts`, `src/pages/admin/AdminPixelsPage.tsx`.
+Também: hoje **0 logs aparecem** no Supabase para `send-admin-push` e `payment-webhook` — pode ser só retenção, mas vale confirmar com uma venda de teste.
 
-- Padronizar payload de planos:
-  ```
-  content_type: "product",
-  contents: [{ id: plan.slug, quantity: 1, item_price: plan.price }],
-  num_items: 1
-  ```
-- Adicionar campo "Test Event Code" no `/admin/pixels` que é passado para a edge function só durante testes.
-- Adicionar evento `Lead` em pontos relevantes (popup de WhatsApp, formulário de contato, se houver).
+---
+
+## Plano de correção (4 etapas pequenas)
+
+### Etapa 1 — Tornar o teste robusto
+- Em `send-admin-push`, aceitar `type: "test"` explicitamente sem exigir entrada em `PREF_BY_TYPE`.
+- Adicionar `console.log` de início/fim com contadores (`adminIds.length`, `allowedAdmins.length`, `subs.length`, `sent`, `removed`) para diagnóstico futuro nos logs.
+
+### Etapa 2 — Cobertura de eventos de venda
+- Notificar também quando `payment.status === "rejected"` no webhook (título "❌ Pagamento recusado").
+- Notificar reembolso (`refunded`/`charged_back`) com tipo novo `purchase_refunded` (adicionar pref correspondente).
+- Garantir que toda criação de cobrança (não só PIX) gere `pix_generated` ou um `checkout_started` novo, para você ver intenção de compra mesmo no cartão.
+
+### Etapa 3 — Auditoria de envio
+- Criar tabela `admin_push_logs` (event_name, type, sent, removed, total_subs, error, created_at) com RLS admin-only.
+- Em `send-admin-push`, inserir 1 linha por chamada com o resultado.
+- Adicionar visualização simples no `AdminNotificacoesPage` ("Últimos 20 envios") para o admin auditar.
+
+### Etapa 4 — Health-check + UI
+- Card no painel mostrando: nº de admins inscritos, quantos com push ligado, último envio bem-sucedido, último erro.
+- Botão "Verificar saúde" que dispara teste e checa retorno `sent > 0`.
+- Aviso visível quando `Notification.permission === "denied"` no dispositivo.
 
 ---
 
 ## Detalhes técnicos
 
-- **Advanced Matching keys aceitas pelo Meta:** `em, ph, fn, ln, db, ge, ct, st, zp, country, external_id, client_ip_address, client_user_agent, fbc, fbp`. Todas (exceto `fbc/fbp/ip/ua`) devem ser **SHA-256 hex lowercase trimmed**. No browser, `fbq` faz o hash sozinho — basta passar texto.
-- **`event_id`:** deve ser **string idêntica** no Pixel e na CAPI; usar `crypto.randomUUID()`.
-- **`_fbc` cookie format:** `fb.{subdomain_index}.{creation_timestamp_ms}.{fbclid}`. Para `.dominio.com` use `subdomain_index = 1`.
-- **IP na edge:** Deno `req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()`.
-- **Deduplicação Meta:** Meta deduplica por `(event_name + event_id)` numa janela de 7 dias. Sem `event_id`, duplica.
-- **PII:** nenhum dado não-hasheado pode sair do servidor para o Graph API; tudo continua passando pela edge function existente.
+**Banco hoje:**
+- `admin_push_subscriptions`: 2 linhas
+- `admin_notification_prefs`: 0 linhas (defaults aplicados)
+- `user_roles` admin: 2
+
+**Migration nova (Etapa 3):**
+```sql
+CREATE TABLE public.admin_push_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type text NOT NULL,
+  title text,
+  total_subs int,
+  sent int,
+  removed int,
+  error text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT ON public.admin_push_logs TO authenticated;
+GRANT ALL ON public.admin_push_logs TO service_role;
+ALTER TABLE public.admin_push_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins read push logs" ON public.admin_push_logs
+  FOR SELECT TO authenticated USING (has_role(auth.uid(),'admin'));
+CREATE INDEX ON public.admin_push_logs (created_at DESC);
+```
+
+**Não vou tocar em:**
+- `src/sw.ts` (já está correto)
+- Lógica de pagamento (só adicionar disparos extras)
+- VAPID / inscrição (já funciona)
 
 ---
 
-## Impacto esperado
+## Como confirmar agora, sem código novo
 
-- EMQ (Event Match Quality) do Meta deve subir de "Baixo/Médio" para **"Bom/Excelente"** (7-10).
-- Eventos recuperados de usuários com adblock/iOS via CAPI: tipicamente **+15% a +40%** de volume reportado.
-- Atribuição de Purchase mais confiável (sem duplicação inflada).
-- Catálogo dinâmico (DPA) começa a funcionar com `contents` padronizado.
+1. Painel Admin → **Notificações Admin** → "Enviar teste". Deve chegar push em < 5s.
+2. Se chegar: o pipeline está vivo, basta aplicar Etapa 2+3 para cobertura e visibilidade.
+3. Se NÃO chegar: abrir DevTools → Application → Service Workers; e Supabase → logs de `send-admin-push` para ver o erro real.
 
----
-
-## O que NÃO vou mexer
-
-- Lógica de pagamento e Mercado Pago — fora do escopo.
-- Outros pixels (GA4, TikTok, Kwai, Google Ads) — só Meta nesta rodada.
-- Consentimento LGPD — já está correto.
-
-Confirma que posso seguir com as 4 etapas? Se quiser priorizar (ex.: só Etapa 1 + 2 agora), me diga.
+Quer que eu execute as 4 etapas, ou prefere começar só pela Etapa 1+3 (teste robusto + auditoria) que dá visibilidade imediata sem mudar fluxo de venda?
