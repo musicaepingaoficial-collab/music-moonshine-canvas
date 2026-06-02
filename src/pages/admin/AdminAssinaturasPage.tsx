@@ -148,6 +148,18 @@ const AdminAssinaturasPage = () => {
         price: Number(price) || 0,
         starts_at: startsAt.toISOString(),
         expires_at: expiresAt,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Plano adicionado", description: "Assinatura criada com sucesso." });
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: (e: any) => {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    },
   });
 
   const cancelSub = useMutation({
@@ -177,18 +189,6 @@ const AdminAssinaturasPage = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
-  });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "Plano adicionado", description: "Assinatura criada com sucesso." });
-      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions"] });
-      setOpen(false);
-      resetForm();
-    },
-    onError: (e: any) => {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
-    },
   });
 
   const totalRevenue = (subs ?? [])
