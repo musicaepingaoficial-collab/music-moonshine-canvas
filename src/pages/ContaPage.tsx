@@ -99,14 +99,23 @@ const ContaPage = () => {
             <div className="space-y-3">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground" htmlFor="name-input">Nome</label>
-                <Input id="name-input" defaultValue={profile?.name || ""} className="bg-secondary border-border/50" />
+                <Input
+                  id="name-input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="bg-secondary border-border/50"
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground" htmlFor="email-input">Email</label>
-                <Input id="email-input" defaultValue={profile?.email || ""} className="bg-secondary border-border/50" />
+                <Input id="email-input" value={profile?.email || ""} disabled className="bg-secondary border-border/50" />
               </div>
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-                Salvar alterações
+              <Button
+                onClick={() => saveProfile.mutate(name)}
+                disabled={!canSave}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {saveProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar alterações"}
               </Button>
             </div>
           </div>
