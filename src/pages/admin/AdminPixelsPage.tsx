@@ -168,6 +168,7 @@ const AdminPixelsPage = () => {
                   meta_enabled: form.meta_enabled,
                   meta_pixel_id: form.meta_pixel_id,
                   meta_events: metaEvents,
+                  meta_test_event_code: form.meta_test_event_code ?? null,
                 },
                 "Meta",
                 { meta_access_token: tokens.meta_access_token },
