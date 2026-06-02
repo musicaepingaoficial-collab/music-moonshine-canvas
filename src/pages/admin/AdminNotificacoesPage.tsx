@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Bell, BellOff, Send, ShoppingCart, QrCode } from "lucide-react";
+import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const NOTIFICATION_TYPES = [
@@ -37,7 +37,19 @@ const AdminNotificacoesPage = () => {
   const [permission, setPermission] = useState<NotificationPermission>(
     typeof Notification !== "undefined" ? Notification.permission : "default"
   );
-  const [busy, setBusy] = useState(false);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  const loadLogs = async () => {
+    setLoadingLogs(true);
+    const { data } = await (supabase.from("admin_push_logs" as any) as any)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setLogs(data || []);
+    setLoadingLogs(false);
+  };
+
 
   const [prefs, setPrefs] = useState({
     notify_purchase: true,
