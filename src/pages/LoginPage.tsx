@@ -8,7 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { trackEvent, sendCapi } from "@/lib/pixels";
+import { trackEvent } from "@/lib/pixels";
 import { CONSENT_VERSION } from "@/hooks/useCookieConsent";
 import { registerPendingReferral } from "@/lib/referrals";
 
@@ -86,11 +86,11 @@ const LoginPage = () => {
             { user_id: data.user.id, consent_type: "privacy", granted: true, version: CONSENT_VERSION, user_agent: ua },
           ]);
         }
-        trackEvent("complete_registration", { content_name: "signup" });
-        sendCapi({
-          event_name: "CompleteRegistration",
-          user_data: { email, phone: whatsapp, external_id: data.user?.id },
-          custom_data: { content_name: "signup" },
+        trackEvent("complete_registration", {
+          content_name: "signup",
+          email,
+          phone: whatsapp,
+          external_id: data.user?.id,
         });
         if (data.session) {
           await registerPendingReferral();

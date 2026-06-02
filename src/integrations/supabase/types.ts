@@ -434,6 +434,42 @@ export type Database = {
           },
         ]
       }
+      meta_capi_logs: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_id: string | null
+          event_name: string
+          events_received: number | null
+          fbtrace_id: string | null
+          id: string
+          response: Json | null
+          status_code: number | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          event_name: string
+          events_received?: number | null
+          fbtrace_id?: string | null
+          id?: string
+          response?: Json | null
+          status_code?: number | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          event_name?: string
+          events_received?: number | null
+          fbtrace_id?: string | null
+          id?: string
+          response?: Json | null
+          status_code?: number | null
+        }
+        Relationships: []
+      }
       musicas: {
         Row: {
           artist: string
@@ -679,6 +715,7 @@ export type Database = {
           meta_enabled: boolean
           meta_events: Json
           meta_pixel_id: string | null
+          meta_test_event_code: string | null
           tiktok_enabled: boolean
           tiktok_pixel_id: string | null
           updated_at: string
@@ -698,6 +735,7 @@ export type Database = {
           meta_enabled?: boolean
           meta_events?: Json
           meta_pixel_id?: string | null
+          meta_test_event_code?: string | null
           tiktok_enabled?: boolean
           tiktok_pixel_id?: string | null
           updated_at?: string
@@ -717,6 +755,7 @@ export type Database = {
           meta_enabled?: boolean
           meta_events?: Json
           meta_pixel_id?: string | null
+          meta_test_event_code?: string | null
           tiktok_enabled?: boolean
           tiktok_pixel_id?: string | null
           updated_at?: string

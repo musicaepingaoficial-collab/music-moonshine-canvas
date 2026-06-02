@@ -27,6 +27,7 @@ export interface PixelSettings {
   kwai_pixel_id: string | null;
   tiktok_enabled: boolean;
   tiktok_pixel_id: string | null;
+  meta_test_event_code: string | null;
   updated_at: string;
 }
 
