@@ -361,6 +361,7 @@ const AdminAssinaturasPage = () => {
                     <TableHead>Valor</TableHead>
                     <TableHead>Início</TableHead>
                     <TableHead>Expiração</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -383,6 +384,57 @@ const AdminAssinaturasPage = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {sub.status === "active" && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="ghost" title="Cancelar">
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    A assinatura de <strong>{sub.profile?.email || "usuário"}</strong> ({sub.plan}) será marcada como cancelada e expirada agora. O histórico fica preservado.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => cancelSub.mutate(sub.id)}>
+                                    Cancelar assinatura
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" title="Excluir">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir assinatura?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação é <strong>irreversível</strong>. A assinatura de <strong>{sub.profile?.email || "usuário"}</strong> ({sub.plan}, R$ {Number(sub.price || 0).toFixed(2)}) será removida do banco de dados.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteSub.mutate(sub.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
