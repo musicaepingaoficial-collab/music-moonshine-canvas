@@ -243,13 +243,14 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
     if (!plan) return;
     const txId = String(result.id);
     trackEvent("purchase", {
-      value: plan.price, currency: "BRL",
-      transaction_id: txId, content_ids: [plan.slug], content_name: plan.name,
-    });
-    sendCapi({
-      event_name: "Purchase", event_id: txId,
-      user_data: { email: email.trim(), phone: whatsapp },
-      custom_data: { value: plan.price, currency: "BRL", content_ids: [plan.slug], content_name: plan.name },
+      event_id: txId,
+      value: plan.price,
+      currency: "BRL",
+      transaction_id: txId,
+      content_ids: [plan.slug],
+      content_name: plan.name,
+      email: email.trim(),
+      phone: whatsapp,
     });
   };
 
