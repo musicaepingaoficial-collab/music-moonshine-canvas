@@ -60,6 +60,47 @@ serve(async (req) => {
       });
     }
 
+    // ==== Notificar admin sobre status não-aprovados ====
+    if (payment.status === "rejected" || payment.status === "cancelled") {
+      try {
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            type: "purchase_rejected",
+            title: "❌ Pagamento recusado",
+            body: `${payment.payer?.email || "Cliente"} — R$ ${Number(payment.transaction_amount || 0).toFixed(2)} (${payment.status_detail || payment.status})`,
+            url: "/admin/financeiro",
+          }),
+        });
+      } catch (err) {
+        console.error("[push rejected] erro:", err);
+      }
+    }
+
+    if (payment.status === "refunded" || payment.status === "charged_back") {
+      try {
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            type: "purchase_refunded",
+            title: payment.status === "refunded" ? "↩️ Pagamento reembolsado" : "⚠️ Chargeback recebido",
+            body: `${payment.payer?.email || "Cliente"} — R$ ${Number(payment.transaction_amount || 0).toFixed(2)}`,
+            url: "/admin/financeiro",
+          }),
+        });
+      } catch (err) {
+        console.error("[push refunded] erro:", err);
+      }
+    }
+
     if (payment.status === "approved") {
       const ref = String(payment.external_reference || "");
 
