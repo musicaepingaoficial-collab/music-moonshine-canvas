@@ -36,7 +36,10 @@ interface UserWithSub {
 
 const AdminUsuariosPage = () => {
   const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<UserWithSub | null>(null);
+  const [confirmText, setConfirmText] = useState("");
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
 
   const { data: users, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-users"],
