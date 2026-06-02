@@ -8,8 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Disc } from "lucide-react";
+import { Search, Users, Disc, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useAuth } from "@/hooks/useUser";
 import { toast } from "sonner";
 
 interface UserWithSub {
@@ -24,7 +36,10 @@ interface UserWithSub {
 
 const AdminUsuariosPage = () => {
   const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<UserWithSub | null>(null);
+  const [confirmText, setConfirmText] = useState("");
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
 
   const { data: users, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-users"],
@@ -85,6 +100,25 @@ const AdminUsuariosPage = () => {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { target_user_id: userId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("Usuário excluído com sucesso.");
+      setDeleteTarget(null);
+      setConfirmText("");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message || "Erro ao excluir usuário.");
+    },
+  });
+
   const filtered = (users ?? []).filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -140,6 +174,7 @@ const AdminUsuariosPage = () => {
                     <TableHead>Discografias</TableHead>
                     <TableHead>Cadastro</TableHead>
                     <TableHead>Indicação de</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -172,6 +207,18 @@ const AdminUsuariosPage = () => {
                       <TableCell className="text-xs text-muted-foreground italic">
                         {user.referred_by || "—"}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          disabled={currentUser?.id === user.id}
+                          title={currentUser?.id === user.id ? "Você não pode excluir sua própria conta" : "Excluir usuário"}
+                          onClick={() => { setDeleteTarget(user); setConfirmText(""); }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -180,6 +227,36 @@ const AdminUsuariosPage = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) { setDeleteTarget(null); setConfirmText(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é <strong>irreversível</strong>. Todos os dados de{" "}
+              <strong>{deleteTarget?.name || deleteTarget?.email}</strong> ({deleteTarget?.email}) serão removidos: assinaturas, repertórios, favoritos, downloads, indicações e a conta de autenticação.
+              <br /><br />
+              Digite <strong>EXCLUIR</strong> para confirmar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="EXCLUIR"
+            autoFocus
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmText !== "EXCLUIR" || deleteUserMutation.isPending}
+              onClick={() => deleteTarget && deleteUserMutation.mutate(deleteTarget.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteUserMutation.isPending ? "Excluindo..." : "Excluir definitivamente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
