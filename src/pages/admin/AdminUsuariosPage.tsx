@@ -100,6 +100,25 @@ const AdminUsuariosPage = () => {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+        body: { target_user_id: userId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("Usuário excluído com sucesso.");
+      setDeleteTarget(null);
+      setConfirmText("");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message || "Erro ao excluir usuário.");
+    },
+  });
+
   const filtered = (users ?? []).filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
