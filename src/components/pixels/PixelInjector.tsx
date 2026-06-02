@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { usePixelSettings } from "@/hooks/useSiteSettings";
 import { _setCachedPixelSettings } from "@/lib/pixels";
 import { useCookieConsent } from "@/hooks/useCookieConsent";
+import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
@@ -59,34 +60,109 @@ function injectGtmNoscript(id: string, containerId: string) {
   document.body.prepend(noscript);
 }
 
+/**
+ * Captures ?fbclid= from the URL and persists the Meta-compatible
+ * `_fbc` cookie (`fb.1.{ts}.{fbclid}`) for 90 days, so that CAPI and
+ * Pixel can match clicks even with adblockers.
+ */
+function captureFbclid() {
+  try {
+    const url = new URL(window.location.href);
+    const fbclid = url.searchParams.get("fbclid");
+    if (!fbclid) return;
+    const existing = document.cookie.split(";").some((c) => c.trim().startsWith("_fbc="));
+    if (existing) return;
+    const value = `fb.1.${Date.now()}.${fbclid}`;
+    const maxAge = 60 * 60 * 24 * 90; // 90 days
+    document.cookie = `_fbc=${value}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  } catch {
+    /* ignore */
+  }
+}
+
+interface AdvancedMatching {
+  em?: string;
+  ph?: string;
+  external_id?: string;
+  fn?: string;
+  ln?: string;
+}
+
+async function fetchAdvancedMatching(): Promise<AdvancedMatching> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return {};
+    const am: AdvancedMatching = {};
+    if (user.id) am.external_id = user.id;
+    if (user.email) am.em = user.email.trim().toLowerCase();
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, whatsapp")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile?.whatsapp) am.ph = profile.whatsapp.replace(/\D/g, "");
+    if (profile?.name) {
+      const parts = String(profile.name).trim().split(/\s+/);
+      if (parts[0]) am.fn = parts[0].toLowerCase();
+      if (parts.length > 1) am.ln = parts.slice(1).join(" ").toLowerCase();
+    }
+    return am;
+  } catch {
+    return {};
+  }
+}
+
 export function PixelInjector() {
   const { data: s } = usePixelSettings();
   const { consent } = useCookieConsent();
   _setCachedPixelSettings(s);
 
-  // Opt-out: durante pending, libera tudo (mantém anúncios funcionando até o usuário rejeitar)
   const marketingOk = consent.status === "pending" || consent.marketing;
   const analyticsOk = consent.status === "pending" || consent.analytics;
 
-  // Meta Pixel
+  // Capture fbclid on mount, before any pixel loads
   useEffect(() => {
-    if (s?.meta_enabled && s.meta_pixel_id && marketingOk) {
-      injectScript(
-        SCRIPT_IDS.meta,
-        `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    captureFbclid();
+  }, []);
+
+  // Meta Pixel + Advanced Matching
+  useEffect(() => {
+    let cancelled = false;
+
+    async function init() {
+      if (s?.meta_enabled && s.meta_pixel_id && marketingOk) {
+        const am = await fetchAdvancedMatching();
+        if (cancelled) return;
+        const amJson = JSON.stringify(am);
+        injectScript(
+          SCRIPT_IDS.meta,
+          `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
 n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
 document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${s.meta_pixel_id}');`,
-        false
-      );
-    } else {
-      removeById(SCRIPT_IDS.meta);
-      removeById(SCRIPT_IDS.metaNoscript);
-      delete (window as any).fbq;
-      delete (window as any)._fbq;
+fbq('init', '${s.meta_pixel_id}', ${amJson});`,
+          false
+        );
+      } else {
+        removeById(SCRIPT_IDS.meta);
+        removeById(SCRIPT_IDS.metaNoscript);
+        delete (window as any).fbq;
+        delete (window as any)._fbq;
+      }
     }
+    init();
+
+    // Re-init when the auth session changes (login/logout) so Advanced
+    // Matching reflects the current user.
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      if (s?.meta_enabled && s.meta_pixel_id && marketingOk) init();
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, [s?.meta_enabled, s?.meta_pixel_id, s?.meta_events, marketingOk]);
 
   // GTM
@@ -108,7 +184,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     }
   }, [s?.gtm_enabled, s?.gtm_container_id, analyticsOk, marketingOk]);
 
-  // GA4 + Google Ads (compartilham gtag.js)
+  // GA4 + Google Ads
   useEffect(() => {
     const ga4 = s?.ga4_enabled && s?.ga4_measurement_id && analyticsOk ? s.ga4_measurement_id : null;
     const ads =
@@ -121,10 +197,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     }
 
     const primaryId = ga4 || ads!;
-    injectExternalScript(
-      SCRIPT_IDS.gtag,
-      `https://www.googletagmanager.com/gtag/js?id=${primaryId}`
-    );
+    injectExternalScript(SCRIPT_IDS.gtag, `https://www.googletagmanager.com/gtag/js?id=${primaryId}`);
 
     const configs: string[] = [];
     if (ga4) configs.push(`gtag('config', '${ga4}');`);
@@ -138,16 +211,9 @@ gtag('js', new Date());
 ${configs.join("\n")}`,
       false
     );
-  }, [
-    s?.ga4_enabled,
-    s?.ga4_measurement_id,
-    s?.google_ads_enabled,
-    s?.google_ads_conversion_id,
-    analyticsOk,
-    marketingOk,
-  ]);
+  }, [s?.ga4_enabled, s?.ga4_measurement_id, s?.google_ads_enabled, s?.google_ads_conversion_id, analyticsOk, marketingOk]);
 
-  // TikTok Pixel
+  // TikTok
   useEffect(() => {
     if (s?.tiktok_enabled && s.tiktok_pixel_id && marketingOk) {
       injectScript(
@@ -165,7 +231,7 @@ ${configs.join("\n")}`,
     }
   }, [s?.tiktok_enabled, s?.tiktok_pixel_id, marketingOk]);
 
-  // Kwai Pixel
+  // Kwai
   useEffect(() => {
     if (s?.kwai_enabled && s.kwai_pixel_id && marketingOk) {
       injectScript(
