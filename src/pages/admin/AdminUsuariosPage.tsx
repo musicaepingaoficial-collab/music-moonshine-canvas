@@ -174,6 +174,7 @@ const AdminUsuariosPage = () => {
                     <TableHead>Discografias</TableHead>
                     <TableHead>Cadastro</TableHead>
                     <TableHead>Indicação de</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
