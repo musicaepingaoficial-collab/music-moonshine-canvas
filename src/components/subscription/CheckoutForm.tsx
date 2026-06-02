@@ -377,22 +377,14 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
       if (sub) {
         const txId = pixData?.paymentId ? String(pixData.paymentId) : undefined;
         trackEvent("purchase", {
+          event_id: txId,
           value: planPrice,
           currency: "BRL",
           transaction_id: txId,
           content_ids: [planSlug],
           content_name: planName,
-        });
-        sendCapi({
-          event_name: "Purchase",
-          event_id: txId,
-          user_data: { email: pixEmail || user?.email, external_id: user?.id },
-          custom_data: {
-            value: planPrice,
-            currency: "BRL",
-            content_ids: [planSlug],
-            content_name: planName,
-          },
+          email: pixEmail || user?.email,
+          external_id: user?.id,
         });
         toast.success("Pagamento confirmado! Acesso liberado.");
         onSuccess();
