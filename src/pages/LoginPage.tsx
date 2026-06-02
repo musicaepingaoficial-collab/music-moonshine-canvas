@@ -86,11 +86,11 @@ const LoginPage = () => {
             { user_id: data.user.id, consent_type: "privacy", granted: true, version: CONSENT_VERSION, user_agent: ua },
           ]);
         }
-        trackEvent("complete_registration", { content_name: "signup" });
-        sendCapi({
-          event_name: "CompleteRegistration",
-          user_data: { email, phone: whatsapp, external_id: data.user?.id },
-          custom_data: { content_name: "signup" },
+        trackEvent("complete_registration", {
+          content_name: "signup",
+          email,
+          phone: whatsapp,
+          external_id: data.user?.id,
         });
         if (data.session) {
           await registerPendingReferral();
