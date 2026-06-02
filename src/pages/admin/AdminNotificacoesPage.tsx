@@ -57,6 +57,8 @@ const AdminNotificacoesPage = () => {
     notify_pix_generated: true,
   });
 
+  useEffect(() => { loadLogs(); }, []);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -220,6 +222,53 @@ const AdminNotificacoesPage = () => {
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" /> Histórico de envios
+            </CardTitle>
+            <CardDescription>Últimas 20 notificações push disparadas para os admins.</CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" onClick={loadLogs} disabled={loadingLogs}>
+            Atualizar
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {logs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum envio registrado ainda.</p>
+          ) : (
+            <div className="space-y-2">
+              {logs.map((l) => {
+                const ok = (l.sent ?? 0) > 0 && !l.error;
+                return (
+                  <div key={l.id} className="flex items-start justify-between gap-3 rounded-md border border-border/50 p-3 text-sm">
+                    <div className="flex items-start gap-2 min-w-0">
+                      {ok ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{l.title || l.event_type}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {l.event_type} · enviados {l.sent ?? 0}/{l.total_subs ?? 0}
+                          {l.removed ? ` · removidos ${l.removed}` : ""}
+                          {l.error ? ` · erro: ${l.error}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(l.created_at).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
