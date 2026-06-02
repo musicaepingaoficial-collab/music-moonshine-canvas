@@ -7,10 +7,14 @@ import { useAuth, useProfile, useAssinatura, useIsAdmin } from "@/hooks/useUser"
 import { StatCardSkeleton } from "@/components/ui/Skeletons";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ChangePasswordCard } from "@/components/account/ChangePasswordCard";
 import { PrivacyCenterCard } from "@/components/legal/PrivacyCenterCard";
+import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const ContaPage = () => {
   const { user } = useAuth();
@@ -18,8 +22,32 @@ const ContaPage = () => {
   const { data: assinatura, isLoading: loadingSub } = useAssinatura(user?.id);
   const { data: isAdmin } = useIsAdmin(user?.id);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [name, setName] = useState("");
+  useEffect(() => {
+    if (profile?.name !== undefined) setName(profile.name || "");
+  }, [profile?.name]);
+
+  const saveProfile = useMutation({
+    mutationFn: async (newName: string) => {
+      if (!user?.id) throw new Error("Não autenticado");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ name: newName.trim() })
+        .eq("id", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Perfil atualizado!");
+      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Erro ao salvar."),
+  });
 
   const isLoading = loadingProfile || loadingSub;
+  const trimmed = name.trim();
+  const canSave = !!trimmed && trimmed !== (profile?.name || "") && !saveProfile.isPending;
 
   console.log("[Conta:render]", { profile: profile?.email, isLoading });
 
