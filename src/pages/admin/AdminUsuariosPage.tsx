@@ -207,6 +207,18 @@ const AdminUsuariosPage = () => {
                       <TableCell className="text-xs text-muted-foreground italic">
                         {user.referred_by || "—"}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          disabled={currentUser?.id === user.id}
+                          title={currentUser?.id === user.id ? "Você não pode excluir sua própria conta" : "Excluir usuário"}
+                          onClick={() => { setDeleteTarget(user); setConfirmText(""); }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -215,6 +227,36 @@ const AdminUsuariosPage = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) { setDeleteTarget(null); setConfirmText(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é <strong>irreversível</strong>. Todos os dados de{" "}
+              <strong>{deleteTarget?.name || deleteTarget?.email}</strong> ({deleteTarget?.email}) serão removidos: assinaturas, repertórios, favoritos, downloads, indicações e a conta de autenticação.
+              <br /><br />
+              Digite <strong>EXCLUIR</strong> para confirmar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="EXCLUIR"
+            autoFocus
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmText !== "EXCLUIR" || deleteUserMutation.isPending}
+              onClick={() => deleteTarget && deleteUserMutation.mutate(deleteTarget.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteUserMutation.isPending ? "Excluindo..." : "Excluir definitivamente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
