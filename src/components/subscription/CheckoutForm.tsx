@@ -68,7 +68,7 @@ const splitFullName = (fullName: string) => {
   };
 };
 
-export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess, prefill }: CheckoutFormProps) {
+export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess, prefill, initialCoupon }: CheckoutFormProps) {
   const [status, setStatus] = useState<PaymentStatus>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
