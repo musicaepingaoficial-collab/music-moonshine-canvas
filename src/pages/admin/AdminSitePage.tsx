@@ -67,6 +67,8 @@ const AdminSitePage = () => {
   const [message, setMessage] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [discografiasValor, setDiscografiasValor] = useState("0");
+  const [salesVideoUrl, setSalesVideoUrl] = useState("");
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   useEffect(() => {
     if (settings) {
