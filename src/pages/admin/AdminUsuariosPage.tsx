@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Disc, Trash2 } from "lucide-react";
+import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useUser";
 import { toast } from "sonner";
 
@@ -28,15 +35,18 @@ interface UserWithSub {
   id: string;
   name: string;
   email: string;
+  whatsapp: string | null;
+  cpf: string | null;
   has_discografias: boolean;
   created_at: string;
-  assinaturas: { plan: string; status: string }[];
+  assinaturas: { plan: string; status: string; expires_at?: string | null; created_at?: string }[];
   referred_by?: string | null;
 }
 
 const AdminUsuariosPage = () => {
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<UserWithSub | null>(null);
+  const [viewTarget, setViewTarget] = useState<UserWithSub | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
@@ -47,15 +57,15 @@ const AdminUsuariosPage = () => {
       console.log("[AdminUsuarios:fetch]");
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name, email, has_discografias, created_at")
+        .select("id, name, email, whatsapp, cpf, has_discografias, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
 
       // Fetch subscriptions for all users
       const { data: subs } = await supabase
         .from("assinaturas")
-        .select("user_id, plan, status")
-        .eq("status", "active");
+        .select("user_id, plan, status, expires_at, created_at")
+        .order("created_at", { ascending: false });
 
       // Fetch referral info for these users
       const { data: refs } = await supabase
@@ -169,7 +179,7 @@ const AdminUsuariosPage = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>Email / WhatsApp</TableHead>
                     <TableHead>Plano</TableHead>
                     <TableHead>Discografias</TableHead>
                     <TableHead>Cadastro</TableHead>
@@ -181,10 +191,17 @@ const AdminUsuariosPage = () => {
                   {filtered.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium text-foreground">{user.name || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <div className="flex flex-col">
+                          <span>{user.email}</span>
+                          <span className="text-xs text-primary/70">{user.whatsapp || "Sem WhatsApp"}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
-                        {user.assinaturas.length > 0 ? (
-                          <Badge className="bg-primary/20 text-primary border-0">{user.assinaturas[0].plan}</Badge>
+                        {user.assinaturas.filter(s => s.status === "active").length > 0 ? (
+                          <Badge className="bg-primary/20 text-primary border-0">
+                            {user.assinaturas.find(s => s.status === "active")?.plan}
+                          </Badge>
                         ) : (
                           <Badge variant="secondary">Free</Badge>
                         )}
@@ -202,22 +219,39 @@ const AdminUsuariosPage = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                        {new Date(user.created_at).toLocaleString("pt-BR", { 
+                          timeZone: "America/Sao_Paulo",
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground italic">
                         {user.referred_by || "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          disabled={currentUser?.id === user.id}
-                          title={currentUser?.id === user.id ? "Você não pode excluir sua própria conta" : "Excluir usuário"}
-                          onClick={() => { setDeleteTarget(user); setConfirmText(""); }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Ver detalhes"
+                            onClick={() => setViewTarget(user)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            disabled={currentUser?.id === user.id}
+                            title={currentUser?.id === user.id ? "Você não pode excluir sua própria conta" : "Excluir usuário"}
+                            onClick={() => { setDeleteTarget(user); setConfirmText(""); }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -257,6 +291,103 @@ const AdminUsuariosPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!viewTarget} onOpenChange={(v) => !v && setViewTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Usuário</DialogTitle>
+            <DialogDescription>
+              Informações detalhadas sobre o cadastro e assinaturas.
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewTarget && (
+            <div className="space-y-6 pt-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg leading-tight">{viewTarget.name || "Sem Nome"}</h3>
+                  <p className="text-sm text-muted-foreground">{viewTarget.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> WhatsApp
+                  </span>
+                  <p className="text-sm">{viewTarget.whatsapp || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <CreditCard className="h-3 w-3" /> CPF
+                  </span>
+                  <p className="text-sm">{viewTarget.cpf || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3" /> Cadastro (Brasília)
+                  </span>
+                  <p className="text-sm">
+                    {new Date(viewTarget.created_at).toLocaleString("pt-BR", { 
+                      timeZone: "America/Sao_Paulo",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <Disc className="h-3 w-3" /> Discografias
+                  </span>
+                  <p className="text-sm">{viewTarget.has_discografias ? "Liberado" : "Bloqueado"}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                  <CreditCard className="h-3 w-3" /> Histórico de Assinaturas
+                </span>
+                <div className="rounded-md border border-border divide-y divide-border overflow-hidden">
+                  {viewTarget.assinaturas.length > 0 ? (
+                    viewTarget.assinaturas.map((sub, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{sub.plan.toUpperCase()}</span>
+                          <span className="text-xs text-muted-foreground">
+                            Início: {sub.created_at ? new Date(sub.created_at).toLocaleDateString("pt-BR") : "—"}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <Badge className={`text-[10px] uppercase border-0 ${
+                            sub.status === "active" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                          }`}>
+                            {sub.status === "active" ? "Ativa" : sub.status}
+                          </Badge>
+                          {sub.expires_at && sub.status === "active" && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              Expira: {new Date(sub.expires_at).toLocaleDateString("pt-BR")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 text-sm text-center text-muted-foreground italic">
+                      Nenhuma assinatura encontrada
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
