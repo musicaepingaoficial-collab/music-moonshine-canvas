@@ -110,6 +110,27 @@ export default function LandingPage() {
     ? `https://wa.me/${waNumber}?text=${encodeURIComponent("Olá, quero saber mais sobre o painel")}`
     : null;
 
+  const getEmbedUrl = (url: string) => {
+    if (!url) return null;
+    if (url.includes("vimeo.com/")) {
+      const vimeoIdMatch = url.match(/vimeo\.com\/(\d+)/);
+      if (vimeoIdMatch && vimeoIdMatch[1]) {
+        return `https://player.vimeo.com/video/${vimeoIdMatch[1]}`;
+      }
+    }
+    if (url.includes("youtube.com/watch?v=")) {
+      return `https://www.youtube.com/embed/${url.split("v=")[1].split("&")[0]}`;
+    }
+    if (url.includes("youtu.be/")) {
+      return `https://www.youtube.com/embed/${url.split("be/")[1].split("?")[0]}`;
+    }
+    return url;
+  };
+
+  const embedUrl = siteSettings?.sales_video_url ? getEmbedUrl(siteSettings.sales_video_url) : null;
+  const isDirectVideo = embedUrl && (embedUrl.endsWith(".mp4") || embedUrl.endsWith(".webm") || embedUrl.includes("supabase"));
+
+
   const { data: planos } = useQuery({
     queryKey: ["public-planos"],
     queryFn: async () => {
@@ -323,6 +344,36 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* VSL VIDEO SECTION */}
+      {embedUrl && (
+        <section className="py-10 bg-muted/20 border-y border-border/40">
+          <div className="max-w-4xl mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="relative aspect-video w-full overflow-hidden rounded-3xl border border-primary/20 bg-card shadow-premium"
+            >
+              {isDirectVideo ? (
+                <video
+                  src={embedUrl}
+                  controls
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <iframe
+                  src={embedUrl}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
+            </motion.div>
+          </div>
+        </section>
+      )}
+
 
       {/* PROBLEM */}
       <section className="py-20 sm:py-28">
