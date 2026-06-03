@@ -101,7 +101,7 @@ export function Header() {
             <ArrowLeft className="h-4 sm:h-5 w-4 sm:w-5" />
           </button>
         )}
-        <div className="relative min-w-0 flex-1 max-w-md" ref={searchRef}>
+        <div className="relative min-w-0 flex-1 max-w-md hidden sm:block" ref={searchRef}>
           <Search className="absolute left-2.5 sm:left-3 top-1/2 h-3.5 sm:h-4 w-3.5 sm:w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar..."

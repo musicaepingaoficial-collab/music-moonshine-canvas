@@ -175,7 +175,7 @@ const AdminUsuariosPage = () => {
             <EmptyState icon={Users} title="Nenhum usuário encontrado" description="Tente alterar os termos da busca." />
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
@@ -213,9 +213,6 @@ const AdminUsuariosPage = () => {
                             disabled={user.assinaturas.some(s => s.plan === "vitalicio") || toggleDiscografiasMutation.isPending}
                             onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
                           />
-                          {user.assinaturas.some(s => s.plan === "vitalicio") && (
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold">Vitalício</span>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -233,51 +230,17 @@ const AdminUsuariosPage = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-primary hover:text-primary"
-                            title="Enviar WhatsApp"
-                            onClick={() => {
-                              const phone = user.whatsapp?.replace(/\D/g, "");
-                              if (!phone) return toast.error("Usuário sem WhatsApp");
-                              const sub = user.assinaturas.find(s => s.status === "active");
-                              let msg = "";
-                              if (!sub) {
-                                msg = `Olá ${user.name || "amigo"}, vimos que você ainda não assinou um plano. Aproveite nossas ofertas hoje!`;
-                              } else if (sub.expires_at) {
-                                const days = Math.ceil((new Date(sub.expires_at).getTime() - Date.now()) / 86400000);
-                                if (days <= 0) {
-                                  msg = `Olá ${user.name || "amigo"}, sua assinatura ${sub.plan.toUpperCase()} venceu. Renove agora para não perder o acesso!`;
-                                } else if (days <= 5) {
-                                  msg = `Olá ${user.name || "amigo"}, sua assinatura ${sub.plan.toUpperCase()} vence em ${days} dias. Garanta sua renovação!`;
-                                } else {
-                                  msg = `Olá ${user.name || "amigo"}, como está sendo sua experiência com o plano ${sub.plan.toUpperCase()}?`;
-                                }
-                              } else {
-                                msg = `Olá ${user.name || "amigo"}, tudo bem?`;
-                              }
-                              window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-                            }}
-                          >
+                          <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
+                            const phone = user.whatsapp?.replace(/\D/g, "");
+                            if (!phone) return toast.error("Usuário sem WhatsApp");
+                            window.open(`https://wa.me/55${phone}`, "_blank");
+                          }}>
                             <MessageCircle className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title="Ver detalhes"
-                            onClick={() => setViewTarget(user)}
-                          >
+                          <Button size="icon" variant="ghost" onClick={() => setViewTarget(user)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            disabled={currentUser?.id === user.id}
-                            title={currentUser?.id === user.id ? "Você não pode excluir sua própria conta" : "Excluir usuário"}
-                            onClick={() => { setDeleteTarget(user); setConfirmText(""); }}
-                          >
+                          <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={currentUser?.id === user.id} onClick={() => { setDeleteTarget(user); setConfirmText(""); }}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -286,6 +249,36 @@ const AdminUsuariosPage = () => {
                   ))}
                 </TableBody>
               </Table>
+              
+              <div className="md:hidden space-y-4">
+                {filtered.map((user) => (
+                  <div key={user.id} className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold">{user.name || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                      <Badge className={user.assinaturas.some(s => s.status === "active") ? "bg-primary/20 text-primary" : "bg-secondary"}>
+                        {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <div className="flex items-center gap-2">
+                        <Switch 
+                          checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio")}
+                          disabled={user.assinaturas.some(s => s.plan === "vitalicio")}
+                          onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
+                        />
+                        <span className="text-xs text-muted-foreground">Discografias</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => setViewTarget(user)}><Eye className="h-4 w-4"/></Button>
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setDeleteTarget(user); setConfirmText(""); }}><Trash2 className="h-4 w-4"/></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
