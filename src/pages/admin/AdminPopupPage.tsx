@@ -40,6 +40,9 @@ const formSchema = z.object({
   show_to_new: z.boolean(),
   show_to_subscribers: z.boolean(),
   new_user_days: z.number().int().min(0).max(365),
+  plan_slug: z.string().nullable(),
+  discount_percent: z.number().int().min(0).max(100).nullable(),
+  cta_label: z.string().nullable(),
 });
 
 const AdminPopupPage = () => {
@@ -54,8 +57,20 @@ const AdminPopupPage = () => {
   const [showToNew, setShowToNew] = useState(true);
   const [showToSubs, setShowToSubs] = useState(false);
   const [newDays, setNewDays] = useState(7);
+  const [planSlug, setPlanSlug] = useState<string | null>(null);
+  const [discountPercent, setDiscountPercent] = useState<number | null>(null);
+  const [ctaLabel, setCtaLabel] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
+
+  const { data: plans } = useQuery({
+    queryKey: ["admin-plans-popup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("planos").select("slug, name").eq("active", true);
+      if (error) throw error;
+      return data;
+    }
+  });
 
   useEffect(() => {
     if (!data) return;
