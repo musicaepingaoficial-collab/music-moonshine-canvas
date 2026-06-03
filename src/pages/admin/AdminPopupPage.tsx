@@ -126,7 +126,7 @@ const AdminPopupPage = () => {
       show_to_subscribers: showToSubs,
       new_user_days: newDays,
       plan_slug: planSlug,
-      discount_percent: discountPercent,
+      discount_coupon: discountCoupon,
       cta_label: ctaLabel,
     });
     if (!parsed.success) {
