@@ -111,6 +111,7 @@ const AdminSitePage = () => {
           maintenance_message: message,
           whatsapp_number: whatsapp || null,
           discografias_valor: parseFloat(discografiasValor) || 0,
+          sales_video_url: salesVideoUrl || null,
         },
       });
 
