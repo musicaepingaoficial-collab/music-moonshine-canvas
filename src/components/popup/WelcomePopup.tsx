@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Send, Instagram, Link as LinkIcon, X } from "lucide-react";
+import { MessageCircle, Send, Instagram, Link as LinkIcon, X, Crown } from "lucide-react";
 import { useAuth, useProfile, useAssinatura } from "@/hooks/useUser";
 import { useWelcomePopupSettings, type PopupLink } from "@/hooks/useWelcomePopup";
 
