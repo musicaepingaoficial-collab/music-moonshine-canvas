@@ -120,6 +120,13 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (initialCoupon) {
+      handleApplyCoupon();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCoupon]);
+
   // Add payment info when user picks a method
   const handleSelectMethodTracked = (method: PaymentMethod) => {
     trackEvent("add_payment_info", {
