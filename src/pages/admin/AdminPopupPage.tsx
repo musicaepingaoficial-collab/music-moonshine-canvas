@@ -59,7 +59,7 @@ const AdminPopupPage = () => {
   const [showToSubs, setShowToSubs] = useState(false);
   const [newDays, setNewDays] = useState(7);
   const [planSlug, setPlanSlug] = useState<string | null>(null);
-  const [discountPercent, setDiscountPercent] = useState<number | null>(null);
+  const [discountCoupon, setDiscountCoupon] = useState<string | null>(null);
   const [ctaLabel, setCtaLabel] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
