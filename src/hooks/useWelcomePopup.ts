@@ -19,6 +19,9 @@ export interface WelcomePopup {
   new_user_days: number;
   version: number;
   updated_at: string;
+  plan_slug: string | null;
+  discount_percent: number | null;
+  cta_label: string | null;
 }
 
 export function useWelcomePopupSettings() {
