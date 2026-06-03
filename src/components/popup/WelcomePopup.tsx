@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, Send, Instagram, Link as LinkIcon, X, Crown } from "lucide-react";
 import { useAuth, useProfile, useAssinatura } from "@/hooks/useUser";
 import { useWelcomePopupSettings, type PopupLink } from "@/hooks/useWelcomePopup";
+import { useNavigate } from "react-router-dom";
 
 const ICON_MAP = {
   whatsapp: MessageCircle,
