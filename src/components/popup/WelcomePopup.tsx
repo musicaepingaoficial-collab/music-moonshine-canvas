@@ -111,16 +111,26 @@ export function WelcomePopup() {
 
           <div className="space-y-2">
             {popup.plan_slug && (
-              <Button 
-                className="w-full h-12 gap-2 text-base font-bold shadow-lg shadow-primary/20"
-                onClick={() => {
-                  handleSessionClose();
-                  navigate(`/ofertas?plan=${popup.plan_slug}${popup.discount_coupon ? `&coupon=${popup.discount_coupon}` : ""}`);
-                }}
-              >
-                <Crown className="h-5 w-5" />
-                {popup.cta_label || "Assinar Agora"}
-              </Button>
+              <div className="space-y-2">
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground line-through">
+                    De R$ {(147).toFixed(2).replace('.', ',')}
+                  </span>
+                  <span className="text-sm font-bold text-emerald-500">
+                    Por apenas R$ {popup.discount_coupon ? "89,00" : "??,??"}
+                  </span>
+                </div>
+                <Button 
+                  className="w-full h-14 gap-3 text-lg font-black shadow-lg shadow-primary/20 uppercase tracking-tighter"
+                  onClick={() => {
+                    handleSessionClose();
+                    navigate(`/ofertas?plan=${popup.plan_slug}${popup.discount_coupon ? `&coupon=${popup.discount_coupon}` : ""}`);
+                  }}
+                >
+                  <Crown className="h-6 w-6" />
+                  {popup.cta_label || "Aproveitar Oferta Agora"}
+                </Button>
+              </div>
             )}
 
             {popup.links.map((l: PopupLink, i: number) => {
