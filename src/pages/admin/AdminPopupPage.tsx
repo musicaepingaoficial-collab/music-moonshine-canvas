@@ -44,6 +44,8 @@ const formSchema = z.object({
   plan_slug: z.string().nullable(),
   discount_coupon: z.string().nullable(),
   cta_label: z.string().nullable(),
+  exclude_plan_slugs: z.array(z.string()),
+  include_plan_slugs: z.array(z.string()),
 });
 
 const AdminPopupPage = () => {
@@ -61,6 +63,8 @@ const AdminPopupPage = () => {
   const [planSlug, setPlanSlug] = useState<string | null>(null);
   const [discountCoupon, setDiscountCoupon] = useState<string | null>(null);
   const [ctaLabel, setCtaLabel] = useState<string | null>(null);
+  const [excludePlanSlugs, setExcludePlanSlugs] = useState<string[]>([]);
+  const [includePlanSlugs, setIncludePlanSlugs] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
 
@@ -86,6 +90,8 @@ const AdminPopupPage = () => {
     setPlanSlug(data.plan_slug || null);
     setDiscountCoupon(data.discount_coupon || null);
     setCtaLabel(data.cta_label || null);
+    setExcludePlanSlugs(data.exclude_plan_slugs || []);
+    setIncludePlanSlugs(data.include_plan_slugs || []);
   }, [data]);
 
   const handleUpload = async (file: File) => {
@@ -128,6 +134,8 @@ const AdminPopupPage = () => {
       plan_slug: planSlug,
       discount_coupon: discountCoupon,
       cta_label: ctaLabel,
+      exclude_plan_slugs: excludePlanSlugs,
+      include_plan_slugs: includePlanSlugs,
     });
     if (!parsed.success) {
       const first = parsed.error.issues[0];
