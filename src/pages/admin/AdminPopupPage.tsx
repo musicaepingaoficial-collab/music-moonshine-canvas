@@ -51,8 +51,12 @@ const formSchema = z.object({
 });
 
 const AdminPopupPage = () => {
-  const { data, isLoading } = useWelcomePopupSettings();
+  const { data: popups = [], isLoading } = useWelcomePopupSettings();
   const update = useUpdateWelcomePopup();
+
+  // Vamos editar o primeiro popup por padrão para manter compatibilidade simples na UI de admin,
+  // ou criar um sistema de seleção no futuro. Por agora, focamos na regra de exibição múltipla.
+  const data = popups[0] || null;
 
   const [active, setActive] = useState(false);
   const [title, setTitle] = useState("");
@@ -121,6 +125,7 @@ const AdminPopupPage = () => {
     setLinks((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   const removeLink = (i: number) =>
     setLinks((prev) => prev.filter((_, idx) => idx !== i));
+
 
   const togglePlanSelection = (slug: string, list: string[], setList: (v: string[]) => void) => {
     if (list.includes(slug)) {
