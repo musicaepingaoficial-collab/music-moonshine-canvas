@@ -400,6 +400,12 @@ const AdminPopupPage = () => {
               </p>
             )}
             <div className="space-y-2">
+              {planSlug && (
+                <Button className="w-full h-12 gap-2 text-base font-bold shadow-lg shadow-primary/20">
+                  <Plus className="h-5 w-5" />
+                  {ctaLabel || "Assinar Agora"}
+                </Button>
+              )}
               {links.map((l, i) => {
                 const opt = ICON_OPTIONS.find((o) => o.value === (l.icon ?? "link"))!;
                 const Icon = opt.Icon;
