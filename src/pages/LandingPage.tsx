@@ -348,22 +348,24 @@ export default function LandingPage() {
       {/* VSL VIDEO SECTION */}
       {embedUrl && (
         <section className="py-10 bg-muted/20 border-y border-border/40">
-          <div className="max-w-4xl mx-auto px-4">
+          <div className="max-w-md mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="relative aspect-video w-full overflow-hidden rounded-3xl border border-primary/20 bg-card shadow-premium"
+              className="relative aspect-[9/16] w-full overflow-hidden rounded-3xl border border-primary/20 bg-card shadow-premium"
             >
               {isDirectVideo ? (
                 <video
                   src={embedUrl}
                   controls
+                  controlsList="nodownload nofullscreen noremoteplayback"
+                  disablePictureInPicture
                   className="h-full w-full object-cover"
                 />
               ) : (
                 <iframe
-                  src={embedUrl}
+                  src={`${embedUrl}${embedUrl.includes('?') ? '&' : '?'}controls=1&background=0&autoplay=0&muted=0&title=0&byline=0&portrait=0&badge=0`}
                   className="h-full w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
