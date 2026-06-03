@@ -11,10 +11,8 @@ const corsHeaders = {
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@example.com";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@repertoriomusicaepinga.com.br";
 
-// Mapeia type -> coluna em admin_notification_prefs.
-// `null` significa "sempre enviar, sem filtro de preferência" (ex.: test).
 const PREF_BY_TYPE: Record<string, string | null> = {
   purchase: "notify_purchase",
   purchase_rejected: "notify_purchase",
@@ -34,7 +32,14 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-// Helper para gerar o cabeçalho VAPID sem depender da biblioteca web-push que quebra no Deno
+function uint8ArrayToUrlBase64(array: Uint8Array) {
+  return btoa(String.fromCharCode(...array))
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+// Helper para gerar o cabeçalho VAPID compatível com Deno (Web Crypto API)
 async function getVapidHeaders(endpoint: string) {
   const url = new URL(endpoint);
   const audience = `${url.protocol}//${url.host}`;
@@ -47,14 +52,15 @@ async function getVapidHeaders(endpoint: string) {
     sub: VAPID_SUBJECT,
   };
 
-  const encode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const encode = (obj: any) => uint8ArrayToUrlBase64(new TextEncoder().encode(JSON.stringify(obj)));
   const unsignedToken = `${encode(header)}.${encode(payload)}`;
 
   const privateKeyData = urlBase64ToUint8Array(VAPID_PRIVATE);
+  const publicKeyData = urlBase64ToUint8Array(VAPID_PUBLIC);
   
   let key;
   try {
-    // Tenta primeiro PKCS#8
+    // Tenta primeiro PKCS#8 (formato padrão esperado)
     key = await crypto.subtle.importKey(
       "pkcs8",
       privateKeyData,
@@ -63,26 +69,30 @@ async function getVapidHeaders(endpoint: string) {
       ["sign"]
     );
   } catch (err) {
-    try {
-      // Tenta Raw (D-Value de 32 bytes)
-      // Para importar Raw ECDSA no Web Crypto, precisamos construir um JWK ou usar uma lib.
-      // Vamos tentar JWK que é mais flexível no Deno.
+    // Se falhar e tiver 32 bytes, tenta construir um JWK usando a chave pública para X e Y
+    if (privateKeyData.length === 32 && publicKeyData.length >= 65) {
+      // publicKeyData format: [0x04, X (32 bytes), Y (32 bytes)]
+      const x = publicKeyData.slice(1, 33);
+      const y = publicKeyData.slice(33, 65);
+      
       const jwk = {
         kty: "EC",
         crv: "P-256",
-        x: "", // Não temos X e Y, apenas D se for Raw 32 bytes.
-        y: "", 
-        d: VAPID_PRIVATE.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"),
+        x: uint8ArrayToUrlBase64(x),
+        y: uint8ArrayToUrlBase64(y),
+        d: uint8ArrayToUrlBase64(privateKeyData),
         ext: true,
       };
       
-      // Se tivermos 32 bytes, é o 'd' da chave P-256.
-      // Para um JWK completo, precisaríamos de x e y.
-      // Algumas libs geram x e y a partir de d.
-      throw err; // Re-throw para o catch externo se não conseguirmos via JWK simples
-    } catch (_) {
-      console.error(`[VAPID] Falha PKCS#8. Buffer: ${privateKeyData.length} bytes.`);
-      throw new Error(`Chave VAPID inválida. A Edge Function espera PKCS#8. Erro: ${err.message}`);
+      key = await crypto.subtle.importKey(
+        "jwk",
+        jwk,
+        { name: "ECDSA", namedCurve: "P-256" },
+        true,
+        ["sign"]
+      );
+    } else {
+      throw err;
     }
   }
 
@@ -92,15 +102,10 @@ async function getVapidHeaders(endpoint: string) {
     new TextEncoder().encode(unsignedToken)
   );
 
-  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  const token = `${unsignedToken}.${signatureBase64}`;
+  const signatureBase64 = uint8ArrayToUrlBase64(new Uint8Array(signature));
 
   return {
-    "Authorization": `WebPush ${token}`,
+    "Authorization": `WebPush ${unsignedToken}.${signatureBase64}`,
     "Crypto-Key": `p256ecdsa=${VAPID_PUBLIC}`,
   };
 }
@@ -113,149 +118,74 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  let type = "unknown";
-  let title = "";
-  let logRow: Record<string, unknown> = {};
-
   try {
     const body = await req.json();
-    type = body.type;
-    title = body.title;
-    const bodyText = body.body;
-    const url = body.url;
-    const data = body.data;
+    const type = body.type || "test";
+    const title = body.title || "Notificação";
+    const bodyText = body.body || "";
+    const url = body.url || "/admin";
+    const data = body.data || {};
 
-    if (!type || !title) {
-      return new Response(JSON.stringify({ error: "type e title são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log("[send-admin-push] start", { type, title });
-
-    // Buscar todos admins
-    const { data: roles, error: rolesErr } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "admin");
-    if (rolesErr) throw rolesErr;
-
+    const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
     const adminIds = (roles ?? []).map((r) => r.user_id);
+
     if (!adminIds.length) {
-      logRow = { event_type: type, title, total_subs: 0, sent: 0, removed: 0, error: "no admins" };
-      await supabase.from("admin_push_logs").insert(logRow);
-      return new Response(JSON.stringify({ sent: 0, reason: "no admins" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ sent: 0, reason: "no admins" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Filtrar por preferências (default true se ausente)
     const prefField = type in PREF_BY_TYPE ? PREF_BY_TYPE[type] : "notify_purchase";
     let allowedAdmins = adminIds;
     if (prefField) {
-      const { data: prefs } = await supabase
-        .from("admin_notification_prefs")
-        .select(`user_id, ${prefField}`)
-        .in("user_id", adminIds);
-
+      const { data: prefs } = await supabase.from("admin_notification_prefs").select(`user_id, ${prefField}`).in("user_id", adminIds);
       const prefMap = new Map((prefs ?? []).map((p: any) => [p.user_id, p[prefField]]));
       allowedAdmins = adminIds.filter((id) => prefMap.get(id) !== false);
     }
 
-    if (!allowedAdmins.length) {
-      logRow = { event_type: type, title, total_subs: 0, sent: 0, removed: 0, error: "no opted-in admins" };
-      await supabase.from("admin_push_logs").insert(logRow);
-      return new Response(JSON.stringify({ sent: 0, reason: "no opted-in admins" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const { data: subs } = await supabase.from("admin_push_subscriptions").select("id, endpoint, p256dh, auth").in("user_id", allowedAdmins);
+    if (!subs?.length) {
+      return new Response(JSON.stringify({ sent: 0, reason: "no subs" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Buscar inscrições
-    const { data: subs, error: subsErr } = await supabase
-      .from("admin_push_subscriptions")
-      .select("id, user_id, endpoint, p256dh, auth")
-      .in("user_id", allowedAdmins);
-    if (subsErr) throw subsErr;
-
-    const notificationPayload = JSON.stringify({
-      title,
-      body: bodyText || "",
-      url: url || "/admin",
-      tag: type,
-      data,
-    });
+    const notificationPayload = JSON.stringify({ title, body: bodyText, url, tag: type, data });
 
     let sent = 0;
     let removed = 0;
-    const toRemove: string[] = [];
     const errors: string[] = [];
 
-    await Promise.all(
-      (subs ?? []).map(async (s) => {
-        try {
-          const vapidHeaders = await getVapidHeaders(s.endpoint);
-          
-          const response = await fetch(s.endpoint, {
-            method: "POST",
-            headers: {
-              ...vapidHeaders,
-              "TTL": "60",
-              "Content-Type": "text/plain;charset=utf-8", 
-            },
-            body: notificationPayload, 
-          });
+    // Processamos em série para evitar problemas de concorrência ou limites de rate
+    for (const s of subs) {
+      try {
+        const vapidHeaders = await getVapidHeaders(s.endpoint);
+        const res = await fetch(s.endpoint, {
+          method: "POST",
+          headers: { ...vapidHeaders, "TTL": "60", "Content-Type": "text/plain;charset=utf-8" },
+          body: notificationPayload,
+        });
 
-          if (response.ok) {
-            sent++;
-          } else if (response.status === 404 || response.status === 410) {
-            toRemove.push(s.id);
-            removed++;
-          } else {
-            const errText = await response.text();
-            console.error(`[send-admin-push] erro endpoint ${response.status}:`, errText);
-            errors.push(`${response.status}: ${errText}`);
-          }
-        } catch (err: any) {
-          console.error("[send-admin-push] erro catch:", err?.message);
-          errors.push(err?.message);
+        if (res.ok) {
+          sent++;
+        } else if (res.status === 404 || res.status === 410) {
+          removed++;
+          await supabase.from("admin_push_subscriptions").delete().eq("id", s.id);
+        } else {
+          errors.push(`${res.status}: ${await res.text()}`);
         }
-      })
-    );
-
-    if (toRemove.length) {
-      await supabase.from("admin_push_subscriptions").delete().in("id", toRemove);
+      } catch (err) {
+        errors.push(err.message);
+      }
     }
-
-    const total = subs?.length ?? 0;
-    console.log("[send-admin-push] done", { sent, removed, total, errors: errors.length });
 
     await supabase.from("admin_push_logs").insert({
       event_type: type,
       title,
-      total_subs: total,
+      total_subs: subs.length,
       sent,
       removed,
       error: errors.length ? errors.join(" | ").slice(0, 1000) : null,
     });
 
-    return new Response(JSON.stringify({ sent, removed, total }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ sent, total: subs.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
-    console.error("[send-admin-push] fatal:", e);
-    try {
-      await supabase.from("admin_push_logs").insert({
-        event_type: type,
-        title,
-        sent: 0,
-        removed: 0,
-        error: String(e?.message || e).slice(0, 1000),
-      });
-    } catch (_) { /* ignore */ }
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
