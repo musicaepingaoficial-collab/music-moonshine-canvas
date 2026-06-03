@@ -77,7 +77,7 @@ export function WelcomePopup() {
   if (!popup) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : handleClose())}>
+    <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : handleSessionClose())}>
       <DialogContent className="max-w-md p-0 overflow-hidden">
         {popup.image_url && (
           <img
@@ -96,31 +96,45 @@ export function WelcomePopup() {
             )}
           </div>
 
-          {popup.links.length > 0 && (
-            <div className="space-y-2">
-              {popup.links.map((l: PopupLink, i: number) => {
-                const Icon = ICON_MAP[l.icon ?? "link"];
-                return (
-                  <Button
-                    key={i}
-                    asChild
-                    variant="outline"
-                    className="w-full justify-start gap-2 h-12"
-                  >
-                    <a href={l.url} target="_blank" rel="noopener noreferrer">
-                      <Icon className="h-5 w-5 text-primary" />
-                      <span className="font-medium">{l.label}</span>
-                    </a>
-                  </Button>
-                );
-              })}
-            </div>
-          )}
+          <div className="space-y-2">
+            {popup.plan_slug && (
+              <Button 
+                className="w-full h-12 gap-2 text-base font-bold shadow-lg shadow-primary/20"
+                asChild
+              >
+                <a href={`/ofertas?plan=${popup.plan_slug}${popup.discount_coupon ? `&coupon=${popup.discount_coupon}` : ""}`}>
+                  <Crown className="h-5 w-5" />
+                  {popup.cta_label || "Assinar Agora"}
+                </a>
+              </Button>
+            )}
 
-          <Button onClick={handleClose} variant="ghost" className="w-full gap-2">
-            <X className="h-4 w-4" />
-            Fechar
-          </Button>
+            {popup.links.map((l: PopupLink, i: number) => {
+              const Icon = ICON_MAP[l.icon ?? "link"];
+              return (
+                <Button
+                  key={i}
+                  asChild
+                  variant="outline"
+                  className="w-full justify-start gap-2 h-12"
+                >
+                  <a href={l.url} target="_blank" rel="noopener noreferrer">
+                    <Icon className="h-5 w-5 text-primary" />
+                    <span className="font-medium">{l.label}</span>
+                  </a>
+                </Button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+            <Button onClick={handleSessionClose} variant="ghost" size="sm" className="text-xs">
+              Me avise mais tarde
+            </Button>
+            <Button onClick={handlePermanentClose} variant="ghost" size="sm" className="text-xs text-muted-foreground">
+              Não mostrar novamente
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
