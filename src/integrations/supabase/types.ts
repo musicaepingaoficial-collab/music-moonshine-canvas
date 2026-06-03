@@ -311,6 +311,71 @@ export type Database = {
         }
         Relationships: []
       }
+      cupom_usos: {
+        Row: {
+          created_at: string | null
+          cupom_id: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cupom_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cupom_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cupom_usos_cupom_id_fkey"
+            columns: ["cupom_id"]
+            isOneToOne: false
+            referencedRelation: "cupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cupons: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          data_expiracao: string | null
+          desconto_percentual: number
+          id: string
+          updated_at: string | null
+          uso_atual: number | null
+          uso_limite: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          data_expiracao?: string | null
+          desconto_percentual: number
+          id?: string
+          updated_at?: string | null
+          uso_atual?: number | null
+          uso_limite?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          data_expiracao?: string | null
+          desconto_percentual?: number
+          id?: string
+          updated_at?: string | null
+          uso_atual?: number | null
+          uso_limite?: number | null
+        }
+        Relationships: []
+      }
       discografias: {
         Row: {
           artista_nome: string
