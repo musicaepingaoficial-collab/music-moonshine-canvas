@@ -73,7 +73,7 @@ const AdminPopupPage = () => {
   const { data: plans } = useQuery({
     queryKey: ["admin-plans-popup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("planos").select("slug, name").eq("active", true);
+      const { data, error } = await supabase.from("planos").select("slug, name, price").eq("active", true);
       if (error) throw error;
       return data;
     }
@@ -535,21 +535,18 @@ const AdminPopupPage = () => {
                 <div className="space-y-2">
                   <div className="flex flex-col items-center">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground line-through">
-                      De R$ {plans?.find(p => p.slug === planSlug)?.price ? (plans.find(p => p.slug === planSlug)!.price * 1.6).toFixed(2).replace('.', ',') : "00,00"}
+                      De R$ {(plans?.find((p: any) => p.slug === planSlug)?.price || 0 * 1.6).toFixed(2).replace('.', ',')}
                     </span>
                     <span className="text-sm font-bold text-emerald-500">
-                      Por apenas R$ {plans?.find(p => p.slug === planSlug)?.price.toFixed(2).replace('.', ',')}
+                      Por apenas R$ {plans?.find((p: any) => p.slug === planSlug)?.price?.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
                   <Button 
                     className="w-full h-14 gap-3 text-lg font-black shadow-lg shadow-primary/30 uppercase tracking-tighter"
-                    onClick={() => {
-                      setPreview(false);
-                      // Simular navegação se necessário
-                    }}
+                    onClick={() => setPreview(false)}
                   >
                     <Megaphone className="h-6 w-6" />
-                    {cta_label || "Aproveitar Oferta Agora"}
+                    {ctaLabel || "Aproveitar Oferta Agora"}
                   </Button>
                 </div>
               )}
