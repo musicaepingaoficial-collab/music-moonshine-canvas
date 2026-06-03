@@ -2,7 +2,6 @@
 // Body: { type: "purchase" | "pix_generated" | "purchase_rejected" | "purchase_refunded" | "test", title: string, body: string, url?: string, data?: any }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import webpush from "https://esm.sh/web-push@3.6.7?target=deno";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,8 +13,6 @@ const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@example.com";
 
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
-
 // Mapeia type -> coluna em admin_notification_prefs.
 // `null` significa "sempre enviar, sem filtro de preferência" (ex.: test).
 const PREF_BY_TYPE: Record<string, string | null> = {
@@ -25,6 +22,88 @@ const PREF_BY_TYPE: Record<string, string | null> = {
   pix_generated: "notify_pix_generated",
   test: null,
 };
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Helper para gerar o cabeçalho VAPID sem depender da biblioteca web-push que quebra no Deno
+async function getVapidHeaders(endpoint: string) {
+  const url = new URL(endpoint);
+  const audience = `${url.protocol}//${url.host}`;
+  
+  const header = { typ: "JWT", alg: "ES256" };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    aud: audience,
+    exp: now + 12 * 60 * 60,
+    sub: VAPID_SUBJECT,
+  };
+
+  const encode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const unsignedToken = `${encode(header)}.${encode(payload)}`;
+
+  const privateKeyData = urlBase64ToUint8Array(VAPID_PRIVATE);
+  
+  let key;
+  try {
+    // Tenta primeiro PKCS#8
+    key = await crypto.subtle.importKey(
+      "pkcs8",
+      privateKeyData,
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign"]
+    );
+  } catch (err) {
+    try {
+      // Tenta Raw (D-Value de 32 bytes)
+      // Para importar Raw ECDSA no Web Crypto, precisamos construir um JWK ou usar uma lib.
+      // Vamos tentar JWK que é mais flexível no Deno.
+      const jwk = {
+        kty: "EC",
+        crv: "P-256",
+        x: "", // Não temos X e Y, apenas D se for Raw 32 bytes.
+        y: "", 
+        d: VAPID_PRIVATE.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"),
+        ext: true,
+      };
+      
+      // Se tivermos 32 bytes, é o 'd' da chave P-256.
+      // Para um JWK completo, precisaríamos de x e y.
+      // Algumas libs geram x e y a partir de d.
+      throw err; // Re-throw para o catch externo se não conseguirmos via JWK simples
+    } catch (_) {
+      console.error(`[VAPID] Falha PKCS#8. Buffer: ${privateKeyData.length} bytes.`);
+      throw new Error(`Chave VAPID inválida. A Edge Function espera PKCS#8. Erro: ${err.message}`);
+    }
+  }
+
+  const signature = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    key,
+    new TextEncoder().encode(unsignedToken)
+  );
+
+  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+
+  const token = `${unsignedToken}.${signatureBase64}`;
+
+  return {
+    "Authorization": `WebPush ${token}`,
+    "Crypto-Key": `p256ecdsa=${VAPID_PUBLIC}`,
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -84,11 +163,6 @@ Deno.serve(async (req) => {
       allowedAdmins = adminIds.filter((id) => prefMap.get(id) !== false);
     }
 
-    console.log("[send-admin-push] admins", {
-      adminIds: adminIds.length,
-      allowedAdmins: allowedAdmins.length,
-    });
-
     if (!allowedAdmins.length) {
       logRow = { event_type: type, title, total_subs: 0, sent: 0, removed: 0, error: "no opted-in admins" };
       await supabase.from("admin_push_logs").insert(logRow);
@@ -104,7 +178,7 @@ Deno.serve(async (req) => {
       .in("user_id", allowedAdmins);
     if (subsErr) throw subsErr;
 
-    const payload = JSON.stringify({
+    const notificationPayload = JSON.stringify({
       title,
       body: bodyText || "",
       url: url || "/admin",
@@ -120,19 +194,31 @@ Deno.serve(async (req) => {
     await Promise.all(
       (subs ?? []).map(async (s) => {
         try {
-          await webpush.sendNotification(
-            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-            payload
-          );
-          sent++;
-        } catch (err: any) {
-          if (err?.statusCode === 404 || err?.statusCode === 410) {
+          const vapidHeaders = await getVapidHeaders(s.endpoint);
+          
+          const response = await fetch(s.endpoint, {
+            method: "POST",
+            headers: {
+              ...vapidHeaders,
+              "TTL": "60",
+              "Content-Type": "text/plain;charset=utf-8", 
+            },
+            body: notificationPayload, 
+          });
+
+          if (response.ok) {
+            sent++;
+          } else if (response.status === 404 || response.status === 410) {
             toRemove.push(s.id);
             removed++;
           } else {
-            console.error("[send-admin-push] erro:", err?.statusCode, err?.body);
-            errors.push(`${err?.statusCode}: ${err?.body || err?.message}`);
+            const errText = await response.text();
+            console.error(`[send-admin-push] erro endpoint ${response.status}:`, errText);
+            errors.push(`${response.status}: ${errText}`);
           }
+        } catch (err: any) {
+          console.error("[send-admin-push] erro catch:", err?.message);
+          errors.push(err?.message);
         }
       })
     );
