@@ -56,7 +56,17 @@ const OfertasPage = () => {
 
   useEffect(() => {
     trackEvent("view_content", { content_category: "planos", content_name: "Ofertas" });
-  }, []);
+
+    // Handle auto-checkout from popup
+    const params = new URLSearchParams(location.search);
+    const autoPlan = params.get("plan");
+    if (autoPlan && planos && !selectedPlan) {
+      const plan = planos.find(p => p.slug === autoPlan);
+      if (plan) {
+        setSelectedPlan(plan);
+      }
+    }
+  }, [location.search, planos, selectedPlan]);
 
   useEffect(() => {
     if (selectedPlan) {
