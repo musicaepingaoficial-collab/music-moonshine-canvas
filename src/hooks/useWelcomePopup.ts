@@ -20,7 +20,7 @@ export interface WelcomePopup {
   version: number;
   updated_at: string;
   plan_slug: string | null;
-  discount_percent: number | null;
+  discount_coupon: string | null;
   cta_label: string | null;
 }
 
