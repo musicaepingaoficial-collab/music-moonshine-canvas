@@ -16,6 +16,10 @@ function dismissKey(version: number, userId: string) {
   return `welcome_popup_dismissed_v${version}_${userId}`;
 }
 
+function sessionDismissKey(version: number, userId: string) {
+  return `welcome_popup_session_dismissed_v${version}_${userId}`;
+}
+
 export function WelcomePopup() {
   const { user } = useAuth();
   const { data: popup } = useWelcomePopupSettings();
@@ -47,15 +51,25 @@ export function WelcomePopup() {
     }
     if (!eligible) return;
 
-    const key = dismissKey(popup.version, user.id);
-    if (localStorage.getItem(key)) return;
+    const permanentKey = dismissKey(popup.version, user.id);
+    const sessionKey = sessionDismissKey(popup.version, user.id);
+    
+    if (localStorage.getItem(permanentKey)) return;
+    if (sessionStorage.getItem(sessionKey)) return;
 
     setOpen(true);
   }, [user, popup, profile, assinatura]);
 
-  const handleClose = () => {
+  const handlePermanentClose = () => {
     if (user && popup) {
       localStorage.setItem(dismissKey(popup.version, user.id), "1");
+    }
+    setOpen(false);
+  };
+
+  const handleSessionClose = () => {
+    if (user && popup) {
+      sessionStorage.setItem(sessionDismissKey(popup.version, user.id), "1");
     }
     setOpen(false);
   };
