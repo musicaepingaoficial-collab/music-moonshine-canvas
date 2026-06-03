@@ -136,7 +136,7 @@ const AdminPopupPage = () => {
   };
 
   const handleSave = async () => {
-    if (!data) return;
+    const isNew = !data;
     const parsed = formSchema.safeParse({
       title,
       description,
@@ -158,15 +158,25 @@ const AdminPopupPage = () => {
       return;
     }
     try {
-      await update.mutateAsync({
-        id: data.id,
-        values: { ...parsed.data, version: data.version + 1 } as any,
-      });
-      toast.success("Popup salvo e atualizado para todos.");
+      if (isNew) {
+        const { error } = await supabase.from("welcome_popup").insert({
+          ...parsed.data,
+          version: 1,
+          priority: 0
+        });
+        if (error) throw error;
+      } else {
+        await update.mutateAsync({
+          id: data.id,
+          values: { ...parsed.data, version: data.version + 1 } as any,
+        });
+      }
+      toast.success("Popup salvo e atualizado.");
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar");
     }
   };
+
 
   if (isLoading) {
     return (
