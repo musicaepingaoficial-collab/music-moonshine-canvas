@@ -83,6 +83,9 @@ const AdminPopupPage = () => {
     setShowToNew(data.show_to_new);
     setShowToSubs(data.show_to_subscribers);
     setNewDays(data.new_user_days);
+    setPlanSlug(data.plan_slug || null);
+    setDiscountPercent(data.discount_percent || null);
+    setCtaLabel(data.cta_label || null);
   }, [data]);
 
   const handleUpload = async (file: File) => {
