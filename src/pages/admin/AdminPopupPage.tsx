@@ -59,7 +59,7 @@ const AdminPopupPage = () => {
   const [showToSubs, setShowToSubs] = useState(false);
   const [newDays, setNewDays] = useState(7);
   const [planSlug, setPlanSlug] = useState<string | null>(null);
-  const [discountPercent, setDiscountPercent] = useState<number | null>(null);
+  const [discountCoupon, setDiscountCoupon] = useState<string | null>(null);
   const [ctaLabel, setCtaLabel] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
@@ -84,7 +84,7 @@ const AdminPopupPage = () => {
     setShowToSubs(data.show_to_subscribers);
     setNewDays(data.new_user_days);
     setPlanSlug(data.plan_slug || null);
-    setDiscountPercent(data.discount_percent || null);
+    setDiscountCoupon(data.discount_coupon || null);
     setCtaLabel(data.cta_label || null);
   }, [data]);
 
@@ -126,7 +126,7 @@ const AdminPopupPage = () => {
       show_to_subscribers: showToSubs,
       new_user_days: newDays,
       plan_slug: planSlug,
-      discount_percent: discountPercent,
+      discount_coupon: discountCoupon,
       cta_label: ctaLabel,
     });
     if (!parsed.success) {
@@ -316,14 +316,11 @@ const AdminPopupPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Desconto (%)</Label>
+              <Label>Cupom de Desconto</Label>
               <Input 
-                type="number" 
-                min={0} 
-                max={100} 
-                value={discountPercent || ""} 
-                onChange={(e) => setDiscountPercent(e.target.value ? Number(e.target.value) : null)}
-                placeholder="Ex: 20"
+                value={discountCoupon || ""} 
+                onChange={(e) => setDiscountCoupon(e.target.value || null)}
+                placeholder="Ex: PROMO20"
               />
             </div>
           </div>
@@ -403,6 +400,12 @@ const AdminPopupPage = () => {
               </p>
             )}
             <div className="space-y-2">
+              {planSlug && (
+                <Button className="w-full h-12 gap-2 text-base font-bold shadow-lg shadow-primary/20">
+                  <Plus className="h-5 w-5" />
+                  {ctaLabel || "Assinar Agora"}
+                </Button>
+              )}
               {links.map((l, i) => {
                 const opt = ICON_OPTIONS.find((o) => o.value === (l.icon ?? "link"))!;
                 const Icon = opt.Icon;

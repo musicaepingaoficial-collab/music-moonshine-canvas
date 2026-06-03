@@ -1160,6 +1160,7 @@ export type Database = {
           active: boolean
           cta_label: string | null
           description: string
+          discount_coupon: string | null
           discount_percent: number | null
           id: string
           image_url: string | null
@@ -1177,6 +1178,7 @@ export type Database = {
           active?: boolean
           cta_label?: string | null
           description?: string
+          discount_coupon?: string | null
           discount_percent?: number | null
           id?: string
           image_url?: string | null
@@ -1194,6 +1196,7 @@ export type Database = {
           active?: boolean
           cta_label?: string | null
           description?: string
+          discount_coupon?: string | null
           discount_percent?: number | null
           id?: string
           image_url?: string | null

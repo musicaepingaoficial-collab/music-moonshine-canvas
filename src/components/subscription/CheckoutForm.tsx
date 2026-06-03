@@ -15,6 +15,7 @@ interface CheckoutFormProps {
   planPrice: number;
   onBack: () => void;
   onSuccess: () => void;
+  initialCoupon?: string;
   prefill?: {
     fullName?: string;
     cpf?: string;
@@ -67,7 +68,7 @@ const splitFullName = (fullName: string) => {
   };
 };
 
-export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess, prefill }: CheckoutFormProps) {
+export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess, prefill, initialCoupon }: CheckoutFormProps) {
   const [status, setStatus] = useState<PaymentStatus>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
@@ -82,7 +83,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     paymentId?: number;
   } | null>(null);
   const [pixProcessing, setPixProcessing] = useState(false);
-  const [couponCode, setCouponCode] = useState("");
+  const [couponCode, setCouponCode] = useState(initialCoupon ?? "");
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const cardFormRef = useRef<any>(null);
@@ -118,6 +119,13 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (initialCoupon) {
+      handleApplyCoupon();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCoupon]);
 
   // Add payment info when user picks a method
   const handleSelectMethodTracked = (method: PaymentMethod) => {

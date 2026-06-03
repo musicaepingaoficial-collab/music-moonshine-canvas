@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CheckoutForm } from "@/components/subscription/CheckoutForm";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth, useAssinatura } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
 
@@ -29,6 +29,7 @@ const OfertasPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<Plano | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
 
@@ -55,7 +56,17 @@ const OfertasPage = () => {
 
   useEffect(() => {
     trackEvent("view_content", { content_category: "planos", content_name: "Ofertas" });
-  }, []);
+
+    // Handle auto-checkout from popup
+    const params = new URLSearchParams(location.search);
+    const autoPlan = params.get("plan");
+    if (autoPlan && planos && !selectedPlan) {
+      const plan = planos.find(p => p.slug === autoPlan);
+      if (plan) {
+        setSelectedPlan(plan);
+      }
+    }
+  }, [location.search, planos, selectedPlan]);
 
   useEffect(() => {
     if (selectedPlan) {
@@ -200,6 +211,7 @@ const OfertasPage = () => {
               planSlug={selectedPlan.slug}
               planName={selectedPlan.name}
               planPrice={selectedPlan.price}
+              initialCoupon={new URLSearchParams(location.search).get("coupon") || undefined}
               onBack={() => setSelectedPlan(null)}
               onSuccess={handlePaymentSuccess}
             />
