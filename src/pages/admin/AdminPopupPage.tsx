@@ -42,7 +42,7 @@ const formSchema = z.object({
   show_to_subscribers: z.boolean(),
   new_user_days: z.number().int().min(0).max(365),
   plan_slug: z.string().nullable(),
-  discount_percent: z.number().int().min(0).max(100).nullable(),
+  discount_coupon: z.string().nullable(),
   cta_label: z.string().nullable(),
 });
 
