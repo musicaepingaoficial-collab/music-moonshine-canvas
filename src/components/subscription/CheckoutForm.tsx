@@ -15,6 +15,7 @@ interface CheckoutFormProps {
   planPrice: number;
   onBack: () => void;
   onSuccess: () => void;
+  initialCoupon?: string;
   prefill?: {
     fullName?: string;
     cpf?: string;
