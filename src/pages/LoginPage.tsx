@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -126,7 +126,19 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-primary hover:text-primary/80 hover:bg-primary/10 gap-2"
+          onClick={() => navigate("/")}
+        >
+          <span className="hidden sm:inline">Conhecer mais sobre o Repertório Música e Pinga</span>
+          <span className="sm:hidden">Conhecer mais</span>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
