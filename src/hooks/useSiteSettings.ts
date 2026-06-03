@@ -9,6 +9,7 @@ export interface SiteSettings {
   whatsapp_number: string | null;
   discografias_valor: number;
   updated_at: string;
+  sales_video_url: string | null;
 }
 
 export interface PixelSettings {

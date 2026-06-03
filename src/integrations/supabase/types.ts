@@ -1051,6 +1051,7 @@ export type Database = {
           maintenance_message: string
           maintenance_mode: boolean
           maintenance_title: string
+          sales_video_url: string | null
           updated_at: string
           updated_by: string | null
           whatsapp_number: string | null
@@ -1061,6 +1062,7 @@ export type Database = {
           maintenance_message?: string
           maintenance_mode?: boolean
           maintenance_title?: string
+          sales_video_url?: string | null
           updated_at?: string
           updated_by?: string | null
           whatsapp_number?: string | null
@@ -1071,6 +1073,7 @@ export type Database = {
           maintenance_message?: string
           maintenance_mode?: boolean
           maintenance_title?: string
+          sales_video_url?: string | null
           updated_at?: string
           updated_by?: string | null
           whatsapp_number?: string | null
