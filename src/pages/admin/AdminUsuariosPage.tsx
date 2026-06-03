@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User } from "lucide-react";
+import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User, MessageCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
@@ -233,6 +233,35 @@ const AdminUsuariosPage = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-primary hover:text-primary"
+                            title="Enviar WhatsApp"
+                            onClick={() => {
+                              const phone = user.whatsapp?.replace(/\D/g, "");
+                              if (!phone) return toast.error("Usuário sem WhatsApp");
+                              const sub = user.assinaturas.find(s => s.status === "active");
+                              let msg = "";
+                              if (!sub) {
+                                msg = `Olá ${user.name || "amigo"}, vimos que você ainda não assinou um plano. Aproveite nossas ofertas hoje!`;
+                              } else if (sub.expires_at) {
+                                const days = Math.ceil((new Date(sub.expires_at).getTime() - Date.now()) / 86400000);
+                                if (days <= 0) {
+                                  msg = `Olá ${user.name || "amigo"}, sua assinatura ${sub.plan.toUpperCase()} venceu. Renove agora para não perder o acesso!`;
+                                } else if (days <= 5) {
+                                  msg = `Olá ${user.name || "amigo"}, sua assinatura ${sub.plan.toUpperCase()} vence em ${days} dias. Garanta sua renovação!`;
+                                } else {
+                                  msg = `Olá ${user.name || "amigo"}, como está sendo sua experiência com o plano ${sub.plan.toUpperCase()}?`;
+                                }
+                              } else {
+                                msg = `Olá ${user.name || "amigo"}, tudo bem?`;
+                              }
+                              window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
                           <Button
                             size="icon"
                             variant="ghost"
