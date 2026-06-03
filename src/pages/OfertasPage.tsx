@@ -37,14 +37,20 @@ const OfertasPage = () => {
 
   const getEmbedUrl = (url: string) => {
     if (!url) return null;
+    
+    // Suporte para URL direta do Vimeo (com ou sem share params)
+    if (url.includes("vimeo.com/")) {
+      const vimeoIdMatch = url.match(/vimeo\.com\/(\d+)/);
+      if (vimeoIdMatch && vimeoIdMatch[1]) {
+        return `https://player.vimeo.com/video/${vimeoIdMatch[1]}`;
+      }
+    }
+
     if (url.includes("youtube.com/watch?v=")) {
       return `https://www.youtube.com/embed/${url.split("v=")[1].split("&")[0]}`;
     }
     if (url.includes("youtu.be/")) {
       return `https://www.youtube.com/embed/${url.split("be/")[1].split("?")[0]}`;
-    }
-    if (url.includes("vimeo.com/")) {
-      return `https://player.vimeo.com/video/${url.split("com/")[1].split("?")[0]}`;
     }
     return url;
   };
