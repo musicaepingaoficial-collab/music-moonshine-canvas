@@ -77,8 +77,28 @@ const AdminSitePage = () => {
       setMessage(settings.maintenance_message);
       setWhatsapp(settings.whatsapp_number || "");
       setDiscografiasValor(settings.discografias_valor?.toString() || "0");
+      setSalesVideoUrl(settings.sales_video_url || "");
     }
   }, [settings]);
+
+  const handleVideoUpload = async (file: File) => {
+    setUploadingVideo(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `sales-video/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("anuncios-images")
+        .upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("anuncios-images").getPublicUrl(path);
+      setSalesVideoUrl(pub.publicUrl);
+      toast({ title: "Vídeo enviado com sucesso!" });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!settings) return;
