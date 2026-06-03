@@ -11,9 +11,8 @@ const corsHeaders = {
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@example.com";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@repertoriomusicaepinga.com.br";
 
-// Mapeia type -> coluna em admin_notification_prefs.
 const PREF_BY_TYPE: Record<string, string | null> = {
   purchase: "notify_purchase",
   purchase_rejected: "notify_purchase",
@@ -33,7 +32,14 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-// Helper para gerar o cabeçalho VAPID compatível com Deno
+function uint8ArrayToUrlBase64(array: Uint8Array) {
+  return btoa(String.fromCharCode(...array))
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+// Helper para gerar o cabeçalho VAPID compatível com Deno (Web Crypto API)
 async function getVapidHeaders(endpoint: string) {
   const url = new URL(endpoint);
   const audience = `${url.protocol}//${url.host}`;
@@ -46,36 +52,15 @@ async function getVapidHeaders(endpoint: string) {
     sub: VAPID_SUBJECT,
   };
 
-  const encode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const encode = (obj: any) => uint8ArrayToUrlBase64(new TextEncoder().encode(JSON.stringify(obj)));
   const unsignedToken = `${encode(header)}.${encode(payload)}`;
 
   const privateKeyData = urlBase64ToUint8Array(VAPID_PRIVATE);
+  const publicKeyData = urlBase64ToUint8Array(VAPID_PUBLIC);
   
   let key;
-  if (privateKeyData.length === 32) {
-    // É uma chave privada raw (D-value). Vamos importar via JWK.
-    // Para ES256, precisamos do componente 'd'. 
-    // Nota: SubtleCrypto exige x e y para importar uma chave EC privada via JWK, 
-    // OU podemos usar a biblioteca que lida com isso.
-    // Mas como estamos tentando ser "zero dep", vamos tentar construir o PKCS#8 manual ou JWK completo.
-    
-    // Abordagem: Se for 32 bytes, é quase certo que é o formato raw. 
-    // Vamos tentar importar como PKCS#8 primeiro, se falhar, avisar.
-    try {
-      key = await crypto.subtle.importKey(
-        "pkcs8",
-        privateKeyData,
-        { name: "ECDSA", namedCurve: "P-256" },
-        true,
-        ["sign"]
-      );
-    } catch (e) {
-      console.error("[VAPID] Chave de 32 bytes não é PKCS#8. Erro:", e.message);
-      // Fallback: Tenta importar como se fosse a chave privada PKCS#8 mas sem o cabeçalho (comum em algumas ferramentas)
-      // Para simplificar, se falhar aqui, o admin precisa corrigir a secret para ser um PKCS#8 válido.
-      throw new Error(`A chave VAPID_PRIVATE_KEY deve estar no formato PKCS#8 Base64. A chave atual tem 32 bytes (formato raw), que não é suportado nativamente pelo SubtleCrypto sem conversão. Use uma chave PKCS#8.`);
-    }
-  } else {
+  try {
+    // Tenta primeiro PKCS#8 (formato padrão esperado)
     key = await crypto.subtle.importKey(
       "pkcs8",
       privateKeyData,
@@ -83,6 +68,32 @@ async function getVapidHeaders(endpoint: string) {
       true,
       ["sign"]
     );
+  } catch (err) {
+    // Se falhar e tiver 32 bytes, tenta construir um JWK usando a chave pública para X e Y
+    if (privateKeyData.length === 32 && publicKeyData.length >= 65) {
+      // publicKeyData format: [0x04, X (32 bytes), Y (32 bytes)]
+      const x = publicKeyData.slice(1, 33);
+      const y = publicKeyData.slice(33, 65);
+      
+      const jwk = {
+        kty: "EC",
+        crv: "P-256",
+        x: uint8ArrayToUrlBase64(x),
+        y: uint8ArrayToUrlBase64(y),
+        d: uint8ArrayToUrlBase64(privateKeyData),
+        ext: true,
+      };
+      
+      key = await crypto.subtle.importKey(
+        "jwk",
+        jwk,
+        { name: "ECDSA", namedCurve: "P-256" },
+        true,
+        ["sign"]
+      );
+    } else {
+      throw err;
+    }
   }
 
   const signature = await crypto.subtle.sign(
@@ -91,10 +102,7 @@ async function getVapidHeaders(endpoint: string) {
     new TextEncoder().encode(unsignedToken)
   );
 
-  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
+  const signatureBase64 = uint8ArrayToUrlBase64(new Uint8Array(signature));
 
   return {
     "Authorization": `WebPush ${unsignedToken}.${signatureBase64}`,
@@ -110,18 +118,13 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  let type = "unknown";
-  let title = "";
-
   try {
     const body = await req.json();
-    type = body.type || "test";
-    title = body.title || "Notificação";
+    const type = body.type || "test";
+    const title = body.title || "Notificação";
     const bodyText = body.body || "";
     const url = body.url || "/admin";
     const data = body.data || {};
-
-    console.log("[send-admin-push] Enviando:", { type, title });
 
     const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
     const adminIds = (roles ?? []).map((r) => r.user_id);
@@ -143,23 +146,25 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ sent: 0, reason: "no subs" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const payload = JSON.stringify({ title, body: bodyText, url, tag: type, data });
+    const notificationPayload = JSON.stringify({ title, body: bodyText, url, tag: type, data });
 
     let sent = 0;
     let removed = 0;
     const errors: string[] = [];
 
-    await Promise.all(subs.map(async (s) => {
+    // Processamos em série para evitar problemas de concorrência ou limites de rate
+    for (const s of subs) {
       try {
         const vapidHeaders = await getVapidHeaders(s.endpoint);
         const res = await fetch(s.endpoint, {
           method: "POST",
           headers: { ...vapidHeaders, "TTL": "60", "Content-Type": "text/plain;charset=utf-8" },
-          body: payload,
+          body: notificationPayload,
         });
 
-        if (res.ok) sent++;
-        else if (res.status === 404 || res.status === 410) {
+        if (res.ok) {
+          sent++;
+        } else if (res.status === 404 || res.status === 410) {
           removed++;
           await supabase.from("admin_push_subscriptions").delete().eq("id", s.id);
         } else {
@@ -168,7 +173,7 @@ Deno.serve(async (req) => {
       } catch (err) {
         errors.push(err.message);
       }
-    }));
+    }
 
     await supabase.from("admin_push_logs").insert({
       event_type: type,
@@ -181,7 +186,6 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ sent, total: subs.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
-    console.error("[send-admin-push] Erro fatal:", e);
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
