@@ -33,6 +33,24 @@ const OfertasPage = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
+  const { data: settings } = useSiteSettings();
+
+  const getEmbedUrl = (url: string) => {
+    if (!url) return null;
+    if (url.includes("youtube.com/watch?v=")) {
+      return `https://www.youtube.com/embed/${url.split("v=")[1].split("&")[0]}`;
+    }
+    if (url.includes("youtu.be/")) {
+      return `https://www.youtube.com/embed/${url.split("be/")[1].split("?")[0]}`;
+    }
+    if (url.includes("vimeo.com/")) {
+      return `https://player.vimeo.com/video/${url.split("com/")[1].split("?")[0]}`;
+    }
+    return url;
+  };
+
+  const embedUrl = settings?.sales_video_url ? getEmbedUrl(settings.sales_video_url) : null;
+  const isDirectVideo = embedUrl && (embedUrl.endsWith(".mp4") || embedUrl.endsWith(".webm") || embedUrl.includes("supabase"));
 
   const isExpired = (a: typeof assinatura) =>
     !!a?.expires_at && new Date(a.expires_at as any) < new Date();
