@@ -83,7 +83,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     paymentId?: number;
   } | null>(null);
   const [pixProcessing, setPixProcessing] = useState(false);
-  const [couponCode, setCouponCode] = useState("");
+  const [couponCode, setCouponCode] = useState(initialCoupon ?? "");
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const cardFormRef = useRef<any>(null);
