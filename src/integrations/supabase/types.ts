@@ -1165,8 +1165,10 @@ export type Database = {
           description: string
           discount_coupon: string | null
           discount_percent: number | null
+          exclude_plan_slugs: string[] | null
           id: string
           image_url: string | null
+          include_plan_slugs: string[] | null
           links: Json
           new_user_days: number
           plan_slug: string | null
@@ -1183,8 +1185,10 @@ export type Database = {
           description?: string
           discount_coupon?: string | null
           discount_percent?: number | null
+          exclude_plan_slugs?: string[] | null
           id?: string
           image_url?: string | null
+          include_plan_slugs?: string[] | null
           links?: Json
           new_user_days?: number
           plan_slug?: string | null
@@ -1201,8 +1205,10 @@ export type Database = {
           description?: string
           discount_coupon?: string | null
           discount_percent?: number | null
+          exclude_plan_slugs?: string[] | null
           id?: string
           image_url?: string | null
+          include_plan_slugs?: string[] | null
           links?: Json
           new_user_days?: number
           plan_slug?: string | null

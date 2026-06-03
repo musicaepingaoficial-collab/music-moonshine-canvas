@@ -22,6 +22,8 @@ export interface WelcomePopup {
   plan_slug: string | null;
   discount_coupon: string | null;
   cta_label: string | null;
+  exclude_plan_slugs: string[];
+  include_plan_slugs: string[];
 }
 
 export function useWelcomePopupSettings() {
