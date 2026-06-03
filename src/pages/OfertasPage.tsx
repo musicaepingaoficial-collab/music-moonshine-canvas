@@ -211,6 +211,7 @@ const OfertasPage = () => {
               planSlug={selectedPlan.slug}
               planName={selectedPlan.name}
               planPrice={selectedPlan.price}
+              initialCoupon={new URLSearchParams(location.search).get("coupon") || undefined}
               onBack={() => setSelectedPlan(null)}
               onSuccess={handlePaymentSuccess}
             />
