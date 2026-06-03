@@ -123,31 +123,6 @@ const OfertasPage = () => {
     <div className="space-y-8">
       <Banner title="Planos de Assinatura" subtitle="Escolha o plano ideal para você e tenha acesso completo." />
 
-      {embedUrl && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-3xl mx-auto w-full px-4"
-        >
-          <div className="aspect-video w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-            {isDirectVideo ? (
-              <video
-                src={embedUrl}
-                controls
-                className="h-full w-full object-cover"
-                poster="/placeholder.svg"
-              />
-            ) : (
-              <iframe
-                src={embedUrl}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            )}
-          </div>
-        </motion.div>
-      )}
 
       {isLoading && <MusicGridSkeleton count={3} />}
 

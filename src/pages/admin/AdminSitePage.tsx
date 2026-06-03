@@ -185,7 +185,25 @@ const AdminSitePage = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6 space-y-8">
+        <CardContent className="p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              variant="secondary" 
+              className="flex-1 gap-2 font-bold h-11 shadow-sm border border-border/50"
+              onClick={() => window.open('/', '_blank')}
+            >
+              <ExternalLink className="h-4 w-4" /> Ver Página de Vendas (Landing)
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex-1 gap-2 font-bold h-11 shadow-sm border border-border/50"
+              onClick={() => navigate('/ofertas')}
+            >
+              <CreditCard className="h-4 w-4" /> Ver Página de Ofertas (App)
+            </Button>
+          </div>
+
+          <div className="space-y-5 pt-4">
               {maintenance && (
                 <div className="flex gap-4 rounded-xl border border-destructive/20 bg-destructive/5 p-5 animate-in slide-in-from-top-2">
                   <div className="p-2 bg-destructive/10 rounded-full h-fit">
