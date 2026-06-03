@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, MessageCircle, Save, Disc, Ticket, Trash2 } from "lucide-react";
+import { AlertTriangle, MessageCircle, Save, Disc, Ticket, Trash2, Video, Upload, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
