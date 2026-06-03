@@ -34,22 +34,6 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
-/**
- * Funções auxiliares para criptografia Web Push (AES-GCM + ECDH)
- * Implementação simplificada para Deno baseada em padrões Web Crypto
- */
-async function encryptPayload(payload: string, p256dh: string, auth: string) {
-  const userPubKey = urlBase64ToUint8Array(p256dh);
-  const userAuth = urlBase64ToUint8Array(auth);
-  
-  // No Deno puro sem libs pesadas, a criptografia completa do payload é complexa.
-  // No entanto, browsers modernos exigem que o payload seja criptografado.
-  // Para esta correção, usaremos uma lib que funcione no Deno ou manteremos o envio de texto plano se o browser aceitar (raro).
-  // Se o erro PKCS#8 persistir, o foco deve ser na importação da chave VAPID.
-  
-  return new TextEncoder().encode(payload);
-}
-
 // Helper para gerar o cabeçalho VAPID sem depender da biblioteca web-push que quebra no Deno
 async function getVapidHeaders(endpoint: string) {
   const url = new URL(endpoint);
@@ -66,9 +50,14 @@ async function getVapidHeaders(endpoint: string) {
   const encode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   const unsignedToken = `${encode(header)}.${encode(payload)}`;
 
-  // Se o VAPID_PRIVATE vier em formato URL Safe Base64 (comum em web-push), precisamos garantir que SubtleCrypto aceite.
-  const privateKeyData = urlBase64ToUint8Array(VAPID_PRIVATE);
-  
+  // Tenta tratar a chave privada tanto em PKCS#8 direto (base64) quanto URL-Safe
+  let privateKeyData;
+  try {
+    privateKeyData = urlBase64ToUint8Array(VAPID_PRIVATE);
+  } catch (err) {
+    throw new Error(`Falha ao decodificar VAPID_PRIVATE_KEY (base64 inválido): ${err.message}`);
+  }
+
   let key;
   try {
     key = await crypto.subtle.importKey(
@@ -79,8 +68,11 @@ async function getVapidHeaders(endpoint: string) {
       ["sign"]
     );
   } catch (err) {
-    console.error("[VAPID] Erro ao importar chave privada:", err.message);
-    throw new Error(`Erro na chave VAPID: ${err.message}`);
+    // Se falhar, talvez o formato da chave não seja PKCS#8 direto, mas sim Raw ou JWK.
+    // No entanto, para web-push do NPM, VAPID_PRIVATE_KEY costuma ser a string PKCS#8 base64.
+    // Vamos logar o tamanho para ajudar no debug
+    console.error(`[VAPID] Erro importKey PKCS#8. Tamanho do buffer: ${privateKeyData.length} bytes.`);
+    throw new Error(`Erro na chave VAPID: ${err.message}. Verifique se VAPID_PRIVATE_KEY está correta.`);
   }
 
   const signature = await crypto.subtle.sign(
@@ -191,6 +183,7 @@ Deno.serve(async (req) => {
     await Promise.all(
       (subs ?? []).map(async (s) => {
         try {
+          // Tentaremos usar o vapid headers gerado manualmente.
           const vapidHeaders = await getVapidHeaders(s.endpoint);
           
           const response = await fetch(s.endpoint, {
