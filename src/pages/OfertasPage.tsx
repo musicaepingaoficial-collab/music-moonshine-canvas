@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CheckoutForm } from "@/components/subscription/CheckoutForm";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth, useAssinatura } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
 
