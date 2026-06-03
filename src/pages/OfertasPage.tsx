@@ -13,6 +13,7 @@ import { CheckoutForm } from "@/components/subscription/CheckoutForm";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth, useAssinatura } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface Plano {
   id: string;
