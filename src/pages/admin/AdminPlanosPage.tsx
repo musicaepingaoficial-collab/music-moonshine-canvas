@@ -81,45 +81,118 @@ const AdminPlanosPage = () => {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="rounded-xl border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Preço (R$)</TableHead>
-                <TableHead>Duração (dias)</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Ativo</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {planos?.map((plano) => {
-                const edited = getEdited(plano);
-                const hasChanges = !!editing[plano.id] && Object.keys(editing[plano.id]).length > 0;
-                return (
-                  <TableRow key={plano.id}>
-                    <TableCell>
-                      <Input
-                        value={edited.name}
-                        onChange={(e) => handleChange(plano.id, "name", e.target.value)}
-                        className="h-8 w-32"
+        <div className="space-y-4">
+          <div className="hidden md:block rounded-xl border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Slug</TableHead>
+                  <TableHead>Preço (R$)</TableHead>
+                  <TableHead>Duração (dias)</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Ativo</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {planos?.map((plano) => {
+                  const edited = getEdited(plano);
+                  const hasChanges = !!editing[plano.id] && Object.keys(editing[plano.id]).length > 0;
+                  return (
+                    <TableRow key={plano.id}>
+                      <TableCell>
+                        <Input
+                          value={edited.name}
+                          onChange={(e) => handleChange(plano.id, "name", e.target.value)}
+                          className="h-8 w-32"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{plano.slug}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={edited.price}
+                          onChange={(e) => handleChange(plano.id, "price", parseFloat(e.target.value))}
+                          className="h-8 w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={edited.duration_days ?? ""}
+                          placeholder="Vitalício"
+                          onChange={(e) =>
+                            handleChange(plano.id, "duration_days", e.target.value ? parseInt(e.target.value) : null)
+                          }
+                          className="h-8 w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          value={edited.description ?? ""}
+                          onChange={(e) => handleChange(plano.id, "description", e.target.value)}
+                          className="h-8 w-48"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={plano.active}
+                          onCheckedChange={(v) => handleToggle(plano.id, v)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {hasChanges && (
+                          <Button size="sm" onClick={() => handleSave(plano.id)} disabled={updateMutation.isPending}>
+                            <Save className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="md:hidden space-y-4">
+            {planos?.map((plano) => {
+              const edited = getEdited(plano);
+              const hasChanges = !!editing[plano.id] && Object.keys(editing[plano.id]).length > 0;
+              return (
+                <div key={plano.id} className="rounded-xl border bg-card p-4 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Badge variant="secondary">{plano.slug.toUpperCase()}</Badge>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Ativo</span>
+                      <Switch
+                        checked={plano.active}
+                        onCheckedChange={(v) => handleToggle(plano.id, v)}
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{plano.slug}</Badge>
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">Nome</label>
+                    <Input
+                      value={edited.name}
+                      onChange={(e) => handleChange(plano.id, "name", e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold uppercase text-muted-foreground">Preço (R$)</label>
                       <Input
                         type="number"
                         step="0.01"
                         value={edited.price}
                         onChange={(e) => handleChange(plano.id, "price", parseFloat(e.target.value))}
-                        className="h-8 w-24"
                       />
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold uppercase text-muted-foreground">Dias</label>
                       <Input
                         type="number"
                         value={edited.duration_days ?? ""}
@@ -127,34 +200,18 @@ const AdminPlanosPage = () => {
                         onChange={(e) =>
                           handleChange(plano.id, "duration_days", e.target.value ? parseInt(e.target.value) : null)
                         }
-                        className="h-8 w-24"
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        value={edited.description ?? ""}
-                        onChange={(e) => handleChange(plano.id, "description", e.target.value)}
-                        className="h-8 w-48"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={plano.active}
-                        onCheckedChange={(v) => handleToggle(plano.id, v)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {hasChanges && (
-                        <Button size="sm" onClick={() => handleSave(plano.id)} disabled={updateMutation.isPending}>
-                          <Save className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                    </div>
+                  </div>
+                  {hasChanges && (
+                    <Button className="w-full gap-2" onClick={() => handleSave(plano.id)} disabled={updateMutation.isPending}>
+                      <Save className="h-4 w-4" /> Salvar Alterações
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
