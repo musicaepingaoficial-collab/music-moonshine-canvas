@@ -1158,11 +1158,14 @@ export type Database = {
       welcome_popup: {
         Row: {
           active: boolean
+          cta_label: string | null
           description: string
+          discount_percent: number | null
           id: string
           image_url: string | null
           links: Json
           new_user_days: number
+          plan_slug: string | null
           show_to_new: boolean
           show_to_subscribers: boolean
           title: string
@@ -1172,11 +1175,14 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          cta_label?: string | null
           description?: string
+          discount_percent?: number | null
           id?: string
           image_url?: string | null
           links?: Json
           new_user_days?: number
+          plan_slug?: string | null
           show_to_new?: boolean
           show_to_subscribers?: boolean
           title?: string
@@ -1186,11 +1192,14 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          cta_label?: string | null
           description?: string
+          discount_percent?: number | null
           id?: string
           image_url?: string | null
           links?: Json
           new_user_days?: number
+          plan_slug?: string | null
           show_to_new?: boolean
           show_to_subscribers?: boolean
           title?: string

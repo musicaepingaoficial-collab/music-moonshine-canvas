@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useUpdateWelcomePopup,
   useWelcomePopupSettings,
@@ -40,6 +41,9 @@ const formSchema = z.object({
   show_to_new: z.boolean(),
   show_to_subscribers: z.boolean(),
   new_user_days: z.number().int().min(0).max(365),
+  plan_slug: z.string().nullable(),
+  discount_coupon: z.string().nullable(),
+  cta_label: z.string().nullable(),
 });
 
 const AdminPopupPage = () => {
@@ -54,8 +58,20 @@ const AdminPopupPage = () => {
   const [showToNew, setShowToNew] = useState(true);
   const [showToSubs, setShowToSubs] = useState(false);
   const [newDays, setNewDays] = useState(7);
+  const [planSlug, setPlanSlug] = useState<string | null>(null);
+  const [discountPercent, setDiscountPercent] = useState<number | null>(null);
+  const [ctaLabel, setCtaLabel] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
+
+  const { data: plans } = useQuery({
+    queryKey: ["admin-plans-popup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("planos").select("slug, name").eq("active", true);
+      if (error) throw error;
+      return data;
+    }
+  });
 
   useEffect(() => {
     if (!data) return;
@@ -67,6 +83,9 @@ const AdminPopupPage = () => {
     setShowToNew(data.show_to_new);
     setShowToSubs(data.show_to_subscribers);
     setNewDays(data.new_user_days);
+    setPlanSlug(data.plan_slug || null);
+    setDiscountPercent(data.discount_percent || null);
+    setCtaLabel(data.cta_label || null);
   }, [data]);
 
   const handleUpload = async (file: File) => {
@@ -106,6 +125,9 @@ const AdminPopupPage = () => {
       show_to_new: showToNew,
       show_to_subscribers: showToSubs,
       new_user_days: newDays,
+      plan_slug: planSlug,
+      discount_percent: discountPercent,
+      cta_label: ctaLabel,
     });
     if (!parsed.success) {
       const first = parsed.error.issues[0];
@@ -274,6 +296,45 @@ const AdminPopupPage = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="space-y-4 border-t border-border pt-5">
+          <Label className="text-base">Promoção de Plano (Opcional)</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Plano para oferta</Label>
+              <Select value={planSlug || "none"} onValueChange={(v) => setPlanSlug(v === "none" ? null : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {plans?.map((p) => (
+                    <SelectItem key={p.slug} value={p.slug}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Desconto (%)</Label>
+              <Input 
+                type="number" 
+                min={0} 
+                max={100} 
+                value={discountPercent || ""} 
+                onChange={(e) => setDiscountPercent(e.target.value ? Number(e.target.value) : null)}
+                placeholder="Ex: 20"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Texto do Botão de Assinar</Label>
+            <Input 
+              value={ctaLabel || ""} 
+              onChange={(e) => setCtaLabel(e.target.value || null)} 
+              placeholder="Ex: Assinar com Desconto"
+            />
+          </div>
         </div>
 
         <div className="space-y-3 border-t border-border pt-4">
