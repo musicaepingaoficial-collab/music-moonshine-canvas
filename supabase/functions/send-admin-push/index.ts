@@ -50,16 +50,11 @@ async function getVapidHeaders(endpoint: string) {
   const encode = (obj: any) => btoa(JSON.stringify(obj)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   const unsignedToken = `${encode(header)}.${encode(payload)}`;
 
-  // Tenta tratar a chave privada tanto em PKCS#8 direto (base64) quanto URL-Safe
-  let privateKeyData;
-  try {
-    privateKeyData = urlBase64ToUint8Array(VAPID_PRIVATE);
-  } catch (err) {
-    throw new Error(`Falha ao decodificar VAPID_PRIVATE_KEY (base64 inválido): ${err.message}`);
-  }
-
+  const privateKeyData = urlBase64ToUint8Array(VAPID_PRIVATE);
+  
   let key;
   try {
+    // Tenta primeiro PKCS#8
     key = await crypto.subtle.importKey(
       "pkcs8",
       privateKeyData,
@@ -68,11 +63,27 @@ async function getVapidHeaders(endpoint: string) {
       ["sign"]
     );
   } catch (err) {
-    // Se falhar, talvez o formato da chave não seja PKCS#8 direto, mas sim Raw ou JWK.
-    // No entanto, para web-push do NPM, VAPID_PRIVATE_KEY costuma ser a string PKCS#8 base64.
-    // Vamos logar o tamanho para ajudar no debug
-    console.error(`[VAPID] Erro importKey PKCS#8. Tamanho do buffer: ${privateKeyData.length} bytes.`);
-    throw new Error(`Erro na chave VAPID: ${err.message}. Verifique se VAPID_PRIVATE_KEY está correta.`);
+    try {
+      // Tenta Raw (D-Value de 32 bytes)
+      // Para importar Raw ECDSA no Web Crypto, precisamos construir um JWK ou usar uma lib.
+      // Vamos tentar JWK que é mais flexível no Deno.
+      const jwk = {
+        kty: "EC",
+        crv: "P-256",
+        x: "", // Não temos X e Y, apenas D se for Raw 32 bytes.
+        y: "", 
+        d: VAPID_PRIVATE.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"),
+        ext: true,
+      };
+      
+      // Se tivermos 32 bytes, é o 'd' da chave P-256.
+      // Para um JWK completo, precisaríamos de x e y.
+      // Algumas libs geram x e y a partir de d.
+      throw err; // Re-throw para o catch externo se não conseguirmos via JWK simples
+    } catch (_) {
+      console.error(`[VAPID] Falha PKCS#8. Buffer: ${privateKeyData.length} bytes.`);
+      throw new Error(`Chave VAPID inválida. A Edge Function espera PKCS#8. Erro: ${err.message}`);
+    }
   }
 
   const signature = await crypto.subtle.sign(
@@ -183,7 +194,6 @@ Deno.serve(async (req) => {
     await Promise.all(
       (subs ?? []).map(async (s) => {
         try {
-          // Tentaremos usar o vapid headers gerado manualmente.
           const vapidHeaders = await getVapidHeaders(s.endpoint);
           
           const response = await fetch(s.endpoint, {
