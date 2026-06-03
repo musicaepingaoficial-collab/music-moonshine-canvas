@@ -532,10 +532,26 @@ const AdminPopupPage = () => {
             
             <div className="space-y-3">
               {planSlug && (
-                <Button className="w-full h-14 gap-3 text-lg font-black shadow-lg shadow-primary/30 uppercase tracking-tighter">
-                  <Megaphone className="h-6 w-6" />
-                  {ctaLabel || "Assinar Agora"}
-                </Button>
+                <div className="space-y-2">
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground line-through">
+                      De R$ {plans?.find(p => p.slug === planSlug)?.price ? (plans.find(p => p.slug === planSlug)!.price * 1.6).toFixed(2).replace('.', ',') : "00,00"}
+                    </span>
+                    <span className="text-sm font-bold text-emerald-500">
+                      Por apenas R$ {plans?.find(p => p.slug === planSlug)?.price.toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                  <Button 
+                    className="w-full h-14 gap-3 text-lg font-black shadow-lg shadow-primary/30 uppercase tracking-tighter"
+                    onClick={() => {
+                      setPreview(false);
+                      // Simular navegação se necessário
+                    }}
+                  >
+                    <Megaphone className="h-6 w-6" />
+                    {cta_label || "Aproveitar Oferta Agora"}
+                  </Button>
+                </div>
               )}
               
               {links.map((l, i) => {
