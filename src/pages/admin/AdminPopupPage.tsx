@@ -316,14 +316,11 @@ const AdminPopupPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Desconto (%)</Label>
+              <Label>Cupom de Desconto</Label>
               <Input 
-                type="number" 
-                min={0} 
-                max={100} 
-                value={discountPercent || ""} 
-                onChange={(e) => setDiscountPercent(e.target.value ? Number(e.target.value) : null)}
-                placeholder="Ex: 20"
+                value={discountCoupon || ""} 
+                onChange={(e) => setDiscountCoupon(e.target.value || null)}
+                placeholder="Ex: PROMO20"
               />
             </div>
           </div>
