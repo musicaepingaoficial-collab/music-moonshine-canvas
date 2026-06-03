@@ -24,23 +24,26 @@ export interface WelcomePopup {
   cta_label: string | null;
   exclude_plan_slugs: string[];
   include_plan_slugs: string[];
+  priority: number;
 }
 
 export function useWelcomePopupSettings() {
-  return useQuery<WelcomePopup | null>({
+  return useQuery<WelcomePopup[]>({
     queryKey: ["welcome-popup"],
     queryFn: async () => {
       const { data, error } = await (supabase.from("welcome_popup" as any) as any)
         .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq("active", true)
+        .order("priority", { ascending: false })
+        .order("updated_at", { ascending: false });
+      
       if (error) throw error;
-      if (!data) return null;
-      return {
-        ...data,
-        links: Array.isArray(data.links) ? (data.links as PopupLink[]) : [],
-      } as WelcomePopup;
+      if (!data) return [];
+      
+      return data.map((item: any) => ({
+        ...item,
+        links: Array.isArray(item.links) ? (item.links as PopupLink[]) : [],
+      })) as WelcomePopup[];
     },
     staleTime: 60_000,
   });

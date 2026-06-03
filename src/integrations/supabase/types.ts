@@ -1172,6 +1172,7 @@ export type Database = {
           links: Json
           new_user_days: number
           plan_slug: string | null
+          priority: number | null
           show_to_new: boolean
           show_to_subscribers: boolean
           title: string
@@ -1192,6 +1193,7 @@ export type Database = {
           links?: Json
           new_user_days?: number
           plan_slug?: string | null
+          priority?: number | null
           show_to_new?: boolean
           show_to_subscribers?: boolean
           title?: string
@@ -1212,6 +1214,7 @@ export type Database = {
           links?: Json
           new_user_days?: number
           plan_slug?: string | null
+          priority?: number | null
           show_to_new?: boolean
           show_to_subscribers?: boolean
           title?: string
