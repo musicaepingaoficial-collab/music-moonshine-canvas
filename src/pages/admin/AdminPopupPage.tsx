@@ -298,6 +298,45 @@ const AdminPopupPage = () => {
           ))}
         </div>
 
+        <div className="space-y-4 border-t border-border pt-5">
+          <Label className="text-base">Promoção de Plano (Opcional)</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Plano para oferta</Label>
+              <Select value={planSlug || "none"} onValueChange={(v) => setPlanSlug(v === "none" ? null : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {plans?.map((p) => (
+                    <SelectItem key={p.slug} value={p.slug}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Desconto (%)</Label>
+              <Input 
+                type="number" 
+                min={0} 
+                max={100} 
+                value={discountPercent || ""} 
+                onChange={(e) => setDiscountPercent(e.target.value ? Number(e.target.value) : null)}
+                placeholder="Ex: 20"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Texto do Botão de Assinar</Label>
+            <Input 
+              value={ctaLabel || ""} 
+              onChange={(e) => setCtaLabel(e.target.value || null)} 
+              placeholder="Ex: Assinar com Desconto"
+            />
+          </div>
+        </div>
+
         <div className="space-y-3 border-t border-border pt-4">
           <Label className="text-base">Quem deve ver</Label>
 
