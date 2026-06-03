@@ -29,6 +29,7 @@ const OfertasPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<Plano | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
 
