@@ -179,6 +179,32 @@ export default function LandingPage() {
     trackEvent("view_content", { content_category: "landing", content_name: "LandingPage" });
   }, []);
 
+  const handleStartVideo = () => {
+    const video = document.querySelector('video');
+    const overlay = document.getElementById('video-overlay');
+    
+    if (video) {
+      video.play().catch(err => console.error("Erro ao dar play no vídeo:", err));
+    }
+    
+    if (overlay) {
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 500);
+    }
+    
+    // Se for iframe (YouTube/Vimeo), tentamos enviar comando de play via postMessage
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      if (embedUrl?.includes('vimeo')) {
+        iframe.contentWindow.postMessage('{"method":"play"}', '*');
+      } else if (embedUrl?.includes('youtube')) {
+        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -365,14 +391,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   className="rounded-full w-20 h-20 bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow animate-glow-pulse border-4 border-white/20"
-                  onClick={() => {
-                    const video = document.querySelector('video');
-                    const overlay = document.getElementById('video-overlay');
-                    if (video) video.play();
-                    if (overlay) overlay.style.display = 'none';
-                    // Para iframe (YouTube/Vimeo) ele vai apenas ocultar a capa, o usuário clica no player real
-                    if (!video && overlay) overlay.style.display = 'none';
-                  }}
+                  onClick={handleStartVideo}
                 >
                   <Play className="h-8 w-8 fill-current" />
                 </Button>
@@ -382,13 +401,14 @@ export default function LandingPage() {
                 <video
                   src={embedUrl}
                   controls
+                  playsInline
                   controlsList="nodownload nofullscreen noremoteplayback"
                   disablePictureInPicture
                   className="h-full w-full object-cover"
                 />
               ) : (
                 <iframe
-                  src={`${embedUrl}${embedUrl.includes('?') ? '&' : '?'}controls=1&background=0&autoplay=0&muted=0&title=0&byline=0&portrait=0&badge=0`}
+                  src={`${embedUrl}${embedUrl.includes('?') ? '&' : '?'}controls=1&background=0&autoplay=0&muted=0&title=0&byline=0&portrait=0&badge=0&enablejsapi=1`}
                   className="h-full w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
