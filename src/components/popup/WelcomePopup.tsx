@@ -27,6 +27,7 @@ export function WelcomePopup() {
   const { data: profile } = useProfile(user?.id);
   const { data: assinatura } = useAssinatura(user?.id);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user || !popup || !popup.active) return;
