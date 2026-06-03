@@ -291,6 +291,103 @@ const AdminUsuariosPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!viewTarget} onOpenChange={(v) => !v && setViewTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Usuário</DialogTitle>
+            <DialogDescription>
+              Informações detalhadas sobre o cadastro e assinaturas.
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewTarget && (
+            <div className="space-y-6 pt-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg leading-tight">{viewTarget.name || "Sem Nome"}</h3>
+                  <p className="text-sm text-muted-foreground">{viewTarget.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> WhatsApp
+                  </span>
+                  <p className="text-sm">{viewTarget.whatsapp || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <CreditCard className="h-3 w-3" /> CPF
+                  </span>
+                  <p className="text-sm">{viewTarget.cpf || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3" /> Cadastro (Brasília)
+                  </span>
+                  <p className="text-sm">
+                    {new Date(viewTarget.created_at).toLocaleString("pt-BR", { 
+                      timeZone: "America/Sao_Paulo",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <Disc className="h-3 w-3" /> Discografias
+                  </span>
+                  <p className="text-sm">{viewTarget.has_discografias ? "Liberado" : "Bloqueado"}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                  <CreditCard className="h-3 w-3" /> Histórico de Assinaturas
+                </span>
+                <div className="rounded-md border border-border divide-y divide-border overflow-hidden">
+                  {viewTarget.assinaturas.length > 0 ? (
+                    viewTarget.assinaturas.map((sub, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{sub.plan.toUpperCase()}</span>
+                          <span className="text-xs text-muted-foreground">
+                            Início: {sub.created_at ? new Date(sub.created_at).toLocaleDateString("pt-BR") : "—"}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <Badge className={`text-[10px] uppercase border-0 ${
+                            sub.status === "active" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                          }`}>
+                            {sub.status === "active" ? "Ativa" : sub.status}
+                          </Badge>
+                          {sub.expires_at && sub.status === "active" && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              Expira: {new Date(sub.expires_at).toLocaleDateString("pt-BR")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 text-sm text-center text-muted-foreground italic">
+                      Nenhuma assinatura encontrada
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
