@@ -470,24 +470,9 @@ const AdminAssinaturasPage = () => {
                 ))}
               </div>
             </div>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Voltar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteSub.mutate(sub.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+          )}
+        </CardContent>
+      </Card>
           )}
         </CardContent>
       </Card>
