@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Upload, Eye, MessageCircle, Send, Instagram, Link as LinkIcon } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, Eye, MessageCircle, Send, Instagram, Link as LinkIcon, Users, Settings, Megaphone, CheckCircle2, X } from "lucide-react";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -44,6 +46,8 @@ const formSchema = z.object({
   plan_slug: z.string().nullable(),
   discount_coupon: z.string().nullable(),
   cta_label: z.string().nullable(),
+  exclude_plan_slugs: z.array(z.string()),
+  include_plan_slugs: z.array(z.string()),
 });
 
 const AdminPopupPage = () => {
@@ -61,6 +65,8 @@ const AdminPopupPage = () => {
   const [planSlug, setPlanSlug] = useState<string | null>(null);
   const [discountCoupon, setDiscountCoupon] = useState<string | null>(null);
   const [ctaLabel, setCtaLabel] = useState<string | null>(null);
+  const [excludePlanSlugs, setExcludePlanSlugs] = useState<string[]>([]);
+  const [includePlanSlugs, setIncludePlanSlugs] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
 
@@ -86,6 +92,8 @@ const AdminPopupPage = () => {
     setPlanSlug(data.plan_slug || null);
     setDiscountCoupon(data.discount_coupon || null);
     setCtaLabel(data.cta_label || null);
+    setExcludePlanSlugs(data.exclude_plan_slugs || []);
+    setIncludePlanSlugs(data.include_plan_slugs || []);
   }, [data]);
 
   const handleUpload = async (file: File) => {
@@ -114,6 +122,14 @@ const AdminPopupPage = () => {
   const removeLink = (i: number) =>
     setLinks((prev) => prev.filter((_, idx) => idx !== i));
 
+  const togglePlanSelection = (slug: string, list: string[], setList: (v: string[]) => void) => {
+    if (list.includes(slug)) {
+      setList(list.filter(s => s !== slug));
+    } else {
+      setList([...list, slug]);
+    }
+  };
+
   const handleSave = async () => {
     if (!data) return;
     const parsed = formSchema.safeParse({
@@ -128,6 +144,8 @@ const AdminPopupPage = () => {
       plan_slug: planSlug,
       discount_coupon: discountCoupon,
       cta_label: ctaLabel,
+      exclude_plan_slugs: excludePlanSlugs,
+      include_plan_slugs: includePlanSlugs,
     });
     if (!parsed.success) {
       const first = parsed.error.issues[0];
@@ -139,7 +157,7 @@ const AdminPopupPage = () => {
         id: data.id,
         values: { ...parsed.data, version: data.version + 1 } as any,
       });
-      toast.success("Popup salvo. Será reexibido aos usuários.");
+      toast.success("Popup salvo e atualizado para todos.");
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar");
     }
@@ -154,268 +172,391 @@ const AdminPopupPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
       <Banner
         title="Popup de Boas-vindas"
-        subtitle="Configure um popup com grupos e promoções para usuários do sistema."
+        subtitle="Gerencie avisos, promoções e grupos que aparecem ao entrar no sistema."
       />
 
-      <Card className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-base">Popup ativo</Label>
-            <p className="text-xs text-muted-foreground">
-              Quando desligado, ninguém vê o popup.
-            </p>
+      <div className="flex items-center justify-between bg-card p-4 rounded-xl border border-border">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-full ${active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
+            <Megaphone className="h-5 w-5" />
           </div>
+          <div>
+            <h3 className="font-bold">Status do Popup</h3>
+            <p className="text-sm text-muted-foreground">O popup está atualmente {active ? 'visível' : 'desativado'} para os usuários.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">{active ? 'Ativo' : 'Inativo'}</span>
           <Switch checked={active} onCheckedChange={setActive} />
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label>Título</Label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={120}
-            placeholder="Bem-vindo ao Música e Pinga!"
-          />
-        </div>
+      <Tabs defaultValue="content" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 h-12">
+          <TabsTrigger value="content" className="gap-2">
+            <Settings className="h-4 w-4" /> Conteúdo
+          </TabsTrigger>
+          <TabsTrigger value="targeting" className="gap-2">
+            <Users className="h-4 w-4" /> Público-Alvo
+          </TabsTrigger>
+          <TabsTrigger value="promo" className="gap-2">
+            <Megaphone className="h-4 w-4" /> Promoção
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="space-y-2">
-          <Label>Descrição</Label>
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            maxLength={1000}
-            placeholder="Entre nos nossos grupos e fique por dentro das novidades!"
-          />
-          <p className="text-xs text-muted-foreground text-right">
-            {description.length}/1000
-          </p>
-        </div>
+        <TabsContent value="content" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Conteúdo Visual</CardTitle>
+              <CardDescription>Defina o que o usuário verá no popup.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Título Principal</Label>
+                    <Input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      maxLength={120}
+                      placeholder="Ex: Oferta Exclusiva!"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Texto de Apoio</Label>
+                    <Textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={5}
+                      maxLength={1000}
+                      placeholder="Descreva a promoção ou o aviso aqui..."
+                    />
+                    <div className="text-[10px] text-muted-foreground text-right uppercase tracking-wider">
+                      {description.length} / 1000 caracteres
+                    </div>
+                  </div>
+                </div>
 
-        <div className="space-y-2">
-          <Label>Imagem (opcional)</Label>
-          {imageUrl && (
-            <div className="relative w-full max-w-sm">
-              <img
-                src={imageUrl}
-                alt="preview"
-                className="w-full h-40 object-cover rounded-lg border border-border"
-              />
-              <Button
-                size="sm"
-                variant="destructive"
-                className="absolute top-2 right-2"
-                onClick={() => setImageUrl(null)}
-              >
-                Remover
-              </Button>
-            </div>
-          )}
-          <label className="inline-flex items-center gap-2 cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUpload(f);
-              }}
-            />
-            <Button asChild variant="outline" disabled={uploading}>
-              <span>
-                {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-2" />
-                )}
-                {imageUrl ? "Trocar imagem" : "Enviar imagem"}
-              </span>
-            </Button>
-          </label>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Links / Grupos / Promoções</Label>
-            <Button size="sm" variant="outline" onClick={addLink} disabled={links.length >= 10}>
-              <Plus className="h-4 w-4 mr-1" />
-              Adicionar
-            </Button>
-          </div>
-          {links.length === 0 && (
-            <p className="text-xs text-muted-foreground">Nenhum link cadastrado.</p>
-          )}
-          {links.map((l, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-3">
-                <Label className="text-xs">Ícone</Label>
-                <Select
-                  value={l.icon ?? "link"}
-                  onValueChange={(v) => updateLink(i, { icon: v as PopupLink["icon"] })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ICON_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-4">
+                  <Label>Imagem de Destaque</Label>
+                  <div className="border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center min-h-[200px] bg-muted/30">
+                    {imageUrl ? (
+                      <div className="relative w-full group">
+                        <img
+                          src={imageUrl}
+                          alt="preview"
+                          className="w-full h-48 object-cover rounded-lg border border-border shadow-sm"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setImageUrl(null)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Remover
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center space-y-3">
+                        <div className="p-3 bg-card rounded-full inline-block border border-border">
+                          <Upload className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Nenhuma imagem selecionada</p>
+                          <p className="text-xs text-muted-foreground">Recomendado: 800x400px</p>
+                        </div>
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleUpload(f);
+                            }}
+                          />
+                          <Button asChild variant="secondary" size="sm" disabled={uploading}>
+                            <span>{uploading ? "Enviando..." : "Selecionar Imagem"}</span>
+                          </Button>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="col-span-3">
-                <Label className="text-xs">Rótulo</Label>
-                <Input
-                  value={l.label}
-                  onChange={(e) => updateLink(i, { label: e.target.value })}
-                  maxLength={60}
-                />
-              </div>
-              <div className="col-span-5">
-                <Label className="text-xs">URL</Label>
-                <Input
-                  value={l.url}
-                  onChange={(e) => updateLink(i, { url: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-              <div className="col-span-1">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => removeLink(i)}
-                  className="text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        <div className="space-y-4 border-t border-border pt-5">
-          <Label className="text-base">Promoção de Plano (Opcional)</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Plano para oferta</Label>
-              <Select value={planSlug || "none"} onValueChange={(v) => setPlanSlug(v === "none" ? null : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um plano" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {plans?.map((p) => (
-                    <SelectItem key={p.slug} value={p.slug}>{p.name}</SelectItem>
+              <div className="pt-4 border-t border-border">
+                <div className="flex items-center justify-between mb-4">
+                  <Label className="text-base font-bold">Botões e Links Extras</Label>
+                  <Button size="sm" variant="outline" onClick={addLink} disabled={links.length >= 10}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar Link
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {links.length === 0 && (
+                    <div className="text-center py-8 border border-dashed rounded-lg bg-muted/20">
+                      <p className="text-sm text-muted-foreground">Nenhum link adicional cadastrado.</p>
+                    </div>
+                  )}
+                  {links.map((l, i) => (
+                    <div key={i} className="flex gap-3 items-end bg-muted/30 p-3 rounded-lg border border-border">
+                      <div className="w-32">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Ícone</Label>
+                        <Select
+                          value={l.icon ?? "link"}
+                          onValueChange={(v) => updateLink(i, { icon: v as PopupLink["icon"] })}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ICON_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <div className="flex items-center gap-2">
+                                  <opt.Icon className="h-3 w-3" />
+                                  {opt.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Rótulo do Botão</Label>
+                        <Input
+                          value={l.label}
+                          onChange={(e) => updateLink(i, { label: e.target.value })}
+                          maxLength={60}
+                          className="h-9"
+                          placeholder="Ex: Grupo VIP"
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">URL de Destino</Label>
+                        <Input
+                          value={l.url}
+                          onChange={(e) => updateLink(i, { url: e.target.value })}
+                          placeholder="https://..."
+                          className="h-9"
+                        />
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removeLink(i)}
+                        className="text-destructive h-9 w-9"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Cupom de Desconto</Label>
-              <Input 
-                value={discountCoupon || ""} 
-                onChange={(e) => setDiscountCoupon(e.target.value || null)}
-                placeholder="Ex: PROMO20"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Texto do Botão de Assinar</Label>
-            <Input 
-              value={ctaLabel || ""} 
-              onChange={(e) => setCtaLabel(e.target.value || null)} 
-              placeholder="Ex: Assinar com Desconto"
-            />
-          </div>
-        </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        <div className="space-y-3 border-t border-border pt-4">
-          <Label className="text-base">Quem deve ver</Label>
+        <TabsContent value="targeting" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Regras de Exibição</CardTitle>
+              <CardDescription>Controle exatamente quem verá este popup.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
+                  <div className="space-y-1">
+                    <Label className="text-base">Usuários Novos / Sem Plano</Label>
+                    <p className="text-sm text-muted-foreground">Pessoas que acabaram de se cadastrar ou não possuem assinatura ativa.</p>
+                  </div>
+                  <Switch checked={showToNew} onCheckedChange={setShowToNew} />
+                </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm">Usuários novos / sem assinatura</p>
-              <p className="text-xs text-muted-foreground">
-                Mostra para quem se enquadra na regra abaixo.
-              </p>
-            </div>
-            <Switch checked={showToNew} onCheckedChange={setShowToNew} />
-          </div>
+                {showToNew && (
+                  <div className="flex items-center gap-4 pl-6 py-2 border-l-2 border-primary/20">
+                    <Label className="text-sm whitespace-nowrap">Considerar "novo" por até</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={365}
+                        value={newDays}
+                        onChange={(e) => setNewDays(Number(e.target.value))}
+                        className="w-20 h-9"
+                      />
+                      <span className="text-sm text-muted-foreground">dias (0 = qualquer não-assinante)</span>
+                    </div>
+                  </div>
+                )}
 
-          {showToNew && (
-            <div className="flex items-center gap-2 pl-4">
-              <Label className="text-xs">Considerar "novo" até</Label>
-              <Input
-                type="number"
-                min={0}
-                max={365}
-                value={newDays}
-                onChange={(e) => setNewDays(Number(e.target.value))}
-                className="w-24"
-              />
-              <span className="text-xs text-muted-foreground">
-                dias após cadastro (0 = qualquer não-assinante)
-              </span>
-            </div>
-          )}
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
+                  <div className="space-y-1">
+                    <Label className="text-base">Assinantes Ativos</Label>
+                    <p className="text-sm text-muted-foreground">Pessoas que já possuem um plano pago ativo.</p>
+                  </div>
+                  <Switch checked={showToSubs} onCheckedChange={setShowToSubs} />
+                </div>
+              </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm">Assinantes ativos</p>
-              <p className="text-xs text-muted-foreground">
-                Inclui também quem já tem plano ativo.
-              </p>
-            </div>
-            <Switch checked={showToSubs} onCheckedChange={setShowToSubs} />
-          </div>
-        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-border">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-destructive/10 text-destructive rounded-md">
+                      <X className="h-4 w-4" />
+                    </div>
+                    <Label className="text-base font-bold">Ocultar para estes planos</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">Útil para não mostrar promoção de Vitalício para quem já é Vitalício.</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {plans?.map((p) => (
+                      <div key={p.slug} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded-md transition-colors">
+                        <Checkbox 
+                          id={`ex-${p.slug}`} 
+                          checked={excludePlanSlugs.includes(p.slug)}
+                          onCheckedChange={() => togglePlanSelection(p.slug, excludePlanSlugs, setExcludePlanSlugs)}
+                        />
+                        <label htmlFor={`ex-${p.slug}`} className="text-sm font-medium leading-none cursor-pointer">
+                          {p.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setPreview(true)} className="gap-2">
-            <Eye className="h-4 w-4" />
-            Pré-visualizar
-          </Button>
-          <Button onClick={handleSave} disabled={update.isPending} className="ml-auto">
-            {update.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            Salvar
-          </Button>
-        </div>
-      </Card>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-md">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </div>
+                    <Label className="text-base font-bold">Mostrar SOMENTE para estes</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">Se algum for selecionado, apenas estes usuários verão o popup.</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {plans?.map((p) => (
+                      <div key={p.slug} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded-md transition-colors">
+                        <Checkbox 
+                          id={`in-${p.slug}`} 
+                          checked={includePlanSlugs.includes(p.slug)}
+                          onCheckedChange={() => togglePlanSelection(p.slug, includePlanSlugs, setIncludePlanSlugs)}
+                        />
+                        <label htmlFor={`in-${p.slug}`} className="text-sm font-medium leading-none cursor-pointer">
+                          {p.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="promo" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Promoção Direta</CardTitle>
+              <CardDescription>Configure um botão que leva direto ao checkout com desconto.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Plano de Destino</Label>
+                  <Select value={planSlug || "none"} onValueChange={(v) => setPlanSlug(v === "none" ? null : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um plano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum (desativa botão de oferta)</SelectItem>
+                      {plans?.map((p) => (
+                        <SelectItem key={p.slug} value={p.slug}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">Ao clicar, o usuário será levado para a página de ofertas com este plano pré-selecionado.</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Cupom de Desconto Automático</Label>
+                  <Input 
+                    value={discountCoupon || ""} 
+                    onChange={(e) => setDiscountCoupon(e.target.value || null)}
+                    placeholder="Ex: VITALICIO20"
+                  />
+                  <p className="text-[10px] text-muted-foreground">O cupom será aplicado automaticamente no checkout.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-w-md">
+                <Label>Texto do Botão Principal</Label>
+                <Input 
+                  value={ctaLabel || ""} 
+                  onChange={(e) => setCtaLabel(e.target.value || null)} 
+                  placeholder="Ex: Aproveitar Oferta Agora"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <div className="fixed bottom-6 right-6 flex gap-3 z-50">
+        <Button size="lg" variant="outline" onClick={() => setPreview(true)} className="gap-2 bg-background shadow-xl">
+          <Eye className="h-5 w-5" />
+          Testar Visual
+        </Button>
+        <Button size="lg" onClick={handleSave} disabled={update.isPending} className="gap-2 shadow-xl px-8">
+          {update.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
+          Publicar Popup
+        </Button>
+      </div>
 
       <Dialog open={preview} onOpenChange={setPreview}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogContent className="max-w-md p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
           {imageUrl && (
-            <img src={imageUrl} alt={title} className="w-full h-44 object-cover" />
+            <img src={imageUrl} alt={title} className="w-full h-48 object-cover" />
           )}
-          <div className="p-6 space-y-4">
-            <h2 className="text-2xl font-bold text-foreground">{title || "Título"}</h2>
-            {description && (
-              <p className="text-sm text-muted-foreground whitespace-pre-line">
-                {description}
-              </p>
-            )}
+          <div className="p-6 space-y-5 bg-card">
             <div className="space-y-2">
+              <h2 className="text-2xl font-black text-foreground leading-tight">{title || "Título de Exemplo"}</h2>
+              {description && (
+                <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                  {description}
+                </p>
+              )}
+            </div>
+            
+            <div className="space-y-3">
               {planSlug && (
-                <Button className="w-full h-12 gap-2 text-base font-bold shadow-lg shadow-primary/20">
-                  <Plus className="h-5 w-5" />
+                <Button className="w-full h-14 gap-3 text-lg font-black shadow-lg shadow-primary/30 uppercase tracking-tighter">
+                  <Megaphone className="h-6 w-6" />
                   {ctaLabel || "Assinar Agora"}
                 </Button>
               )}
+              
               {links.map((l, i) => {
                 const opt = ICON_OPTIONS.find((o) => o.value === (l.icon ?? "link"))!;
                 const Icon = opt.Icon;
                 return (
-                  <Button key={i} variant="outline" className="w-full justify-start gap-2 h-12">
+                  <Button key={i} variant="outline" className="w-full justify-start gap-3 h-12 border-primary/20 bg-primary/5 hover:bg-primary/10">
                     <Icon className="h-5 w-5 text-primary" />
-                    <span className="font-medium">{l.label || "(sem rótulo)"}</span>
+                    <span className="font-bold">{l.label || "Link sem rótulo"}</span>
                   </Button>
                 );
               })}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border">
+              <Button onClick={() => setPreview(false)} variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest h-8">
+                Avisar depois
+              </Button>
+              <Button onClick={() => setPreview(false)} variant="ghost" size="sm" className="text-[10px] uppercase font-bold tracking-widest h-8 text-muted-foreground">
+                Não mostrar mais
+              </Button>
             </div>
           </div>
         </DialogContent>
