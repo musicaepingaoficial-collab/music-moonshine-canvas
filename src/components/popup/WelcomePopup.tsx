@@ -102,12 +102,13 @@ export function WelcomePopup() {
             {popup.plan_slug && (
               <Button 
                 className="w-full h-12 gap-2 text-base font-bold shadow-lg shadow-primary/20"
-                asChild
+                onClick={() => {
+                  handleSessionClose();
+                  navigate(`/ofertas?plan=${popup.plan_slug}${popup.discount_coupon ? `&coupon=${popup.discount_coupon}` : ""}`);
+                }}
               >
-                <a href={`/ofertas?plan=${popup.plan_slug}${popup.discount_coupon ? `&coupon=${popup.discount_coupon}` : ""}`}>
-                  <Crown className="h-5 w-5" />
-                  {popup.cta_label || "Assinar Agora"}
-                </a>
+                <Crown className="h-5 w-5" />
+                {popup.cta_label || "Assinar Agora"}
               </Button>
             )}
 
