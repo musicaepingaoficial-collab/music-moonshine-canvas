@@ -13,6 +13,7 @@ import { CheckoutForm } from "@/components/subscription/CheckoutForm";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth, useAssinatura } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface Plano {
   id: string;
@@ -32,6 +33,24 @@ const OfertasPage = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { data: assinatura } = useAssinatura(user?.id);
+  const { data: settings } = useSiteSettings();
+
+  const getEmbedUrl = (url: string) => {
+    if (!url) return null;
+    if (url.includes("youtube.com/watch?v=")) {
+      return `https://www.youtube.com/embed/${url.split("v=")[1].split("&")[0]}`;
+    }
+    if (url.includes("youtu.be/")) {
+      return `https://www.youtube.com/embed/${url.split("be/")[1].split("?")[0]}`;
+    }
+    if (url.includes("vimeo.com/")) {
+      return `https://player.vimeo.com/video/${url.split("com/")[1].split("?")[0]}`;
+    }
+    return url;
+  };
+
+  const embedUrl = settings?.sales_video_url ? getEmbedUrl(settings.sales_video_url) : null;
+  const isDirectVideo = embedUrl && (embedUrl.endsWith(".mp4") || embedUrl.endsWith(".webm") || embedUrl.includes("supabase"));
 
   const isExpired = (a: typeof assinatura) =>
     !!a?.expires_at && new Date(a.expires_at as any) < new Date();
@@ -97,6 +116,32 @@ const OfertasPage = () => {
   return (
     <div className="space-y-8">
       <Banner title="Planos de Assinatura" subtitle="Escolha o plano ideal para você e tenha acesso completo." />
+
+      {embedUrl && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-3xl mx-auto w-full px-4"
+        >
+          <div className="aspect-video w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            {isDirectVideo ? (
+              <video
+                src={embedUrl}
+                controls
+                className="h-full w-full object-cover"
+                poster="/placeholder.svg"
+              />
+            ) : (
+              <iframe
+                src={embedUrl}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {isLoading && <MusicGridSkeleton count={3} />}
 

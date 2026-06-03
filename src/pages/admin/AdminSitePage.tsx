@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, MessageCircle, Save, Disc, Ticket, Trash2 } from "lucide-react";
+import { AlertTriangle, MessageCircle, Save, Disc, Ticket, Trash2, Video, Upload, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -67,6 +67,8 @@ const AdminSitePage = () => {
   const [message, setMessage] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [discografiasValor, setDiscografiasValor] = useState("0");
+  const [salesVideoUrl, setSalesVideoUrl] = useState("");
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -75,8 +77,28 @@ const AdminSitePage = () => {
       setMessage(settings.maintenance_message);
       setWhatsapp(settings.whatsapp_number || "");
       setDiscografiasValor(settings.discografias_valor?.toString() || "0");
+      setSalesVideoUrl(settings.sales_video_url || "");
     }
   }, [settings]);
+
+  const handleVideoUpload = async (file: File) => {
+    setUploadingVideo(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `sales-video/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("anuncios-images")
+        .upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from("anuncios-images").getPublicUrl(path);
+      setSalesVideoUrl(pub.publicUrl);
+      toast({ title: "Vídeo enviado com sucesso!" });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!settings) return;
@@ -89,6 +111,7 @@ const AdminSitePage = () => {
           maintenance_message: message,
           whatsapp_number: whatsapp || null,
           discografias_valor: parseFloat(discografiasValor) || 0,
+          sales_video_url: salesVideoUrl || null,
         },
       });
 
@@ -202,6 +225,43 @@ const AdminSitePage = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t border-border/50 pt-5">
+            <p className="text-sm font-medium text-foreground">Vídeo de Vendas (VSL)</p>
+            <div className="space-y-3">
+              <Label htmlFor="video-url" className="flex items-center gap-2">
+                <Video className="h-4 w-4" />
+                Link do Vídeo (YouTube, Vimeo ou Link Direto)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="video-url"
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={salesVideoUrl}
+                  onChange={(e) => setSalesVideoUrl(e.target.value)}
+                  className="flex-1"
+                />
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleVideoUpload(file);
+                    }}
+                  />
+                  <Button variant="outline" type="button" disabled={uploadingVideo} className="gap-2">
+                    {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    Subir vídeo
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Recomendado: Use links do YouTube ou Vimeo para melhor performance e carregamento rápido.
+              </p>
             </div>
           </div>
 
