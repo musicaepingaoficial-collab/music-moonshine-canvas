@@ -30,12 +30,23 @@ export function WelcomePopup() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user || !popup || !popup.active) return;
-
+    const currentPlanSlug = (assinatura as any)?.plan;
     const isSubscriber =
       !!assinatura &&
       assinatura.status === "active" &&
       (!assinatura.expires_at || new Date(assinatura.expires_at) > new Date());
+
+    // 1. Verificar exclusão por plano (ex: quem já tem Vitalício não vê promo de Vitalício)
+    if (currentPlanSlug && popup.exclude_plan_slugs?.includes(currentPlanSlug)) {
+      return;
+    }
+
+    // 2. Verificar inclusão por plano (se houver, apenas estes verão)
+    if (popup.include_plan_slugs?.length > 0) {
+      if (!currentPlanSlug || !popup.include_plan_slugs.includes(currentPlanSlug)) {
+        return;
+      }
+    }
 
     let eligible = false;
     if (isSubscriber) {
