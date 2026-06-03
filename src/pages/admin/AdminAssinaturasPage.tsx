@@ -473,9 +473,6 @@ const AdminAssinaturasPage = () => {
           )}
         </CardContent>
       </Card>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
