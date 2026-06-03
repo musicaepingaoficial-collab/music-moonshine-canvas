@@ -179,6 +179,32 @@ export default function LandingPage() {
     trackEvent("view_content", { content_category: "landing", content_name: "LandingPage" });
   }, []);
 
+  const handleStartVideo = () => {
+    const video = document.querySelector('video');
+    const overlay = document.getElementById('video-overlay');
+    
+    if (video) {
+      video.play().catch(err => console.error("Erro ao dar play no vídeo:", err));
+    }
+    
+    if (overlay) {
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 500);
+    }
+    
+    // Se for iframe (YouTube/Vimeo), tentamos enviar comando de play via postMessage
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      if (embedUrl?.includes('vimeo')) {
+        iframe.contentWindow.postMessage('{"method":"play"}', '*');
+      } else if (embedUrl?.includes('youtube')) {
+        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
