@@ -353,8 +353,31 @@ export default function LandingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="relative aspect-[9/16] w-full overflow-hidden rounded-3xl border border-primary/20 bg-card shadow-premium"
+              className="relative aspect-[9/16] w-full overflow-hidden rounded-3xl border border-primary/20 bg-card shadow-premium group"
             >
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] transition-opacity duration-500 group-hover:bg-black/40" id="video-overlay">
+                <div className="mb-6 text-center px-6">
+                  <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2 shadow-sm">
+                    Vídeo Exclusivo
+                  </h3>
+                  <p className="text-sm text-white/80 font-medium">Aperte para iniciar</p>
+                </div>
+                <Button
+                  size="lg"
+                  className="rounded-full w-20 h-20 bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow animate-glow-pulse border-4 border-white/20"
+                  onClick={() => {
+                    const video = document.querySelector('video');
+                    const overlay = document.getElementById('video-overlay');
+                    if (video) video.play();
+                    if (overlay) overlay.style.display = 'none';
+                    // Para iframe (YouTube/Vimeo) ele vai apenas ocultar a capa, o usuário clica no player real
+                    if (!video && overlay) overlay.style.display = 'none';
+                  }}
+                >
+                  <Play className="h-8 w-8 fill-current" />
+                </Button>
+              </div>
+
               {isDirectVideo ? (
                 <video
                   src={embedUrl}
