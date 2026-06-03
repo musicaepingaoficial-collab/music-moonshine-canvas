@@ -197,15 +197,15 @@ const AdminAssinaturasPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Assinaturas</h1>
           <p className="text-sm text-muted-foreground">Gerencie as assinaturas dos usuários</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="rounded-xl bg-card p-4 text-right">
             <p className="text-xs text-muted-foreground">Receita ativa</p>
-            <p className="text-xl font-bold text-primary">
+            <p className="text-lg sm:text-xl font-bold text-primary">
               R$ {totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </p>
           </div>
@@ -352,7 +352,7 @@ const AdminAssinaturasPage = () => {
             <EmptyState icon={CreditCard} title="Nenhuma assinatura" description="Ainda não há assinaturas registradas." />
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Usuário</TableHead>
@@ -423,6 +423,53 @@ const AdminAssinaturasPage = () => {
                                   Esta ação é <strong>irreversível</strong>. A assinatura de <strong>{sub.profile?.email || "usuário"}</strong> ({sub.plan}, R$ {Number(sub.price || 0).toFixed(2)}) será removida do banco de dados.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteSub.mutate(sub.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <div className="md:hidden space-y-4">
+                {(subs ?? []).map((sub) => (
+                  <div key={sub.id} className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="min-w-0">
+                        <p className="font-bold truncate">{sub.profile?.name || sub.profile?.email || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{sub.plan.toUpperCase()}</p>
+                      </div>
+                      <Badge className={statusColors[sub.status] || "bg-muted"}>
+                        {sub.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t pt-3">
+                      <div>
+                        <p className="uppercase font-semibold">Valor</p>
+                        <p className="text-foreground">R$ {Number(sub.price || 0).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="uppercase font-semibold">Expiração</p>
+                        <p className="text-foreground">{sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                       {sub.status === "active" && (
+                         <Button size="sm" variant="outline" onClick={() => cancelSub.mutate(sub.id)}><Ban className="h-4 w-4 mr-2" /> Cancelar</Button>
+                       )}
+                       <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteSub.mutate(sub.id)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Voltar</AlertDialogCancel>
                                 <AlertDialogAction
