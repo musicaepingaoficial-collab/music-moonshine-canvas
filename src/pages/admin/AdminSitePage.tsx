@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings, useUpdateSiteSettings } from "@/hooks/useSiteSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,10 +9,56 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, MessageCircle, Save, Disc } from "lucide-react";
+import { AlertTriangle, MessageCircle, Save, Disc, Ticket, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 const AdminSitePage = () => {
+  const queryClient = useQueryClient();
+  const [couponCode, setCouponCode] = useState("");
+  const [couponPercent, setCouponPercent] = useState("");
+  const [couponLimit, setCouponLimit] = useState("");
+
+  const { data: coupons, isLoading: loadingCoupons } = useQuery({
+    queryKey: ["admin-coupons"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("cupons").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const createCoupon = useMutation({
+    mutationFn: async () => {
+      if (!couponCode || !couponPercent) throw new Error("Preencha código e desconto");
+      const { error } = await supabase.from("cupons").insert({
+        codigo: couponCode.toUpperCase(),
+        desconto_percentual: parseFloat(couponPercent),
+        uso_limite: couponLimit ? parseInt(couponLimit) : null
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Cupom criado" });
+      setCouponCode("");
+      setCouponPercent("");
+      setCouponLimit("");
+      queryClient.invalidateQueries({ queryKey: ["admin-coupons"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" })
+  });
+
+  const deleteCoupon = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("cupons").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Cupom excluído" });
+      queryClient.invalidateQueries({ queryKey: ["admin-coupons"] });
+    }
+  });
   const { data: settings, isLoading } = useSiteSettings();
   const update = useUpdateSiteSettings();
 
@@ -167,6 +214,67 @@ const AdminSitePage = () => {
               <Save className="h-4 w-4" />
               {update.isPending ? "Salvando..." : "Salvar"}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Ticket className="h-5 w-5" />
+            Cupons de Desconto
+          </CardTitle>
+          <CardDescription>Crie códigos promocionais para seus clientes.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div className="space-y-2">
+              <Label>Código</Label>
+              <Input placeholder="EX: PROMO20" value={couponCode} onChange={e => setCouponCode(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Desconto (%)</Label>
+              <Input type="number" placeholder="20" value={couponPercent} onChange={e => setCouponPercent(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Limite de usos</Label>
+              <Input type="number" placeholder="Opcional" value={couponLimit} onChange={e => setCouponLimit(e.target.value)} />
+            </div>
+            <Button onClick={() => createCoupon.mutate()} disabled={createCoupon.isPending}>
+              Criar Cupom
+            </Button>
+          </div>
+
+          <div className="rounded-md border border-border mt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Desconto</TableHead>
+                  <TableHead>Usos</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {coupons?.map(c => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-bold">{c.codigo}</TableCell>
+                    <TableCell>{c.desconto_percentual}%</TableCell>
+                    <TableCell>{c.uso_atual} / {c.uso_limite || "∞"}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => deleteCoupon.mutate(c.id)} className="text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(!coupons || coupons.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">Nenhum cupom ativo.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

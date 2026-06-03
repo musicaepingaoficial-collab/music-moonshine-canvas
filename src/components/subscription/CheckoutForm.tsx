@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, Copy, ExternalLink } from "lucide-react";
+import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, Copy, ExternalLink, Ticket, Trash2 } from "lucide-react";
+import { validateCoupon } from "@/services/couponService";
 import { createPixPayment, getSubscriptionStatus, processTransparentPayment } from "@/services/paymentService";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
@@ -79,6 +80,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     paymentId?: number;
   } | null>(null);
   const [pixProcessing, setPixProcessing] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const cardFormRef = useRef<any>(null);
   const { user } = useAuth();
   const metadataName =
@@ -221,7 +225,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               token: formData.token,
               issuer_id: formData.issuer_id,
               payment_method_id: formData.payment_method_id,
-              transaction_amount: planPrice,
+              transaction_amount: finalPrice,
               installments: formData.installments,
               plan: planSlug,
               device_id: deviceId,
@@ -277,6 +281,24 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     setPixData(null);
     handleSelectMethodTracked(method);
   };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsValidatingCoupon(true);
+    try {
+      const coupon = await validateCoupon(couponCode);
+      setAppliedCoupon(coupon);
+      toast.success(`Cupom ${coupon.codigo} aplicado!`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const finalPrice = appliedCoupon 
+    ? planPrice * (1 - appliedCoupon.desconto_percentual / 100)
+    : planPrice;
 
   const handleCreatePix = async () => {
     const email = pixEmail.trim();
@@ -417,11 +439,51 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           </Button>
           <div>
             <h3 className="font-bold text-foreground">{planName}</h3>
-            <p className="text-sm text-muted-foreground">
-              R$ {planPrice.toFixed(2).replace(".", ",")}
-            </p>
+            <div className="flex flex-col">
+              {appliedCoupon ? (
+                <>
+                  <p className="text-sm text-muted-foreground line-through">
+                    R$ {planPrice.toFixed(2).replace(".", ",")}
+                  </p>
+                  <p className="text-sm font-bold text-primary">
+                    R$ {finalPrice.toFixed(2).replace(".", ",")} (-{appliedCoupon.desconto_percentual}%)
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  R$ {planPrice.toFixed(2).replace(".", ",")}
+                </p>
+              )}
+            </div>
           </div>
         </div>
+
+        {!pixData && (
+          <div className="space-y-2">
+            <Label className="text-xs">Tem um cupom de desconto?</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Ticket className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input 
+                  placeholder="Código" 
+                  className="pl-8 h-9 text-sm" 
+                  value={couponCode} 
+                  onChange={e => setCouponCode(e.target.value)}
+                  disabled={!!appliedCoupon}
+                />
+              </div>
+              {appliedCoupon ? (
+                <Button variant="outline" size="sm" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              ) : (
+                <Button size="sm" onClick={handleApplyCoupon} disabled={isValidatingCoupon}>
+                  {isValidatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
