@@ -111,6 +111,19 @@ serve(async (req) => {
           return new Response("Invalid pending ref", { status: 400 });
         }
 
+        // Update only if not already approved/claimed to avoid duplicate notifications
+        const { data: currentPending } = await supabase
+          .from("pending_subscriptions")
+          .select("status")
+          .eq("id", pendingId)
+          .maybeSingle();
+
+        if (currentPending?.status === "approved" || currentPending?.status === "claimed") {
+          return new Response(JSON.stringify({ received: true, note: "Already processed" }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         const { error: updErr } = await supabase
           .from("pending_subscriptions")
           .update({
@@ -118,8 +131,7 @@ serve(async (req) => {
             approved_at: new Date().toISOString(),
             mp_payment_id: payment.id,
           })
-          .eq("id", pendingId)
-            .neq("status", "claimed");
+          .eq("id", pendingId);
 
         if (updErr) console.error("update pending err:", updErr);
 
