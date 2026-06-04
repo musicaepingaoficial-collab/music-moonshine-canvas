@@ -8,6 +8,21 @@ const corsHeaders = {
 };
 
 
+function fmtBRL(n: number) {
+  return Number(n || 0).toFixed(2).replace(".", ",");
+}
+
+function fmtMethod(p: any): string {
+  if (!p) return "—";
+  if (p.payment_method_id === "pix") return "PIX";
+  const t = p.payment_type_id;
+  const inst = Number(p.installments || 1);
+  if (t === "credit_card") return inst > 1 ? `Cartão ${inst}x` : "Cartão";
+  if (t === "debit_card") return "Débito";
+  if (t === "ticket") return "Boleto";
+  if (t === "account_money") return "Saldo MP";
+  return t || "—";
+}
 
 
 async function verifyMpSignature(req: Request, paymentId: string): Promise<boolean> {
@@ -106,7 +121,9 @@ serve(async (req) => {
     // ==== Notificar admin sobre status não-aprovados ====
     if (payment.status === "rejected" || payment.status === "cancelled") {
       try {
-        const amount = Number(payment.transaction_amount || 0).toFixed(2);
+        const amount = fmtBRL(payment.transaction_amount);
+        const method = fmtMethod(payment);
+        const who = payment.payer?.email || "Cliente";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -115,19 +132,21 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase_rejected",
-            title: `❌ Pagamento recusado — R$ ${amount}`,
-            body: `${payment.payer?.email || "Cliente"} • ${payment.status_detail || payment.status}`,
+            title: `❌ Pagamento recusado · R$ ${amount}`,
+            body: `${who} — ${method} — ${payment.status_detail || payment.status}`,
             url: "/admin/notificacoes",
             data: {
               kind: "purchase_rejected",
               amount: Number(payment.transaction_amount || 0),
               buyer_email: payment.payer?.email || null,
+              payment_method: method,
               status_detail: payment.status_detail || payment.status,
               mp_payment_id: payment.id,
               external_reference: payment.external_reference || null,
             },
           }),
         });
+
       } catch (err) {
         console.error("[push rejected] erro:", err);
       }
@@ -135,8 +154,9 @@ serve(async (req) => {
 
     if (payment.status === "refunded" || payment.status === "charged_back") {
       try {
-        const amount = Number(payment.transaction_amount || 0).toFixed(2);
+        const amount = fmtBRL(payment.transaction_amount);
         const refunded = payment.status === "refunded";
+        const who = payment.payer?.email || "Cliente";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -145,8 +165,8 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase_refunded",
-            title: refunded ? `↩️ Reembolso — R$ ${amount}` : `⚠️ Chargeback — R$ ${amount}`,
-            body: `${payment.payer?.email || "Cliente"}`,
+            title: refunded ? `↩️ Reembolso · R$ ${amount}` : `⚠️ Chargeback · R$ ${amount}`,
+            body: who,
             url: "/admin/notificacoes",
             data: {
               kind: refunded ? "purchase_refunded" : "chargeback",
@@ -157,6 +177,7 @@ serve(async (req) => {
             },
           }),
         });
+
       } catch (err) {
         console.error("[push refunded] erro:", err);
       }
@@ -207,7 +228,12 @@ serve(async (req) => {
           const claimLink = pending ? `${siteUrl}/finalizar-cadastro?token=${pending.claim_token}` : null;
 
           if (pending) {
-            const amount = Number(pending.price).toFixed(2);
+            const amount = fmtBRL(pending.price);
+            const method = fmtMethod(payment);
+            const { data: planRow } = await supabase
+              .from("planos").select("name").eq("slug", pending.plan).maybeSingle();
+            const planName = planRow?.name || pending.plan;
+            const who = pending.full_name || pending.email || "Cliente";
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
               method: "POST",
               headers: {
@@ -216,13 +242,15 @@ serve(async (req) => {
               },
               body: JSON.stringify({
                 type: "purchase",
-                title: `💰 Venda aprovada — R$ ${amount}`,
-                body: `${pending.full_name} • Plano ${pending.plan} (novo usuário)`,
+                title: `💰 Venda aprovada · R$ ${amount}`,
+                body: `${who} — ${planName} — ${method} (novo usuário)`,
                 url: "/admin/notificacoes",
                 data: {
                   kind: "purchase_new_user",
                   product_type: "subscription",
                   plan_slug: pending.plan,
+                  plan_name: planName,
+                  payment_method: method,
                   amount: Number(pending.price),
                   buyer_name: pending.full_name,
                   buyer_email: pending.email,
@@ -233,6 +261,7 @@ serve(async (req) => {
                 },
               }),
             });
+
 
             
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
@@ -298,8 +327,9 @@ serve(async (req) => {
             .select("name, email, whatsapp")
             .eq("id", userId)
             .maybeSingle();
-          const who = profile?.name || profile?.email || "Usuário";
-          const amount = Number(pdf?.price || 0).toFixed(2);
+          const who = profile?.name || profile?.email || "Cliente";
+          const amount = fmtBRL(pdf?.price || 0);
+          const method = fmtMethod(payment);
           await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
             method: "POST",
             headers: {
@@ -308,14 +338,15 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               type: "purchase",
-              title: `📕 PDF vendido — R$ ${amount}`,
-              body: `${who} • "${pdf?.title || "PDF"}"`,
+              title: `📕 Venda aprovada · R$ ${amount}`,
+              body: `${who} — PDF "${pdf?.title || "PDF"}" — ${method}`,
               url: "/admin/notificacoes",
               data: {
                 kind: "purchase_pdf",
                 product_type: "pdf",
                 pdf_id: pdfId,
                 pdf_title: pdf?.title || null,
+                payment_method: method,
                 amount: Number(pdf?.price || 0),
                 buyer_name: profile?.name || null,
                 buyer_email: profile?.email || null,
@@ -325,6 +356,7 @@ serve(async (req) => {
               },
             }),
           });
+
         } catch (err) {
           console.error("[push pdf purchase]", err);
         }
@@ -360,8 +392,9 @@ serve(async (req) => {
             .select("name, email, whatsapp")
             .eq("id", userId)
             .maybeSingle();
-          const who = profile?.name || profile?.email || "Usuário";
-          const amount = Number(payment.transaction_amount || 0).toFixed(2);
+          const who = profile?.name || profile?.email || "Cliente";
+          const amount = fmtBRL(payment.transaction_amount);
+          const method = fmtMethod(payment);
           await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
             method: "POST",
             headers: {
@@ -370,13 +403,14 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               type: "purchase",
-              title: `📀 Módulo Discografias — R$ ${amount}`,
-              body: `${who} ativou o módulo Discografias`,
+              title: `📀 Venda aprovada · R$ ${amount}`,
+              body: `${who} — Módulo Discografias — ${method}`,
               url: "/admin/notificacoes",
               data: {
                 kind: "purchase_module",
                 product_type: "module",
                 module: "discografias",
+                payment_method: method,
                 amount: Number(payment.transaction_amount || 0),
                 buyer_name: profile?.name || null,
                 buyer_email: profile?.email || null,
@@ -386,6 +420,7 @@ serve(async (req) => {
               },
             }),
           });
+
         } catch (err) {
           console.error("[push disc purchase]", err);
         }
@@ -403,7 +438,7 @@ serve(async (req) => {
 
       const { data: plan } = await supabase
         .from("planos")
-        .select("price, duration_days, slug")
+        .select("price, duration_days, slug, name")
         .eq("slug", planSlug)
         .single();
 
@@ -583,8 +618,10 @@ serve(async (req) => {
           .select("name, email, whatsapp")
           .eq("id", userId)
           .maybeSingle();
-        const who = profile?.name || profile?.email || "Usuário";
-        const amount = Number(plan.price).toFixed(2);
+        const who = profile?.name || profile?.email || "Cliente";
+        const amount = fmtBRL(plan.price);
+        const method = fmtMethod(payment);
+        const planName = (plan as any).name || planSlug;
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -593,13 +630,15 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase",
-            title: `💰 Venda aprovada — R$ ${amount}`,
-            body: `${who} • Plano ${planSlug}`,
+            title: `💰 Venda aprovada · R$ ${amount}`,
+            body: `${who} — ${planName} — ${method}`,
             url: "/admin/notificacoes",
             data: {
               kind: "purchase_subscription",
               product_type: "subscription",
               plan_slug: planSlug,
+              plan_name: planName,
+              payment_method: method,
               amount: Number(plan.price),
               buyer_name: profile?.name || null,
               buyer_email: profile?.email || null,
@@ -609,6 +648,7 @@ serve(async (req) => {
             },
           }),
         });
+
       } catch (err) {
         console.error("[push purchase] erro:", err);
       }
