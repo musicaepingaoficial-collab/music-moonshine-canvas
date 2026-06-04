@@ -35,11 +35,11 @@ const adminItems = [
 ];
 
 export function AdminSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
+    <Sidebar collapsible="icon" className="border-r-0 bg-sidebar">
       <SidebarHeader className="p-4">
         <NavLink to="/admin" className="flex items-center gap-2">
           <img
