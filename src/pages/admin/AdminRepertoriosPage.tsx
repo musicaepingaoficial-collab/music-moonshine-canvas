@@ -141,19 +141,17 @@ const AdminRepertoriosPage = () => {
           <h2 className="text-sm font-semibold text-foreground">Novo repertório</h2>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               placeholder="Nome (ex: Repertório Abril 2026)"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="flex-1"
               aria-label="Nome do repertório"
             />
             <Input
               placeholder="Descrição (opcional)"
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
-              className="flex-1"
               aria-label="Descrição do repertório"
             />
           </div>
@@ -207,166 +205,206 @@ const AdminRepertoriosPage = () => {
           ) : (repertorios?.length ?? 0) === 0 ? (
             <EmptyState icon={FolderOpen} title="Nenhum repertório criado ainda." />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Capa</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Destaque</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Músicas</TableHead>
-                  <TableHead>Criado</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {repertorios!.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      {editingId === r.id ? (
-                        <div className="flex flex-col items-center gap-2">
-                          <div 
-                            className="h-16 w-11 rounded border overflow-hidden bg-muted cursor-pointer relative group"
-                            onClick={() => editFileInputRef.current?.click()}
-                          >
-                            {editCoverPreview ? (
-                              <img src={editCoverPreview} alt="Edit preview" className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center">
-                                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+            <div className="overflow-x-auto">
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Capa</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Destaque</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Músicas</TableHead>
+                      <TableHead>Criado</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {repertorios!.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell>
+                          {editingId === r.id ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <div 
+                                className="h-16 w-11 rounded border overflow-hidden bg-muted cursor-pointer relative group"
+                                onClick={() => editFileInputRef.current?.click()}
+                              >
+                                {editCoverPreview ? (
+                                  <img src={editCoverPreview} alt="Edit preview" className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="h-full w-full flex items-center justify-center">
+                                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Edit2 className="h-4 w-4 text-white" />
+                                </div>
                               </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Edit2 className="h-4 w-4 text-white" />
+                              <input
+                                ref={editFileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleEditFileChange}
+                              />
                             </div>
+                          ) : r.cover_url ? (
+                            <div className="h-14 w-10 rounded border overflow-hidden bg-muted">
+                              <img src={r.cover_url} alt={r.name} className="h-full w-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="h-14 w-10 rounded border flex items-center justify-center bg-muted text-muted-foreground">
+                              <ImageIcon className="h-5 w-5" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground">
+                          {editingId === r.id ? (
+                            <Input 
+                              value={editName} 
+                              onChange={(e) => setEditName(e.target.value)} 
+                              className="h-8"
+                            />
+                          ) : r.name}
+                        </TableCell>
+                        <TableCell>
+                          {editingId === r.id ? (
+                            <div className="flex items-center gap-2">
+                              <Checkbox 
+                                id={`edit-featured-${r.id}`}
+                                checked={editFeatured} 
+                                onCheckedChange={(checked) => setEditFeatured(!!checked)} 
+                              />
+                              <label htmlFor={`edit-featured-${r.id}`} className="text-xs">Destaque</label>
+                            </div>
+                          ) : r.featured ? (
+                            <Badge className="bg-amber-500 hover:bg-amber-600">
+                              <Star className="mr-1 h-3 w-3 fill-current" /> Destaque
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">Não</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {editingId === r.id ? (
+                            <Input 
+                              value={editDesc} 
+                              onChange={(e) => setEditDesc(e.target.value)} 
+                              className="h-8"
+                            />
+                          ) : r.description || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{r.musica_count}</Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {editingId === r.id ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleSaveEdit(r.id)}
+                                  disabled={updateRep.isPending}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleCancelEdit}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleStartEdit(r)}
+                                  aria-label="Editar repertório"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedRepId(r.id)}
+                                  aria-label="Gerenciar músicas"
+                                >
+                                  <Music2 className="mr-1 h-4 w-4" /> Músicas
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleClear(r.id, r.name)}
+                                  disabled={clearRep.isPending}
+                                  className="text-destructive hover:bg-destructive/10 border-destructive/20"
+                                  title="Limpar todas as músicas"
+                                >
+                                  <Eraser className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDelete(r.id)}
+                                  disabled={deleteRep.isPending}
+                                  aria-label="Excluir repertório"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
-                          <input
-                            ref={editFileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleEditFileChange}
-                          />
-                        </div>
-                      ) : r.cover_url ? (
-                        <div className="h-14 w-10 rounded border overflow-hidden bg-muted">
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="md:hidden space-y-4">
+                {repertorios!.map((r) => (
+                  <div key={r.id} className="rounded-lg border bg-card p-4 space-y-4">
+                    <div className="flex gap-4">
+                      <div className="h-20 w-14 shrink-0 rounded border overflow-hidden bg-muted">
+                        {r.cover_url ? (
                           <img src={r.cover_url} alt={r.name} className="h-full w-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="h-14 w-10 rounded border flex items-center justify-center bg-muted text-muted-foreground">
-                          <ImageIcon className="h-5 w-5" />
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium text-foreground">
-                      {editingId === r.id ? (
-                        <Input 
-                          value={editName} 
-                          onChange={(e) => setEditName(e.target.value)} 
-                          className="h-8"
-                        />
-                      ) : r.name}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === r.id ? (
-                        <div className="flex items-center gap-2">
-                          <Checkbox 
-                            id={`edit-featured-${r.id}`}
-                            checked={editFeatured} 
-                            onCheckedChange={(checked) => setEditFeatured(!!checked)} 
-                          />
-                          <label htmlFor={`edit-featured-${r.id}`} className="text-xs">Destaque</label>
-                        </div>
-                      ) : r.featured ? (
-                        <Badge className="bg-amber-500 hover:bg-amber-600">
-                          <Star className="mr-1 h-3 w-3 fill-current" /> Destaque
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">Não</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {editingId === r.id ? (
-                        <Input 
-                          value={editDesc} 
-                          onChange={(e) => setEditDesc(e.target.value)} 
-                          className="h-8"
-                        />
-                      ) : r.description || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{r.musica_count}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(r.created_at).toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {editingId === r.id ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSaveEdit(r.id)}
-                              disabled={updateRep.isPending}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleCancelEdit}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
                         ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStartEdit(r)}
-                              aria-label="Editar repertório"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedRepId(r.id)}
-                              aria-label="Gerenciar músicas"
-                            >
-                              <Music2 className="mr-1 h-4 w-4" /> Músicas
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleClear(r.id, r.name)}
-                              disabled={clearRep.isPending}
-                              className="text-destructive hover:bg-destructive/10 border-destructive/20"
-                              title="Limpar todas as músicas"
-                            >
-                              <Eraser className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDelete(r.id)}
-                              disabled={deleteRep.isPending}
-                              aria-label="Excluir repertório"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
+                          <div className="h-full w-full flex items-center justify-center">
+                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          </div>
                         )}
                       </div>
-                    </TableCell>
-                  </TableRow>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-bold text-sm truncate">{r.name}</h3>
+                          {r.featured && <Star className="h-3 w-3 text-amber-500 fill-current shrink-0" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{r.description || "Sem descrição"}</p>
+                        <Badge variant="outline" className="mt-2 text-[10px]">{r.musica_count} músicas</Badge>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t gap-1">
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleStartEdit(r)}><Edit2 className="h-4 w-4"/></Button>
+                        <Button variant="outline" size="sm" className="text-[10px] h-8 px-2" onClick={() => setSelectedRepId(r.id)}><Music2 className="h-3 w-3 mr-1"/> Músicas</Button>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleClear(r.id, r.name)} className="text-destructive"><Eraser className="h-4 w-4"/></Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(r.id)} className="text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

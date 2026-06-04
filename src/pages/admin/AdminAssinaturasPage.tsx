@@ -257,10 +257,10 @@ const AdminAssinaturasPage = () => {
                   Adicionar plano
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
               <DialogHeader>
                 <DialogTitle>Adicionar plano manualmente</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-xs">
                   Atribua um plano diretamente a um usuário existente.
                 </DialogDescription>
               </DialogHeader>
@@ -318,7 +318,7 @@ const AdminAssinaturasPage = () => {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Status</Label>
                     <Select value={status} onValueChange={setStatus}>
