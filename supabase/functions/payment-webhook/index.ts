@@ -327,8 +327,9 @@ serve(async (req) => {
             .select("name, email, whatsapp")
             .eq("id", userId)
             .maybeSingle();
-          const who = profile?.name || profile?.email || "Usuário";
-          const amount = Number(pdf?.price || 0).toFixed(2);
+          const who = profile?.name || profile?.email || "Cliente";
+          const amount = fmtBRL(pdf?.price || 0);
+          const method = fmtMethod(payment);
           await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
             method: "POST",
             headers: {
@@ -337,14 +338,15 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               type: "purchase",
-              title: `📕 PDF vendido — R$ ${amount}`,
-              body: `${who} • "${pdf?.title || "PDF"}"`,
+              title: `📕 Venda aprovada · R$ ${amount}`,
+              body: `${who} — PDF "${pdf?.title || "PDF"}" — ${method}`,
               url: "/admin/notificacoes",
               data: {
                 kind: "purchase_pdf",
                 product_type: "pdf",
                 pdf_id: pdfId,
                 pdf_title: pdf?.title || null,
+                payment_method: method,
                 amount: Number(pdf?.price || 0),
                 buyer_name: profile?.name || null,
                 buyer_email: profile?.email || null,
@@ -354,6 +356,7 @@ serve(async (req) => {
               },
             }),
           });
+
         } catch (err) {
           console.error("[push pdf purchase]", err);
         }
@@ -389,8 +392,9 @@ serve(async (req) => {
             .select("name, email, whatsapp")
             .eq("id", userId)
             .maybeSingle();
-          const who = profile?.name || profile?.email || "Usuário";
-          const amount = Number(payment.transaction_amount || 0).toFixed(2);
+          const who = profile?.name || profile?.email || "Cliente";
+          const amount = fmtBRL(payment.transaction_amount);
+          const method = fmtMethod(payment);
           await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
             method: "POST",
             headers: {
@@ -399,13 +403,14 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               type: "purchase",
-              title: `📀 Módulo Discografias — R$ ${amount}`,
-              body: `${who} ativou o módulo Discografias`,
+              title: `📀 Venda aprovada · R$ ${amount}`,
+              body: `${who} — Módulo Discografias — ${method}`,
               url: "/admin/notificacoes",
               data: {
                 kind: "purchase_module",
                 product_type: "module",
                 module: "discografias",
+                payment_method: method,
                 amount: Number(payment.transaction_amount || 0),
                 buyer_name: profile?.name || null,
                 buyer_email: profile?.email || null,
@@ -415,6 +420,7 @@ serve(async (req) => {
               },
             }),
           });
+
         } catch (err) {
           console.error("[push disc purchase]", err);
         }
