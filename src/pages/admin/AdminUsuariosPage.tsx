@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useUser";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface UserWithSub {
   id: string;
