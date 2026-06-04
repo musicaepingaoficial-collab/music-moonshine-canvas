@@ -655,6 +655,27 @@ export type Database = {
         }
         Relationships: []
       }
+      online_users: {
+        Row: {
+          last_seen_at: string | null
+          path: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string | null
+          path?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string | null
+          path?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pdf_purchases: {
         Row: {
           amount: number
@@ -1229,6 +1250,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_online_users: { Args: never; Returns: undefined }
       has_pdf_access: {
         Args: { _pdf_id: string; _user_id: string }
         Returns: boolean
