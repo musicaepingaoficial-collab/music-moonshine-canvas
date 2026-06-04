@@ -228,7 +228,12 @@ serve(async (req) => {
           const claimLink = pending ? `${siteUrl}/finalizar-cadastro?token=${pending.claim_token}` : null;
 
           if (pending) {
-            const amount = Number(pending.price).toFixed(2);
+            const amount = fmtBRL(pending.price);
+            const method = fmtMethod(payment);
+            const { data: planRow } = await supabase
+              .from("planos").select("name").eq("slug", pending.plan).maybeSingle();
+            const planName = planRow?.name || pending.plan;
+            const who = pending.full_name || pending.email || "Cliente";
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
               method: "POST",
               headers: {
@@ -237,13 +242,15 @@ serve(async (req) => {
               },
               body: JSON.stringify({
                 type: "purchase",
-                title: `💰 Venda aprovada — R$ ${amount}`,
-                body: `${pending.full_name} • Plano ${pending.plan} (novo usuário)`,
+                title: `💰 Venda aprovada · R$ ${amount}`,
+                body: `${who} — ${planName} — ${method} (novo usuário)`,
                 url: "/admin/notificacoes",
                 data: {
                   kind: "purchase_new_user",
                   product_type: "subscription",
                   plan_slug: pending.plan,
+                  plan_name: planName,
+                  payment_method: method,
                   amount: Number(pending.price),
                   buyer_name: pending.full_name,
                   buyer_email: pending.email,
@@ -254,6 +261,7 @@ serve(async (req) => {
                 },
               }),
             });
+
 
             
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
