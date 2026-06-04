@@ -512,31 +512,15 @@ const AdminAssinaturasPage = () => {
 
               <div className="md:hidden space-y-4">
                 {(subs ?? []).map((sub) => (
-                  <div key={sub.id} className="rounded-lg border bg-card p-4 space-y-3">
+                  <div key={sub.id} className="rounded-lg border bg-card p-4 space-y-3 cursor-pointer active:bg-muted" onClick={() => navigate(`/admin/assinaturas/${sub.id}`)}>
                     <div className="flex justify-between items-start">
                       <div className="min-w-0">
                         <p className="font-bold truncate">{sub.profile?.name || sub.profile?.email || "—"}</p>
-                        <p className="text-xs text-muted-foreground">{sub.plan.toUpperCase()}</p>
+                        <p className="text-xs text-muted-foreground uppercase">{sub.plan}</p>
                       </div>
                       <Badge className={statusColors[sub.status] || "bg-muted"}>
                         {translateStatus(sub.status)}
                       </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t pt-3">
-                      <div>
-                        <p className="uppercase font-semibold">Valor</p>
-                        <p className="text-foreground">R$ {Number(sub.price || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="uppercase font-semibold">Expiração</p>
-                        <p className="text-foreground">{sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2 border-t">
-                       {sub.status === "active" && (
-                         <Button size="sm" variant="outline" onClick={() => cancelSub.mutate(sub.id)}><Ban className="h-4 w-4 mr-2" /> Cancelar</Button>
-                       )}
-                       <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteSub.mutate(sub.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 ))}
