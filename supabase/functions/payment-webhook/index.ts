@@ -63,6 +63,7 @@ serve(async (req) => {
     // ==== Notificar admin sobre status não-aprovados ====
     if (payment.status === "rejected" || payment.status === "cancelled") {
       try {
+        const amount = Number(payment.transaction_amount || 0).toFixed(2);
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -71,9 +72,17 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase_rejected",
-            title: "❌ Pagamento recusado",
-            body: `${payment.payer?.email || "Cliente"} — R$ ${Number(payment.transaction_amount || 0).toFixed(2)} (${payment.status_detail || payment.status})`,
-            url: "/admin/financeiro",
+            title: `❌ Pagamento recusado — R$ ${amount}`,
+            body: `${payment.payer?.email || "Cliente"} • ${payment.status_detail || payment.status}`,
+            url: "/admin/notificacoes",
+            data: {
+              kind: "purchase_rejected",
+              amount: Number(payment.transaction_amount || 0),
+              buyer_email: payment.payer?.email || null,
+              status_detail: payment.status_detail || payment.status,
+              mp_payment_id: payment.id,
+              external_reference: payment.external_reference || null,
+            },
           }),
         });
       } catch (err) {
@@ -83,6 +92,8 @@ serve(async (req) => {
 
     if (payment.status === "refunded" || payment.status === "charged_back") {
       try {
+        const amount = Number(payment.transaction_amount || 0).toFixed(2);
+        const refunded = payment.status === "refunded";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -91,9 +102,16 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase_refunded",
-            title: payment.status === "refunded" ? "↩️ Pagamento reembolsado" : "⚠️ Chargeback recebido",
-            body: `${payment.payer?.email || "Cliente"} — R$ ${Number(payment.transaction_amount || 0).toFixed(2)}`,
-            url: "/admin/financeiro",
+            title: refunded ? `↩️ Reembolso — R$ ${amount}` : `⚠️ Chargeback — R$ ${amount}`,
+            body: `${payment.payer?.email || "Cliente"}`,
+            url: "/admin/notificacoes",
+            data: {
+              kind: refunded ? "purchase_refunded" : "chargeback",
+              amount: Number(payment.transaction_amount || 0),
+              buyer_email: payment.payer?.email || null,
+              mp_payment_id: payment.id,
+              external_reference: payment.external_reference || null,
+            },
           }),
         });
       } catch (err) {
