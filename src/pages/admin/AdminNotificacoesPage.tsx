@@ -423,28 +423,37 @@ function EventCard({ log }: { log: any }) {
     : undefined;
   const wa = waLink(d.buyer_whatsapp, recoveryMsg);
   const sentOk = (log.sent ?? 0) > 0 && !log.error;
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="rounded-lg border border-border/60 p-4 space-y-3 bg-card">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2 min-w-0">
+      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-start justify-between gap-3 text-left">
+        <div className="flex items-start gap-2 min-w-0 flex-1">
           {sentOk ? (
             <CheckCircle2 className="h-4 w-4 text-green-500 mt-1 shrink-0" />
           ) : (
             <XCircle className="h-4 w-4 text-destructive mt-1 shrink-0" />
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold text-foreground truncate">{log.title || log.event_type}</span>
               <Badge variant={badge.variant}>{badge.label}</Badge>
+              {!open && d.buyer_name && <span className="text-xs text-muted-foreground truncate">· {d.buyer_name}</span>}
+              {!open && amount && <span className="text-xs font-medium text-foreground">· {amount}</span>}
             </div>
-            {log.body && <p className="text-sm text-muted-foreground mt-0.5">{log.body}</p>}
+            {open && log.body && <p className="text-sm text-muted-foreground mt-0.5">{log.body}</p>}
           </div>
         </div>
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {new Date(log.created_at).toLocaleString("pt-BR")}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-xs text-muted-foreground whitespace-nowrap">
+            {new Date(log.created_at).toLocaleString("pt-BR")}
+          </div>
+          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </div>
-      </div>
+      </button>
+
+      {open && (<>
+
 
       {(d.buyer_name || d.buyer_email || d.buyer_whatsapp || amount || product) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm rounded-md bg-muted/40 p-3">
