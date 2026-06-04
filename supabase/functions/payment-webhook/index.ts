@@ -537,10 +537,11 @@ serve(async (req) => {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("name, email")
+          .select("name, email, whatsapp")
           .eq("id", userId)
           .maybeSingle();
         const who = profile?.name || profile?.email || "Usuário";
+        const amount = Number(plan.price).toFixed(2);
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -549,9 +550,20 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase",
-            title: "💰 Compra aprovada",
-            body: `${who} ativou o plano ${planSlug} — R$ ${Number(plan.price).toFixed(2)}`,
-            url: "/admin/assinaturas",
+            title: `💰 Venda aprovada — R$ ${amount}`,
+            body: `${who} • Plano ${planSlug}`,
+            url: "/admin/notificacoes",
+            data: {
+              kind: "purchase_subscription",
+              product_type: "subscription",
+              plan_slug: planSlug,
+              amount: Number(plan.price),
+              buyer_name: profile?.name || null,
+              buyer_email: profile?.email || null,
+              buyer_whatsapp: profile?.whatsapp || null,
+              user_id: userId,
+              mp_payment_id: payment.id,
+            },
           }),
         });
       } catch (err) {
