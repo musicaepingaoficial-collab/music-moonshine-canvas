@@ -191,16 +191,15 @@ const AdminUsuariosPage = () => {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((user) => (
-                      <TableRow 
-                        key={user.id} 
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => navigate(`/admin/usuarios/${user.id}`)}
-                      >
+                    <TableRow 
+                      key={user.id} 
+                      className="hover:bg-muted/50 transition-colors"
+                    >
                         <TableCell className="font-black text-foreground uppercase tracking-tight">
                           <div className="flex flex-col">
                             <div className="flex items-center justify-between gap-2">
                               <span className="truncate">{user.name || "SEM NOME"}</span>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
+                              
                             </div>
                             <span className="text-[10px] font-bold text-primary lowercase md:hidden">
                               {user.assinaturas.find(s => s.status === "active")?.plan || "free"}
@@ -257,12 +256,11 @@ const AdminUsuariosPage = () => {
                 </Table>
                 
                 <div className="md:hidden space-y-2 pt-2">
-                  {filtered.map((user) => (
-                    <div 
-                      key={user.id} 
-                      className="rounded-xl border bg-card p-4 shadow-sm space-y-3 cursor-pointer active:bg-muted transition-colors" 
-                      onClick={() => navigate(`/admin/usuarios/${user.id}`)}
-                    >
+                {filtered.map((user) => (
+                  <div 
+                    key={user.id} 
+                    className="rounded-xl border bg-card p-4 shadow-sm space-y-3"
+                  >
                       <div className="flex justify-between items-start gap-3">
                         <div className="min-w-0 flex-1">
                           <p className="font-black text-foreground uppercase tracking-tight truncate leading-tight">
@@ -272,7 +270,7 @@ const AdminUsuariosPage = () => {
                             {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
                           </p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                        
                       </div>
                     </div>
                   ))}

@@ -418,13 +418,12 @@ const AdminAssinaturasPage = () => {
                   {(subs ?? []).map((sub) => (
                     <TableRow 
                       key={sub.id} 
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => navigate(`/admin/assinaturas/${sub.id}`)}
+                      className="hover:bg-muted/50 transition-colors"
                     >
                       <TableCell>
                         <div className="flex items-center justify-between gap-2 max-w-[200px]">
                           <span className="text-foreground font-bold truncate">{sub.profile?.name || sub.profile?.email || "—"}</span>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
+                          
                         </div>
                       </TableCell>
                       {showPending && (
@@ -514,8 +513,7 @@ const AdminAssinaturasPage = () => {
                 {(subs ?? []).map((sub) => (
                   <div 
                     key={sub.id} 
-                    className="rounded-xl border bg-card p-4 shadow-sm space-y-3 cursor-pointer active:bg-muted transition-colors" 
-                    onClick={() => navigate(`/admin/assinaturas/${sub.id}`)}
+                    className="rounded-xl border bg-card p-4 shadow-sm space-y-3"
                   >
                     <div className="flex justify-between items-start gap-3">
                       <div className="min-w-0 flex-1">
@@ -531,7 +529,7 @@ const AdminAssinaturasPage = () => {
                           </Badge>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                      
                     </div>
                   </div>
                 ))}
