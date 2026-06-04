@@ -249,118 +249,173 @@ const AdminDashboardPage = () => {
 
       {!isLoading && stats && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-xl bg-card p-6">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">Últimos cadastros</h2>
-            <div className="space-y-3">
-              {stats.recentUsers.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum usuário cadastrado.</p>
-              ) : (
-                stats.recentUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
-                    <div>
-                      <span className="text-sm text-foreground">{user.name || user.email}</span>
-                      {user.name && <p className="text-xs text-muted-foreground">{user.email}</p>}
+          {/* Recent Registrations */}
+          <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/10">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-500" />
+                Últimos Cadastros
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 px-4">
+              <div className="space-y-2">
+                {stats.recentUsers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center bg-muted/20 rounded-xl border border-dashed">Nenhum usuário recente.</p>
+                ) : (
+                  stats.recentUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between rounded-xl bg-muted/30 px-4 py-3 hover:bg-muted/50 transition-colors">
+                      <div className="min-w-0">
+                        <span className="text-sm font-semibold text-foreground truncate block">{user.name || "Sem Nome"}</span>
+                        <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-medium border-border/50">
+                        {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                      </Badge>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(user.created_at).toLocaleDateString("pt-BR")}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="rounded-xl bg-card p-4 sm:p-6 overflow-hidden">
-            <h2 className="mb-4 text-lg font-semibold text-foreground flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" />
-              Usuários Online
-            </h2>
-            <div className="space-y-3">
-              {!onlineUsers || onlineUsers.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Ninguém online no momento.</p>
-              ) : (
-                onlineUsers.map((u: any) => (
-                  <div key={u.user_id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
-                    <div className="min-w-0 flex-1 pr-4">
-                      <span className="text-sm font-medium text-foreground block truncate">
-                        {(u.profiles as any)?.name || (u.profiles as any)?.email || "Anônimo"}
-                      </span>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {u.path} • {new Date(u.last_seen_at).toLocaleTimeString("pt-BR")}
-                      </p>
+          {/* Online Users List */}
+          <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/10">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Activity className="h-5 w-5 text-orange-500" />
+                Sessões Ativas
+              </CardTitle>
+              <Badge variant="secondary" className="bg-orange-500/10 text-orange-500 border-none animate-pulse">
+                AO VIVO
+              </Badge>
+            </CardHeader>
+            <CardContent className="pt-4 px-4">
+              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1 scrollbar-thin">
+                {!onlineUsers || onlineUsers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center bg-muted/20 rounded-xl border border-dashed">Ninguém online no momento.</p>
+                ) : (
+                  onlineUsers.map((u: any) => (
+                    <div key={u.user_id} className="flex items-center justify-between rounded-xl bg-muted/30 px-4 py-3 hover:bg-muted/50 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-foreground truncate block">
+                          {(u.profiles as any)?.name || (u.profiles as any)?.email || "Usuário Anônimo"}
+                        </span>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                           <MousePointer2 className="h-3 w-3" />
+                           <span className="truncate">{u.path || '/'}</span>
+                           <span>•</span>
+                           <span>{new Date(u.last_seen_at).toLocaleTimeString("pt-BR")}</span>
+                        </div>
+                      </div>
+                      <div className="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)] ml-4" />
                     </div>
-                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse flex-shrink-0" />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="rounded-xl bg-card p-6">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">Status dos Drives</h2>
-            <div className="space-y-3">
-              {stats.drives.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum drive configurado.</p>
-              ) : (
-                stats.drives.map((drive) => (
-                  <div key={drive.name} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
-                    <span className="text-sm text-foreground">{drive.name}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground">{drive.usage_percent}%</span>
-                      <span className={`text-xs font-medium ${drive.status === "online" ? "text-primary" : "text-destructive"}`}>
-                        {drive.status}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {stats.popularTracks.length > 0 && (
-            <div className="rounded-xl bg-card p-6 lg:col-span-2">
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Músicas mais baixadas</h2>
+          {/* Infrastructure Health */}
+          <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+            <CardHeader className="pb-2 border-b border-border/10">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <HardDrive className="h-5 w-5 text-slate-500" />
+                Status da Infraestrutura
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 px-4">
               <div className="space-y-3">
-                {stats.popularTracks.map((track, i) => (
-                  <div key={track.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-primary w-5">{i + 1}</span>
-                      <div>
-                        <p className="text-sm text-foreground">{track.title}</p>
-                        <p className="text-xs text-muted-foreground">{track.artist}</p>
+                {stats.drives.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center bg-muted/20 rounded-xl border border-dashed">Nenhum drive monitorado.</p>
+                ) : (
+                  stats.drives.map((drive) => (
+                    <div key={drive.name} className="flex flex-col gap-2 rounded-xl bg-muted/30 p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-foreground">{drive.name}</span>
+                        <Badge 
+                          className={drive.status === "online" 
+                            ? "bg-emerald-500/10 text-emerald-500 border-none font-bold" 
+                            : "bg-destructive/10 text-destructive border-none font-bold"}
+                        >
+                          {drive.status.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <div className="w-full bg-background/50 rounded-full h-2 overflow-hidden border border-border/10">
+                        <div 
+                          className={`h-full transition-all duration-1000 ${
+                            drive.usage_percent > 90 ? 'bg-destructive' : drive.usage_percent > 70 ? 'bg-orange-500' : 'bg-primary'
+                          }`}
+                          style={{ width: `${drive.usage_percent}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] font-medium text-muted-foreground">
+                        <span>Espaço Utilizado</span>
+                        <span>{drive.usage_percent}%</span>
                       </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{track.download_count} downloads</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
+
+          {/* Popular Content */}
+          {stats.popularTracks.length > 0 && (
+            <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden lg:col-span-1">
+              <CardHeader className="pb-2 border-b border-border/10">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Music className="h-5 w-5 text-pink-500" />
+                  Músicas em Destaque
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 px-4">
+                <div className="space-y-2">
+                  {stats.popularTracks.map((track, i) => (
+                    <div key={track.id} className="flex items-center justify-between rounded-xl bg-muted/30 px-4 py-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-black text-pink-500">{i + 1}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate">{track.title}</p>
+                          <p className="text-[10px] text-muted-foreground truncate uppercase font-medium">{track.artist}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs font-black text-foreground">{track.download_count}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Downloads</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
 
-      {/* Usage Graph */}
-      <Card className="border-0 shadow-sm overflow-hidden w-full">
-        <CardHeader className="pb-2 px-4 flex flex-row items-center justify-between space-y-0">
+      {/* Usage Graph Section */}
+      <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+        <CardHeader className="pb-2 px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/10">
           <div className="space-y-1">
-            <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
-              Picos de Acessos
+            <CardTitle className="text-xl font-black flex items-center gap-2 tracking-tight">
+              <Activity className="h-6 w-6 text-primary" />
+              Volume de Tráfego
             </CardTitle>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Monitoramento histórico de carga</p>
+            <p className="text-xs text-muted-foreground font-medium">Histórico detalhado de usuários simultâneos</p>
           </div>
           <Tabs 
             defaultValue="day" 
-            className="w-[180px]" 
+            className="w-full sm:w-[200px]" 
             onValueChange={(v) => setTimeRange(v as "day" | "week")}
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="day" className="text-xs">Dia</TabsTrigger>
-              <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
+              <TabsTrigger value="day" className="text-xs font-bold uppercase tracking-wider data-[state=active]:bg-card data-[state=active]:shadow-sm">Dia</TabsTrigger>
+              <TabsTrigger value="week" className="text-xs font-bold uppercase tracking-wider data-[state=active]:bg-card data-[state=active]:shadow-sm">Semana</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
-        <CardContent className="h-[250px] sm:h-[300px] w-full pt-4 px-2">
+        <CardContent className="h-[300px] sm:h-[400px] w-full pt-8 pb-4 px-2 sm:px-6">
           {usageMetrics && usageMetrics.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={usageMetrics}>
