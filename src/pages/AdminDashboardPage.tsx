@@ -124,6 +124,7 @@ const AdminDashboardPage = () => {
         { label: "Online Agora", value: String(onlineUsers?.length || 0), icon: Activity, change: "Em tempo real" },
         { label: "Músicas", value: stats.totalMusicas.toLocaleString("pt-BR"), icon: Music, change: "" },
         { label: "Assinantes ativos", value: stats.activeSubscriptions.toLocaleString("pt-BR"), icon: TrendingUp, change: "" },
+        { label: "Visitas Vendas", value: salesStats?.toLocaleString("pt-BR") || "0", icon: TrendingUp, change: "" },
       ]
     : [];
 
