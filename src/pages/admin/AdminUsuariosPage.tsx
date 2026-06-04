@@ -193,7 +193,8 @@ const AdminUsuariosPage = () => {
                     {filtered.map((user) => (
                     <TableRow 
                       key={user.id} 
-                      className="hover:bg-muted/50 transition-colors"
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/admin/usuarios/${user.id}`)}
                     >
                         <TableCell className="font-black text-foreground uppercase tracking-tight">
                           <div className="flex flex-col">
@@ -259,7 +260,8 @@ const AdminUsuariosPage = () => {
                 {filtered.map((user) => (
                   <div 
                     key={user.id} 
-                    className="rounded-xl border bg-card p-4 shadow-sm space-y-3"
+                    className="rounded-xl border bg-card p-4 shadow-sm space-y-3 cursor-pointer active:bg-muted transition-colors" 
+                    onClick={() => navigate(`/admin/usuarios/${user.id}`)}
                   >
                       <div className="flex justify-between items-start gap-3">
                         <div className="min-w-0 flex-1">
