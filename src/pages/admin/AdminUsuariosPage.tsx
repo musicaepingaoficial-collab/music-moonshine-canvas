@@ -253,7 +253,7 @@ const AdminUsuariosPage = () => {
               
               <div className="md:hidden space-y-4">
                 {filtered.map((user) => (
-                  <div key={user.id} className="rounded-lg border bg-card p-4 space-y-3">
+                  <div key={user.id} className="rounded-lg border bg-card p-4 space-y-3 cursor-pointer active:bg-muted" onClick={() => navigate(`/admin/usuarios/${user.id}`)}>
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-bold">{user.name || "—"}</p>
@@ -262,20 +262,6 @@ const AdminUsuariosPage = () => {
                       <Badge className={user.assinaturas.some(s => s.status === "active") ? "bg-primary/20 text-primary" : "bg-secondary"}>
                         {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
                       </Badge>
-                    </div>
-                    <div className="flex justify-between items-center pt-2 border-t">
-                      <div className="flex items-center gap-2">
-                        <Switch 
-                          checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
-                          disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
-                          onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
-                        />
-                        <span className="text-xs text-muted-foreground">Discografias</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => setViewTarget(user)}><Eye className="h-4 w-4"/></Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setDeleteTarget(user); setConfirmText(""); }}><Trash2 className="h-4 w-4"/></Button>
-                      </div>
                     </div>
                   </div>
                 ))}
