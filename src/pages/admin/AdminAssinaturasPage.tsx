@@ -357,6 +357,7 @@ const AdminAssinaturasPage = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
