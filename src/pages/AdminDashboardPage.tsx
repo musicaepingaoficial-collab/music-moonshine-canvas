@@ -24,10 +24,8 @@ const AdminDashboardPage = () => {
       const now = new Date();
       const startTime = new Date();
       if (salesTimeRange === "day") {
-        // Use a true 24h window or start of current day?
-        // Let's use 24h window for more dynamic data, or start of day if preferred.
-        // The user asked for "no dia" (on the day), usually means since 00:00.
-        startTime.setHours(0, 0, 0, 0);
+        // Use a true 24h window
+        startTime.setHours(now.getHours() - 24);
       } else if (salesTimeRange === "week") {
         startTime.setDate(now.getDate() - 7);
       } else {
