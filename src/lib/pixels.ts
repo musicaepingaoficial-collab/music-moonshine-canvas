@@ -220,6 +220,18 @@ export function dispatchEvent(
   const { settings, debug, noCapi } = opts;
   if (!settings) return;
 
+  // Auto-merge cached identity (external_id/email/phone/name) so every event
+  // carries matching parameters. Explicit payload values win.
+  const u = cachedUserData;
+  payload = {
+    external_id: payload.external_id ?? u.external_id,
+    email: payload.email ?? u.email,
+    phone: payload.phone ?? u.phone,
+    first_name: payload.first_name ?? u.first_name,
+    last_name: payload.last_name ?? u.last_name,
+    ...payload,
+  };
+
   const marketingOk = isCategoryAllowed("marketing");
   const analyticsOk = isCategoryAllowed("analytics");
 
