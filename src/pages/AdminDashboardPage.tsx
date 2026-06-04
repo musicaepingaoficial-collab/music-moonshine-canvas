@@ -8,9 +8,12 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
 
 const AdminDashboardPage = () => {
   const { data: stats, isLoading, error, refetch } = useAdminStats();
+  const [timeRange, setTimeRange] = useState<"day" | "week">("day");
   const { data: onlineUsers, isLoading: loadingOnline } = useQuery({
     queryKey: ["online-users"],
     queryFn: async () => {
@@ -31,20 +34,62 @@ const AdminDashboardPage = () => {
   });
 
   const { data: usageMetrics } = useQuery({
-    queryKey: ["usage-metrics"],
+    queryKey: ["usage-metrics", timeRange],
     queryFn: async () => {
+      const now = new Date();
+      const startTime = new Date();
+      
+      if (timeRange === "day") {
+        startTime.setHours(startTime.getHours() - 24);
+      } else {
+        startTime.setDate(startTime.getDate() - 7);
+      }
+
       const { data, error } = await supabase
         .from("usage_metrics")
         .select("*")
-        .order("timestamp", { ascending: true })
-        .limit(50);
+        .gte("timestamp", startTime.toISOString())
+        .order("timestamp", { ascending: true });
+
       if (error) throw error;
-      return data.map(m => ({
-        time: new Date(m.timestamp).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }),
-        count: m.online_count
-      }));
+
+      if (timeRange === "day") {
+        // Group by hour for the day view to keep the chart clean
+        const hourlyData: Record<string, { count: number, total: number }> = {};
+        data.forEach(m => {
+          const date = new Date(m.timestamp);
+          const hourKey = date.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '00' });
+          if (!hourlyData[hourKey]) {
+            hourlyData[hourKey] = { count: 0, total: 0 };
+          }
+          hourlyData[hourKey].total += m.online_count;
+          hourlyData[hourKey].count += 1;
+        });
+
+        return Object.entries(hourlyData).map(([time, stats]) => ({
+          time,
+          count: Math.round(stats.total / stats.count)
+        }));
+      } else {
+        // Group by day for the week view
+        const dailyData: Record<string, { count: number, total: number }> = {};
+        data.forEach(m => {
+          const date = new Date(m.timestamp);
+          const dayKey = date.toLocaleDateString("pt-BR", { weekday: 'short', day: '2-digit' });
+          if (!dailyData[dayKey]) {
+            dailyData[dayKey] = { count: 0, total: 0 };
+          }
+          dailyData[dayKey].total += m.online_count;
+          dailyData[dayKey].count += 1;
+        });
+
+        return Object.entries(dailyData).map(([time, stats]) => ({
+          time,
+          count: Math.round(stats.total / stats.count)
+        }));
+      }
     },
-    refetchInterval: 60000,
+    refetchInterval: timeRange === "day" ? 60000 : 300000,
   });
 
   const isNearLimit = (onlineUsers?.length || 0) >= 40;
@@ -193,12 +238,24 @@ const AdminDashboardPage = () => {
 
       {/* Usage Graph */}
       <Card className="border-0 shadow-sm overflow-hidden w-full">
-        <CardHeader className="pb-2 px-4">
-          <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            Picos de Acessos
-          </CardTitle>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Monitoramento histórico de carga</p>
+        <CardHeader className="pb-2 px-4 flex flex-row items-center justify-between space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Picos de Acessos
+            </CardTitle>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Monitoramento histórico de carga</p>
+          </div>
+          <Tabs 
+            defaultValue="day" 
+            className="w-[180px]" 
+            onValueChange={(v) => setTimeRange(v as "day" | "week")}
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="day" className="text-xs">Dia</TabsTrigger>
+              <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent className="h-[250px] sm:h-[300px] w-full pt-4 px-2">
           {usageMetrics && usageMetrics.length > 0 ? (
