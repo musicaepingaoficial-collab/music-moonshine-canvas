@@ -396,8 +396,8 @@ const AdminAssinaturasPage = () => {
             <EmptyState icon={CreditCard} title="Nenhuma assinatura" description="Ainda não há assinaturas registradas." />
           ) : (
             <div className="overflow-hidden">
-              <Table className="w-full">
-                <TableHeader className="hidden md:table-header-group">
+              <Table className="w-full hidden md:table">
+                <TableHeader>
                   <TableRow>
                     <TableHead>Usuário</TableHead>
                     {showPending && (
@@ -510,17 +510,28 @@ const AdminAssinaturasPage = () => {
                 </TableBody>
               </Table>
 
-              <div className="md:hidden space-y-4">
+              <div className="md:hidden space-y-2">
                 {(subs ?? []).map((sub) => (
-                  <div key={sub.id} className="rounded-lg border bg-card p-4 space-y-3 cursor-pointer active:bg-muted" onClick={() => navigate(`/admin/assinaturas/${sub.id}`)}>
-                    <div className="flex justify-between items-start">
-                      <div className="min-w-0">
-                        <p className="font-bold truncate">{sub.profile?.name || sub.profile?.email || "—"}</p>
-                        <p className="text-xs text-muted-foreground uppercase">{sub.plan}</p>
+                  <div 
+                    key={sub.id} 
+                    className="rounded-xl border bg-card p-4 shadow-sm space-y-3 cursor-pointer active:bg-muted transition-colors" 
+                    onClick={() => navigate(`/admin/assinaturas/${sub.id}`)}
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black text-foreground uppercase tracking-tight truncate leading-tight">
+                          {sub.profile?.name || sub.profile?.email || "SEM NOME"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs font-bold text-primary uppercase">
+                            {sub.plan}
+                          </p>
+                          <Badge className={`text-[10px] border-0 px-2 h-4 ${statusColors[sub.status] || "bg-muted text-muted-foreground"}`}>
+                            {translateStatus(sub.status)}
+                          </Badge>
+                        </div>
                       </div>
-                      <Badge className={statusColors[sub.status] || "bg-muted"}>
-                        {translateStatus(sub.status)}
-                      </Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
                     </div>
                   </div>
                 ))}
