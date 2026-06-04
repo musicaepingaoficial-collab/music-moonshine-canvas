@@ -395,8 +395,8 @@ const AdminAssinaturasPage = () => {
           ) : (subs ?? []).length === 0 ? (
             <EmptyState icon={CreditCard} title="Nenhuma assinatura" description="Ainda não há assinaturas registradas." />
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="hidden md:table">
+            <div className="overflow-hidden">
+              <Table className="w-full">
                 <TableHeader className="hidden md:table-header-group">
                   <TableRow>
                     <TableHead>Usuário</TableHead>
