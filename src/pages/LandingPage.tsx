@@ -180,15 +180,18 @@ export default function LandingPage() {
     
     // Track page view in the database for admin stats
     const recordPageView = async () => {
+      console.log("Attempting to record page view...");
       try {
-        const { error } = await supabase.from("sales_page_views").insert({
+        const { error, data } = await supabase.from("sales_page_views").insert({
           user_id: user?.id,
           user_agent: navigator.userAgent,
           referrer: document.referrer
-        });
+        }).select();
         
         if (error) {
           console.error("Supabase error tracking view:", error);
+        } else {
+          console.log("Page view recorded successfully:", data);
         }
       } catch (err) {
         console.error("Erro ao registrar visualização da página:", err);
