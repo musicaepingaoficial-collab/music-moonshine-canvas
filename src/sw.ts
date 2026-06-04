@@ -60,13 +60,13 @@ self.addEventListener("push", (event: PushEvent) => {
     payload = { title: "Notificação", body: event.data?.text() || "" };
   }
 
-  const title = payload.title || "Nova notificação";
+  const title = payload.title || "Repertório • Notificação";
   const options: NotificationOptions = {
     body: payload.body || "",
     icon: payload.icon || "/pwa-icon-192.png",
     badge: payload.badge || "/pwa-icon-192.png",
     tag: payload.tag,
-    data: { url: payload.url || "/admin", ...(payload.data || {}) },
+    data: { url: payload.url || "/admin/notificacoes", ...(payload.data || {}) },
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -74,7 +74,7 @@ self.addEventListener("push", (event: PushEvent) => {
 
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
-  const url = (event.notification.data?.url as string) || "/admin";
+  const url = (event.notification.data?.url as string) || "/admin/notificacoes";
 
   event.waitUntil(
     (async () => {

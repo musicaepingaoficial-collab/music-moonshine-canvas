@@ -100,7 +100,9 @@ export type Database = {
       }
       admin_push_logs: {
         Row: {
+          body: string | null
           created_at: string
+          data: Json
           error: string | null
           event_type: string
           id: string
@@ -108,9 +110,12 @@ export type Database = {
           sent: number | null
           title: string | null
           total_subs: number | null
+          url: string | null
         }
         Insert: {
+          body?: string | null
           created_at?: string
+          data?: Json
           error?: string | null
           event_type: string
           id?: string
@@ -118,9 +123,12 @@ export type Database = {
           sent?: number | null
           title?: string | null
           total_subs?: number | null
+          url?: string | null
         }
         Update: {
+          body?: string | null
           created_at?: string
+          data?: Json
           error?: string | null
           event_type?: string
           id?: string
@@ -128,6 +136,7 @@ export type Database = {
           sent?: number | null
           title?: string | null
           total_subs?: number | null
+          url?: string | null
         }
         Relationships: []
       }

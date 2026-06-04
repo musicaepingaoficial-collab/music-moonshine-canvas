@@ -324,6 +324,8 @@ serve(async (req) => {
 
     if (isPix && transactionData.qr_code) {
       try {
+        const amount = Number(selectedPlan.price).toFixed(2);
+        const buyerName = `${firstName} ${lastName}`.trim();
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -332,9 +334,24 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "pix_generated",
-            title: "🟢 Novo PIX Gerado",
-            body: `${firstName} ${lastName} — Plano ${selectedPlan.slug} (R$ ${Number(selectedPlan.price).toFixed(2)})`,
-            url: "/admin/assinaturas",
+            title: `🟢 PIX gerado — R$ ${amount}`,
+            body: `${buyerName} • Plano ${selectedPlan.name}`,
+            url: "/admin/notificacoes",
+            data: {
+              kind: "pix_generated",
+              product_type: "subscription",
+              plan_slug: selectedPlan.slug,
+              plan_name: selectedPlan.name,
+              amount: Number(selectedPlan.price),
+              buyer_name: buyerName,
+              buyer_email: payerEmail,
+              buyer_whatsapp: payerPhone,
+              buyer_cpf: payerCpf,
+              user_id: user?.id || null,
+              pending_id: pendingId,
+              mp_payment_id: mpData?.id || null,
+              anonymous: !!anonymous,
+            },
           }),
         });
       } catch (err) {

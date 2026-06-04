@@ -12,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle } from "lucide-react";
+import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle, Copy, MessageCircle, Mail, User, DollarSign, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 
 const NOTIFICATION_TYPES = [
@@ -229,9 +230,9 @@ const AdminNotificacoesPage = () => {
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" /> Histórico de envios
+              <History className="h-5 w-5" /> Eventos recentes
             </CardTitle>
-            <CardDescription>Últimas 20 notificações push disparadas para os admins.</CardDescription>
+            <CardDescription>Todas as vendas e PIX gerados — com dados para recuperação.</CardDescription>
           </div>
           <Button variant="ghost" size="sm" onClick={loadLogs} disabled={loadingLogs}>
             Atualizar
@@ -239,34 +240,10 @@ const AdminNotificacoesPage = () => {
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum envio registrado ainda.</p>
+            <p className="text-sm text-muted-foreground">Nenhum evento registrado ainda.</p>
           ) : (
-            <div className="space-y-2">
-              {logs.map((l) => {
-                const ok = (l.sent ?? 0) > 0 && !l.error;
-                return (
-                  <div key={l.id} className="flex items-start justify-between gap-3 rounded-md border border-border/50 p-3 text-sm">
-                    <div className="flex items-start gap-2 min-w-0">
-                      {ok ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{l.title || l.event_type}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {l.event_type} · enviados {l.sent ?? 0}/{l.total_subs ?? 0}
-                          {l.removed ? ` · removidos ${l.removed}` : ""}
-                          {l.error ? ` · erro: ${l.error}` : ""}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(l.created_at).toLocaleString("pt-BR")}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="space-y-3">
+              {logs.map((l) => <EventCard key={l.id} log={l} />)}
             </div>
           )}
         </CardContent>
@@ -274,5 +251,141 @@ const AdminNotificacoesPage = () => {
     </div>
   );
 };
+
+// ───────── Event card ─────────
+function digits(s?: string | null) {
+  return (s || "").replace(/\D/g, "");
+}
+function waLink(phone?: string | null, msg?: string) {
+  const d = digits(phone);
+  if (!d) return null;
+  const num = d.startsWith("55") ? d : `55${d}`;
+  return `https://wa.me/${num}${msg ? `?text=${encodeURIComponent(msg)}` : ""}`;
+}
+function copy(value: string, label = "Copiado") {
+  navigator.clipboard?.writeText(value).then(() => toast({ title: label }));
+}
+function eventBadge(kind?: string): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } {
+  switch (kind) {
+    case "pix_generated": return { label: "PIX gerado", variant: "secondary" };
+    case "purchase_subscription":
+    case "purchase_new_user":
+    case "purchase_module":
+    case "purchase_pdf": return { label: "Venda aprovada", variant: "default" };
+    case "purchase_rejected": return { label: "Recusado", variant: "destructive" };
+    case "purchase_refunded": return { label: "Reembolso", variant: "destructive" };
+    case "chargeback": return { label: "Chargeback", variant: "destructive" };
+    default: return { label: "Evento", variant: "outline" };
+  }
+}
+
+function EventCard({ log }: { log: any }) {
+  const d = log.data || {};
+  const isPix = d.kind === "pix_generated";
+  const amount = typeof d.amount === "number"
+    ? d.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+    : null;
+  const badge = eventBadge(d.kind);
+  const product = d.plan_name || d.plan_slug || d.pdf_title || (d.module ? `Módulo ${d.module}` : null);
+  const recoveryMsg = isPix && d.buyer_name
+    ? `Olá ${String(d.buyer_name).split(" ")[0]}, vimos que você gerou um PIX${product ? ` do ${product}` : ""}${amount ? ` no valor de ${amount}` : ""} e ainda não foi pago. Posso te ajudar a finalizar?`
+    : undefined;
+  const wa = waLink(d.buyer_whatsapp, recoveryMsg);
+  const sentOk = (log.sent ?? 0) > 0 && !log.error;
+
+  return (
+    <div className="rounded-lg border border-border/60 p-4 space-y-3 bg-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2 min-w-0">
+          {sentOk ? (
+            <CheckCircle2 className="h-4 w-4 text-green-500 mt-1 shrink-0" />
+          ) : (
+            <XCircle className="h-4 w-4 text-destructive mt-1 shrink-0" />
+          )}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-foreground truncate">{log.title || log.event_type}</span>
+              <Badge variant={badge.variant}>{badge.label}</Badge>
+            </div>
+            {log.body && <p className="text-sm text-muted-foreground mt-0.5">{log.body}</p>}
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground whitespace-nowrap">
+          {new Date(log.created_at).toLocaleString("pt-BR")}
+        </div>
+      </div>
+
+      {(d.buyer_name || d.buyer_email || d.buyer_whatsapp || amount || product) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm rounded-md bg-muted/40 p-3">
+          {d.buyer_name && (
+            <div className="flex items-center gap-2 min-w-0">
+              <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="truncate">{d.buyer_name}</span>
+            </div>
+          )}
+          {product && (
+            <div className="flex items-center gap-2 min-w-0">
+              <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="truncate">{product}</span>
+            </div>
+          )}
+          {amount && (
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="font-medium">{amount}</span>
+            </div>
+          )}
+          {d.buyer_email && (
+            <div className="flex items-center gap-2 min-w-0">
+              <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <button onClick={() => copy(d.buyer_email, "E-mail copiado")} className="truncate hover:underline text-left">
+                {d.buyer_email}
+              </button>
+            </div>
+          )}
+          {d.buyer_whatsapp && (
+            <div className="flex items-center gap-2 min-w-0">
+              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <button onClick={() => copy(d.buyer_whatsapp, "WhatsApp copiado")} className="truncate hover:underline text-left">
+                {d.buyer_whatsapp}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(wa || d.claim_link || d.mp_payment_id) && (
+        <div className="flex flex-wrap gap-2">
+          {wa && (
+            <Button asChild size="sm" variant={isPix ? "default" : "outline"}>
+              <a href={wa} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+                {isPix ? "Recuperar no WhatsApp" : "Falar no WhatsApp"}
+              </a>
+            </Button>
+          )}
+          {d.claim_link && (
+            <Button size="sm" variant="outline" onClick={() => copy(d.claim_link, "Link de finalização copiado")}>
+              <Copy className="h-3.5 w-3.5 mr-1.5" />
+              Link de finalização
+            </Button>
+          )}
+          {d.mp_payment_id && (
+            <Button size="sm" variant="ghost" onClick={() => copy(String(d.mp_payment_id), "ID do pagamento copiado")}>
+              <Copy className="h-3.5 w-3.5 mr-1.5" />
+              #{d.mp_payment_id}
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="text-xs text-muted-foreground">
+        Push: {log.sent ?? 0}/{log.total_subs ?? 0}
+        {log.removed ? ` · ${log.removed} expirados` : ""}
+        {log.error ? ` · erro: ${log.error}` : ""}
+      </div>
+    </div>
+  );
+}
 
 export default AdminNotificacoesPage;
