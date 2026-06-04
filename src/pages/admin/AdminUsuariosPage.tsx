@@ -178,15 +178,15 @@ const AdminUsuariosPage = () => {
           ) : (
             <div className="overflow-x-auto">
               <Table className="hidden md:table">
-                <TableHeader>
+                <TableHeader className="hidden md:table-header-group">
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Email / WhatsApp</TableHead>
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Discografias</TableHead>
-                    <TableHead>Cadastro</TableHead>
-                    <TableHead>Indicação de</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="hidden md:table-cell">Email / WhatsApp</TableHead>
+                    <TableHead className="hidden lg:table-cell">Plano</TableHead>
+                    <TableHead className="hidden xl:table-cell">Discografias</TableHead>
+                    <TableHead className="hidden lg:table-cell">Cadastro</TableHead>
+                    <TableHead className="hidden md:table-cell">Indicação de</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
