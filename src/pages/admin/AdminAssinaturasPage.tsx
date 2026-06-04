@@ -416,39 +416,44 @@ const AdminAssinaturasPage = () => {
                 </TableHeader>
                 <TableBody>
                   {(subs ?? []).map((sub) => (
-                    <TableRow key={sub.id}>
+                    <TableRow 
+                      key={sub.id} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/admin/assinaturas/${sub.id}`)}
+                    >
                       <TableCell>
-                        <div className="max-w-[150px] truncate">
-                          <span className="text-foreground">{sub.profile?.name || sub.profile?.email || "—"}</span>
+                        <div className="flex items-center justify-between gap-2 max-w-[200px]">
+                          <span className="text-foreground font-bold truncate">{sub.profile?.name || sub.profile?.email || "—"}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
                         </div>
                       </TableCell>
                       {showPending && (
                         <>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="text-muted-foreground hidden md:table-cell">
                             <div className="flex flex-col text-[10px]">
                               <span className="font-medium text-foreground">{sub.whatsapp || "—"}</span>
                               <span className="truncate max-w-[80px]">{sub.cpf || "—"}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-[10px] uppercase text-muted-foreground">
+                          <TableCell className="text-[10px] uppercase text-muted-foreground hidden lg:table-cell">
                             {sub.payment_method || "—"}
                           </TableCell>
                         </>
                       )}
-                      <TableCell className="font-medium text-foreground uppercase text-xs">{sub.plan}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-foreground uppercase text-xs hidden sm:table-cell">{sub.plan}</TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Badge className={`border-0 text-[10px] ${statusColors[sub.status] || "bg-muted text-muted-foreground"}`}>
                           {translateStatus(sub.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap hidden lg:table-cell">
                         R$ {Number(sub.price || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap hidden xl:table-cell">
                         {sub.starts_at ? new Date(sub.starts_at).toLocaleDateString("pt-BR") : new Date(sub.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
                       {!showPending && (
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap hidden xl:table-cell">
                           {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}
                         </TableCell>
                       )}
