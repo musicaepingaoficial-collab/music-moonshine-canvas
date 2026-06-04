@@ -1,6 +1,6 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Users, Music, DollarSign, TrendingUp, Loader2, Activity } from "lucide-react";
-import { motion } from "framer-motion";
-import { useAdminStats } from "@/hooks/useAdminStats";
 import { StatCardSkeleton } from "@/components/ui/Skeletons";
 import { ErrorState } from "@/components/ui/ErrorState";
 
