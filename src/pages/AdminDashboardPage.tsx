@@ -27,19 +27,8 @@ const AdminDashboardPage = () => {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 30000, // Update every 30s
+    refetchInterval: 30000,
   });
-
-  console.log("[AdminDashboard:render]", { isLoading, hasError: !!error });
-
-  const statCards = stats
-    ? [
-        { label: "Usuários", value: stats.totalUsers.toLocaleString("pt-BR"), icon: Users, change: "" },
-        { label: "Online Agora", value: String(onlineUsers?.length || 0), icon: Activity, change: "Em tempo real" },
-        { label: "Músicas", value: stats.totalMusicas.toLocaleString("pt-BR"), icon: Music, change: "" },
-        { label: "Assinantes ativos", value: stats.activeSubscriptions.toLocaleString("pt-BR"), icon: TrendingUp, change: "" },
-      ]
-    : [];
 
   const { data: usageMetrics } = useQuery({
     queryKey: ["usage-metrics"],
@@ -59,6 +48,15 @@ const AdminDashboardPage = () => {
   });
 
   const isNearLimit = (onlineUsers?.length || 0) >= 40;
+
+  const statCards = stats
+    ? [
+        { label: "Usuários", value: stats.totalUsers.toLocaleString("pt-BR"), icon: Users, change: "" },
+        { label: "Online Agora", value: String(onlineUsers?.length || 0), icon: Activity, change: "Em tempo real" },
+        { label: "Músicas", value: stats.totalMusicas.toLocaleString("pt-BR"), icon: Music, change: "" },
+        { label: "Assinantes ativos", value: stats.activeSubscriptions.toLocaleString("pt-BR"), icon: TrendingUp, change: "" },
+      ]
+    : [];
 
   return (
     <div className="space-y-8">
@@ -183,7 +181,13 @@ const AdminDashboardPage = () => {
                         <p className="text-sm text-foreground">{track.title}</p>
                         <p className="text-xs text-muted-foreground">{track.artist}</p>
                       </div>
-          </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{track.download_count} downloads</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
