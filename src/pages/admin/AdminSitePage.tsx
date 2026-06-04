@@ -172,18 +172,18 @@ const AdminSitePage = () => {
         <TabsContent value="geral" className="space-y-6 animate-in fade-in-50 duration-300">
           <Card className="border-border shadow-sm overflow-hidden">
             <CardHeader className="bg-muted/30 border-b border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Comunicação & Status</CardTitle>
-                  <CardDescription>Defina o contato oficial e o estado do sistema.</CardDescription>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-lg">Comunicação & Status</CardTitle>
+                    <CardDescription className="text-xs">Contato oficial e estado do sistema.</CardDescription>
+                  </div>
+                  <div className="flex items-center justify-between sm:justify-start gap-3 bg-card p-2 px-3 rounded-full border border-border shadow-inner">
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${maintenance ? "text-destructive" : "text-emerald-500"}`}>
+                      {maintenance ? "Manutenção" : "Online"}
+                    </span>
+                    <Switch checked={maintenance} onCheckedChange={setMaintenance} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 bg-card p-2 px-3 rounded-full border border-border shadow-inner">
-                  <span className={`text-xs font-black uppercase tracking-widest ${maintenance ? "text-destructive" : "text-emerald-500"}`}>
-                    {maintenance ? "Modo Manutenção" : "Online"}
-                  </span>
-                  <Switch checked={maintenance} onCheckedChange={setMaintenance} />
-                </div>
-              </div>
             </CardHeader>
             <CardContent className="p-6 space-y-8">
               <div className="flex flex-col sm:flex-row gap-3">
