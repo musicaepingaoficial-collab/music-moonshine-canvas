@@ -157,15 +157,15 @@ const AdminSitePage = () => {
       </div>
 
       <Tabs defaultValue="geral" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 h-auto p-1 bg-muted/50 rounded-xl">
-          <TabsTrigger value="geral" className="gap-2 py-3 rounded-lg data-[state=active]:shadow-md">
-            <Globe className="h-4 w-4" /> Configurações Gerais
+        <TabsList className="flex flex-wrap w-full h-auto p-1 bg-muted/50 rounded-xl gap-1">
+          <TabsTrigger value="geral" className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-md text-xs sm:text-sm">
+            <Globe className="h-4 w-4" /> Geral
           </TabsTrigger>
-          <TabsTrigger value="vsl" className="gap-2 py-3 rounded-lg data-[state=active]:shadow-md">
-            <Video className="h-4 w-4" /> Vídeo de Vendas (VSL)
+          <TabsTrigger value="vsl" className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-md text-xs sm:text-sm">
+            <Video className="h-4 w-4" /> Vídeo (VSL)
           </TabsTrigger>
-          <TabsTrigger value="cupons" className="gap-2 py-3 rounded-lg data-[state=active]:shadow-md">
-            <Ticket className="h-4 w-4" /> Cupons & Preços
+          <TabsTrigger value="cupons" className="flex-1 min-w-[140px] gap-2 py-3 rounded-lg data-[state=active]:shadow-md text-xs sm:text-sm">
+            <Ticket className="h-4 w-4" /> Cupons
           </TabsTrigger>
         </TabsList>
 
