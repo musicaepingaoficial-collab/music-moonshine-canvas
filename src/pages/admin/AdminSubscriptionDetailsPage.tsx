@@ -33,7 +33,8 @@ const AdminSubscriptionDetailsPage = () => {
       
       if (data) return data;
 
-      // Se não achar, buscar na tabela de pendentes
+      // Se não achar nas assinaturas efetivadas, tentar buscar na tabela de pendentes
+      // IMPORTANTE: Aqui o 'id' passado é o 'id' da linha na tabela pending_subscriptions
       const { data: pending, error: pendingErr } = await supabase
         .from("pending_subscriptions")
         .select("*")
@@ -44,6 +45,7 @@ const AdminSubscriptionDetailsPage = () => {
         return {
           ...pending,
           is_pending: true,
+          status: pending.status || "pending",
           starts_at: pending.created_at,
           profiles: {
             name: pending.full_name,
@@ -53,7 +55,12 @@ const AdminSubscriptionDetailsPage = () => {
         };
       }
       
-      if (error || pendingErr) throw error || pendingErr;
+      if (error) {
+        console.error("Erro ao buscar assinatura:", error);
+      }
+      if (pendingErr) {
+        console.error("Erro ao buscar assinatura pendente:", pendingErr);
+      }
       return null;
     },
   });
