@@ -224,10 +224,10 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
     }
   };
 
-  const handlePaymentResult = (result: PaymentResponse) => {
+  const handlePaymentResult = (result: PaymentResponse, purchaseEventId?: string) => {
     if (result.pending_id) setPendingId(result.pending_id);
     if (result.status === "approved") {
-      trackPurchase(result);
+      trackPurchase(result, purchaseEventId);
       setStep("set-password");
       return;
     }
@@ -237,6 +237,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
         qrCodeBase64: result.qr_code_base64,
         ticketUrl: result.ticket_url,
         paymentId: result.id,
+        purchaseEventId,
       });
       setStep("pix-wait");
     } else {
@@ -244,11 +245,12 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
     }
   };
 
-  const trackPurchase = (result: PaymentResponse) => {
+  const trackPurchase = (result: PaymentResponse, eventId?: string) => {
     if (!plan) return;
     const txId = String(result.id);
+    const finalEventId = eventId || txId;
     trackEvent("purchase", {
-      event_id: txId,
+      event_id: finalEventId,
       value: plan.price,
       currency: "BRL",
       transaction_id: txId,
@@ -256,6 +258,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
       content_name: plan.name,
       email: email.trim(),
       phone: whatsapp,
+      external_id: pendingId || undefined,
     });
   };
 
