@@ -156,12 +156,15 @@ serve(async (req) => {
         try {
           const { data: pending } = await supabase
             .from("pending_subscriptions")
-            .select("full_name, email, plan, price, claim_token")
+            .select("full_name, email, plan, price, claim_token, whatsapp")
             .eq("id", pendingId)
             .maybeSingle();
-            
+
+          const siteUrl = (Deno.env.get("SITE_URL") || "https://sua-plataforma.com").replace(/\\/g, "/");
+          const claimLink = pending ? `${siteUrl}/finalizar-cadastro?token=${pending.claim_token}` : null;
+
           if (pending) {
-            // Disparar notificação admin
+            const amount = Number(pending.price).toFixed(2);
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
               method: "POST",
               headers: {
@@ -170,15 +173,24 @@ serve(async (req) => {
               },
               body: JSON.stringify({
                 type: "purchase",
-                title: "💰 Venda Aprovada (Novo Usuário)",
-                body: `${pending.full_name} (${pending.email}) — Plano ${pending.plan} R$ ${Number(pending.price).toFixed(2)}`,
-                url: "/admin/assinaturas",
+                title: `💰 Venda aprovada — R$ ${amount}`,
+                body: `${pending.full_name} • Plano ${pending.plan} (novo usuário)`,
+                url: "/admin/notificacoes",
+                data: {
+                  kind: "purchase_new_user",
+                  product_type: "subscription",
+                  plan_slug: pending.plan,
+                  amount: Number(pending.price),
+                  buyer_name: pending.full_name,
+                  buyer_email: pending.email,
+                  buyer_whatsapp: pending.whatsapp,
+                  mp_payment_id: payment.id,
+                  pending_id: pendingId,
+                  claim_link: claimLink,
+                },
               }),
             });
 
-            // Disparar e-mail de backup para o usuário
-            const siteUrl = (Deno.env.get("SITE_URL") || "https://sua-plataforma.com").replace(/\\/g, "/");
-            const claimLink = `${siteUrl}/finalizar-cadastro?token=${pending.claim_token}`;
             
             await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
               method: "POST",
