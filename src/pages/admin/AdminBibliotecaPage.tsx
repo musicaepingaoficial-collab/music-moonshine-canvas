@@ -263,43 +263,70 @@ const AdminBibliotecaPage = () => {
             <EmptyState icon={Music2} title="Nenhuma música encontrada" description="Tente alterar os termos da busca." />
           ) : (
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Artista</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Duração</TableHead>
-                    <TableHead>Adicionada</TableHead>
-                    <TableHead className="w-[80px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-medium text-foreground">{m.title}</TableCell>
-                      <TableCell className="text-muted-foreground">{m.artist}</TableCell>
-                      <TableCell>
-                        {(m as any).categorias?.name ? (
-                          <Badge variant="secondary">{(m as any).categorias.name}</Badge>
-                        ) : <span className="text-muted-foreground">—</span>}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{formatDuration(m.duration)}</TableCell>
-                      <TableCell className="text-muted-foreground">{new Date(m.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(m)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(m.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Artista</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Duração</TableHead>
+                      <TableHead>Adicionada</TableHead>
+                      <TableHead className="w-[80px]">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium text-foreground">{m.title}</TableCell>
+                        <TableCell className="text-muted-foreground">{m.artist}</TableCell>
+                        <TableCell>
+                          {(m as any).categorias?.name ? (
+                            <Badge variant="secondary">{(m as any).categorias.name}</Badge>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{formatDuration(m.duration)}</TableCell>
+                        <TableCell className="text-muted-foreground">{new Date(m.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(m)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(m.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="md:hidden space-y-4">
+                {filtered.map((m) => (
+                  <div key={m.id} className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold truncate">{m.title}</p>
+                        <p className="text-xs text-muted-foreground">{m.artist}</p>
+                      </div>
+                      {(m as any).categorias?.name && (
+                        <Badge variant="secondary" className="text-[10px]">{(m as any).categorias.name}</Badge>
+                      )}
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <p className="text-[10px] text-muted-foreground">
+                        {formatDuration(m.duration)} • {new Date(m.created_at).toLocaleDateString("pt-BR")}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(m)}><Pencil className="h-4 w-4"/></Button>
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteId(m.id)}><Trash2 className="h-4 w-4"/></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
