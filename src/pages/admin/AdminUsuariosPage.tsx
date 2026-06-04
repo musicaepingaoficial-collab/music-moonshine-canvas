@@ -101,10 +101,11 @@ const AdminUsuariosPage = () => {
         .update({ has_discografias: enabled })
         .eq("id", userId);
       if (error) throw error;
+      return { enabled };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success("Acesso atualizado com sucesso!");
+      toast.success(data.enabled ? "Módulo Discografia ativado!" : "Módulo Discografia desativado!");
     },
     onError: (error) => {
       console.error(error);
@@ -263,7 +264,7 @@ const AdminUsuariosPage = () => {
                     className="rounded-xl border bg-card p-4 shadow-sm space-y-3 cursor-pointer active:bg-muted transition-colors" 
                     onClick={() => navigate(`/admin/usuarios/${user.id}`)}
                   >
-                      <div className="flex justify-between items-start gap-3">
+                      <div className="flex justify-between items-center gap-3">
                         <div className="min-w-0 flex-1">
                           <p className="font-black text-foreground uppercase tracking-tight truncate leading-tight">
                             {user.name || "SEM NOME"}
@@ -272,7 +273,17 @@ const AdminUsuariosPage = () => {
                             {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
                           </p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Discografia</span>
+                            <Switch 
+                              checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
+                              disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual") || toggleDiscografiasMutation.isPending}
+                              onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
+                            />
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </div>
                       </div>
                     </div>
                   ))}
