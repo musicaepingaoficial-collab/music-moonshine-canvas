@@ -74,7 +74,7 @@ self.addEventListener("push", (event: PushEvent) => {
 
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
-  const url = (event.notification.data?.url as string) || "/admin";
+  const url = (event.notification.data?.url as string) || "/admin/notificacoes";
 
   event.waitUntil(
     (async () => {
