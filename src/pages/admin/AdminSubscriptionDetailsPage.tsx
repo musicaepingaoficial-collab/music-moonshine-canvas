@@ -17,6 +17,7 @@ const AdminSubscriptionDetailsPage = () => {
     queryFn: async () => {
       if (!id) return null;
       
+      // Tentar buscar na tabela de assinaturas efetivadas primeiro
       const { data, error } = await supabase
         .from("assinaturas")
         .select(`
@@ -28,10 +29,32 @@ const AdminSubscriptionDetailsPage = () => {
           )
         `)
         .eq("id", id)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
-      return data;
+      if (data) return data;
+
+      // Se não achar, buscar na tabela de pendentes
+      const { data: pending, error: pendingErr } = await supabase
+        .from("pending_subscriptions")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (pending) {
+        return {
+          ...pending,
+          is_pending: true,
+          starts_at: pending.created_at,
+          profiles: {
+            name: pending.full_name,
+            email: pending.email,
+            whatsapp: pending.whatsapp
+          }
+        };
+      }
+      
+      if (error || pendingErr) throw error || pendingErr;
+      return null;
     },
   });
 
@@ -108,9 +131,9 @@ const AdminSubscriptionDetailsPage = () => {
               </div>
               <div>
                 <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" /> Início
+                  <Calendar className="h-3 w-3" /> {subscription.is_pending ? "Criado em" : "Início"}
                 </p>
-                <p className="text-sm font-medium">{new Date(subscription.starts_at).toLocaleDateString("pt-BR")}</p>
+                <p className="text-sm font-medium">{new Date(subscription.starts_at || subscription.created_at).toLocaleDateString("pt-BR")}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
