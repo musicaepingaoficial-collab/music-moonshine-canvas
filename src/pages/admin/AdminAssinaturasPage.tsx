@@ -57,6 +57,7 @@ const translateStatus = (status: string) => {
 };
 
 const AdminAssinaturasPage = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [userSearch, setUserSearch] = useState("");
