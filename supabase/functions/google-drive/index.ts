@@ -56,23 +56,26 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
-    // Using service role to check user because getUser() can be flaky with some tokens
-    const { data: { user }, error: authError } = await supabase.auth.admin.getUserById(
-      (JSON.parse(atob(token.split('.')[1]))).sub
+    // Validate JWT signature server-side via Supabase auth
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
-    
+    const { data: userData, error: authError } = await userClient.auth.getUser(token);
+    const user = userData?.user;
+
     if (authError || !user) {
       console.error("[google-drive] Erro de autenticação:", authError?.message || "Usuário não encontrado");
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: "Token inválido ou sessão expirada",
-        details: authError?.message
       }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -84,6 +87,7 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
     const body = await req.json();

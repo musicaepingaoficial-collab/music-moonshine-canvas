@@ -10,6 +10,38 @@ const corsHeaders = {
 
 
 
+async function verifyMpSignature(req: Request, paymentId: string): Promise<boolean> {
+  const secret = Deno.env.get("MP_WEBHOOK_SECRET");
+  if (!secret) {
+    console.warn("[payment-webhook] MP_WEBHOOK_SECRET not set — rejecting");
+    return false;
+  }
+  const sigHeader = req.headers.get("x-signature") || "";
+  const requestId = req.headers.get("x-request-id") || "";
+  if (!sigHeader || !requestId) return false;
+
+  const parts = Object.fromEntries(
+    sigHeader.split(",").map((kv) => kv.trim().split("=") as [string, string])
+  );
+  const ts = parts.ts;
+  const v1 = parts.v1;
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${paymentId};request-id:${requestId};ts:${ts};`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest));
+  const computed = Array.from(new Uint8Array(sigBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return computed === v1;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,6 +70,17 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Verify Mercado Pago signature before doing any work
+    const sigOk = await verifyMpSignature(req, paymentId);
+    if (!sigOk) {
+      console.warn("[payment-webhook] invalid MP signature for paymentId", paymentId);
+      return new Response(JSON.stringify({ error: "invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
 
 
