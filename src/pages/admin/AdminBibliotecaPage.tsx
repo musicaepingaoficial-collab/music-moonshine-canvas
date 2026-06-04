@@ -225,17 +225,17 @@ const AdminBibliotecaPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Biblioteca</h1>
-          <p className="text-sm text-muted-foreground">Gerencie as músicas e categorias da plataforma</p>
+          <p className="text-sm text-muted-foreground">Gerencie as músicas e categorias</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setCatOpen(true)}>
-            <FolderPlus className="h-4 w-4 mr-1" /> Categorias de Músicas
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCatOpen(true)} className="flex-1 sm:flex-none">
+            <FolderPlus className="h-4 w-4 mr-1" /> Categorias
           </Button>
-          <Button onClick={() => { setForm(emptyForm); setAddOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Adicionar Música
+          <Button size="sm" onClick={() => { setForm(emptyForm); setAddOpen(true); }} className="flex-1 sm:flex-none">
+            <Plus className="h-4 w-4 mr-1" /> Add Música
           </Button>
         </div>
       </div>
