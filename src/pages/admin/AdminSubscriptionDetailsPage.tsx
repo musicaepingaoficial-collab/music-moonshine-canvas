@@ -131,9 +131,9 @@ const AdminSubscriptionDetailsPage = () => {
               </div>
               <div>
                 <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" /> {subscription.is_pending ? "Criado em" : "Início"}
+                  <Calendar className="h-3 w-3" /> {(subscription as any).is_pending ? "Criado em" : "Início"}
                 </p>
-                <p className="text-sm font-medium">{new Date(subscription.starts_at || subscription.created_at).toLocaleDateString("pt-BR")}</p>
+                <p className="text-sm font-medium">{new Date(subscription.starts_at || (subscription as any).created_at).toLocaleDateString("pt-BR")}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
