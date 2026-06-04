@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { usePixelSettings } from "@/hooks/useSiteSettings";
-import { _setCachedPixelSettings } from "@/lib/pixels";
+import { _setCachedPixelSettings, _setCachedUserData } from "@/lib/pixels";
 import { useCookieConsent } from "@/hooks/useCookieConsent";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -131,9 +131,18 @@ export function PixelInjector() {
     let cancelled = false;
 
     async function init() {
+      const am = await fetchAdvancedMatching();
+      if (cancelled) return;
+      // Cache identity for ALL pixel events (Meta, TikTok, Kwai, CAPI mirror)
+      _setCachedUserData({
+        external_id: am.external_id,
+        email: am.em,
+        phone: am.ph,
+        first_name: am.fn,
+        last_name: am.ln,
+      });
+
       if (s?.meta_enabled && s.meta_pixel_id && marketingOk) {
-        const am = await fetchAdvancedMatching();
-        if (cancelled) return;
         const amJson = JSON.stringify(am);
         injectScript(
           SCRIPT_IDS.meta,
@@ -145,7 +154,7 @@ document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '${s.meta_pixel_id}', ${amJson});`,
           false
         );
-      } else {
+      } else if (!s?.meta_enabled) {
         removeById(SCRIPT_IDS.meta);
         removeById(SCRIPT_IDS.metaNoscript);
         delete (window as any).fbq;
@@ -157,7 +166,7 @@ fbq('init', '${s.meta_pixel_id}', ${amJson});`,
     // Re-init when the auth session changes (login/logout) so Advanced
     // Matching reflects the current user.
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      if (s?.meta_enabled && s.meta_pixel_id && marketingOk) init();
+      init();
     });
     return () => {
       cancelled = true;
