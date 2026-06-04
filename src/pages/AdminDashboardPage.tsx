@@ -41,11 +41,42 @@ const AdminDashboardPage = () => {
       ]
     : [];
 
+  const { data: usageMetrics } = useQuery({
+    queryKey: ["usage-metrics"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("usage_metrics")
+        .select("*")
+        .order("timestamp", { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return data.map(m => ({
+        time: new Date(m.timestamp).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }),
+        count: m.online_count
+      }));
+    },
+    refetchInterval: 60000,
+  });
+
+  const isNearLimit = (onlineUsers?.length || 0) >= 40;
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
-        <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
+          <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
+        </div>
+        {isNearLimit && (
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg animate-pulse"
+          >
+            <AlertTriangle className="h-5 w-5" />
+            <span className="text-sm font-bold">ALERTA: PICO DE ACESSOS ({onlineUsers?.length})</span>
+          </motion.div>
+        )}
       </div>
 
       {error && <ErrorState message="Erro ao carregar estatísticas." onRetry={() => refetch()} />}
