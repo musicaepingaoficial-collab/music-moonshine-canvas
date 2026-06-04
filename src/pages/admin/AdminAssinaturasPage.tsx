@@ -36,8 +36,23 @@ import { toast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
   active: "bg-primary/20 text-primary",
+  approved: "bg-primary/20 text-primary",
+  claimed: "bg-blue-500/20 text-blue-500",
+  pending: "bg-yellow-500/20 text-yellow-600",
   expired: "bg-destructive/20 text-destructive",
   cancelled: "bg-muted text-muted-foreground",
+};
+
+const translateStatus = (status: string) => {
+  const map: Record<string, string> = {
+    active: "Ativa",
+    approved: "Pago/Aguardando Cadastro",
+    pending: "Pendente",
+    claimed: "Finalizado",
+    expired: "Expirada",
+    cancelled: "Cancelada",
+  };
+  return map[status] || status;
 };
 
 const AdminAssinaturasPage = () => {
@@ -66,6 +81,9 @@ const AdminAssinaturasPage = () => {
           user_id: s.id,
           profile: { name: s.full_name, email: s.email },
           is_pending: true,
+          whatsapp: s.whatsapp,
+          cpf: s.cpf,
+          payment_method: s.payment_method,
         }));
       }
 
@@ -380,11 +398,17 @@ const AdminAssinaturasPage = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Usuário</TableHead>
+                    {showPending && (
+                      <>
+                        <TableHead>WhatsApp / CPF</TableHead>
+                        <TableHead>Método</TableHead>
+                      </>
+                    )}
                     <TableHead>Plano</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Valor</TableHead>
-                    <TableHead>Início</TableHead>
-                    <TableHead>Expiração</TableHead>
+                    <TableHead>{showPending ? "Criado em" : "Início"}</TableHead>
+                    {!showPending && <TableHead>Expiração</TableHead>}
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -394,10 +418,23 @@ const AdminAssinaturasPage = () => {
                       <TableCell>
                         <span className="text-foreground">{sub.profile?.name || sub.profile?.email || "—"}</span>
                       </TableCell>
-                      <TableCell className="font-medium text-foreground">{sub.plan}</TableCell>
+                      {showPending && (
+                        <>
+                          <TableCell className="text-muted-foreground">
+                            <div className="flex flex-col text-xs">
+                              <span className="font-medium text-foreground">{sub.whatsapp || "—"}</span>
+                              <span>{sub.cpf || "—"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs uppercase text-muted-foreground">
+                            {sub.payment_method || "—"}
+                          </TableCell>
+                        </>
+                      )}
+                      <TableCell className="font-medium text-foreground uppercase">{sub.plan}</TableCell>
                       <TableCell>
                         <Badge className={`border-0 ${statusColors[sub.status] || "bg-muted text-muted-foreground"}`}>
-                          {sub.status}
+                          {translateStatus(sub.status)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -406,9 +443,11 @@ const AdminAssinaturasPage = () => {
                       <TableCell className="text-muted-foreground">
                         {sub.starts_at ? new Date(sub.starts_at).toLocaleDateString("pt-BR") : new Date(sub.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}
-                      </TableCell>
+                      {!showPending && (
+                        <TableCell className="text-muted-foreground">
+                          {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           {sub.status === "active" && (
@@ -471,7 +510,7 @@ const AdminAssinaturasPage = () => {
                         <p className="text-xs text-muted-foreground">{sub.plan.toUpperCase()}</p>
                       </div>
                       <Badge className={statusColors[sub.status] || "bg-muted"}>
-                        {sub.status}
+                        {translateStatus(sub.status)}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t pt-3">
