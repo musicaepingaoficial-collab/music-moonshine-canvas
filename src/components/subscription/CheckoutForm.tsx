@@ -501,6 +501,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             Pagamento via Pix
           </div>
 
+          <PixCountdown />
+
+
           {pixData.qrCodeBase64 ? (
             <div className="flex items-center justify-center">
               <img
