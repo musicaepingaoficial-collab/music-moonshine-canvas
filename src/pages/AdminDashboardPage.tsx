@@ -1,10 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Music, DollarSign, TrendingUp, Loader2, Activity } from "lucide-react";
+import { Users, Music, DollarSign, TrendingUp, Loader2, Activity, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { StatCardSkeleton } from "@/components/ui/Skeletons";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const AdminDashboardPage = () => {
   const { data: stats, isLoading, error, refetch } = useAdminStats();
