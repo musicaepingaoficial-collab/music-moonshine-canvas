@@ -114,7 +114,7 @@ const AdminSubscriptionDetailsPage = () => {
               </div>
               <div className="col-span-2">
                 <p className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> Expiração
+                  <Calendar className="h-3 w-3" /> Expiração
                 </p>
                 <p className="text-sm font-medium">
                   {subscription.expires_at ? new Date(subscription.expires_at).toLocaleDateString("pt-BR") : "Vitalício"}
