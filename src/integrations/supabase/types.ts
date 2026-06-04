@@ -1161,6 +1161,24 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_metrics: {
+        Row: {
+          id: string
+          online_count: number
+          timestamp: string | null
+        }
+        Insert: {
+          id?: string
+          online_count: number
+          timestamp?: string | null
+        }
+        Update: {
+          id?: string
+          online_count?: number
+          timestamp?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1262,6 +1280,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_usage_metric: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

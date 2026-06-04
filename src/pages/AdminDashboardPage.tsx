@@ -1,10 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Music, DollarSign, TrendingUp, Loader2, Activity } from "lucide-react";
+import { Users, Music, DollarSign, TrendingUp, Loader2, Activity, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { StatCardSkeleton } from "@/components/ui/Skeletons";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const AdminDashboardPage = () => {
   const { data: stats, isLoading, error, refetch } = useAdminStats();
@@ -24,10 +27,27 @@ const AdminDashboardPage = () => {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 30000, // Update every 30s
+    refetchInterval: 30000,
   });
 
-  console.log("[AdminDashboard:render]", { isLoading, hasError: !!error });
+  const { data: usageMetrics } = useQuery({
+    queryKey: ["usage-metrics"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("usage_metrics")
+        .select("*")
+        .order("timestamp", { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return data.map(m => ({
+        time: new Date(m.timestamp).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }),
+        count: m.online_count
+      }));
+    },
+    refetchInterval: 60000,
+  });
+
+  const isNearLimit = (onlineUsers?.length || 0) >= 40;
 
   const statCards = stats
     ? [
@@ -40,9 +60,21 @@ const AdminDashboardPage = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
-        <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
+          <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
+        </div>
+        {isNearLimit && (
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg animate-pulse"
+          >
+            <AlertTriangle className="h-5 w-5" />
+            <span className="text-sm font-bold">ALERTA: PICO DE ACESSOS ({onlineUsers?.length})</span>
+          </motion.div>
+        )}
       </div>
 
       {error && <ErrorState message="Erro ao carregar estatísticas." onRetry={() => refetch()} />}
@@ -158,6 +190,67 @@ const AdminDashboardPage = () => {
           )}
         </div>
       )}
+
+      {/* Usage Graph */}
+      <Card className="border-0 shadow-sm overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Picos de Acessos Simultâneos
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Monitoramento histórico de carga no servidor de arquivos</p>
+        </CardHeader>
+        <CardContent className="h-[300px] w-full pt-4">
+          {usageMetrics && usageMetrics.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={usageMetrics}>
+                <defs>
+                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted-foreground))" opacity={0.1} />
+                <XAxis 
+                  dataKey="time" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  minTickGap={30}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  domain={[0, 60]}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    borderColor: 'hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  itemStyle={{ color: 'hsl(var(--primary))' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="count" 
+                  name="Usuários"
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorCount)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center border-2 border-dashed rounded-xl border-muted">
+              <p className="text-sm text-muted-foreground">Coletando dados iniciais...</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

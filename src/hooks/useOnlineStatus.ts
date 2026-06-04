@@ -20,6 +20,12 @@ export const useOnlineStatus = () => {
             path: location.pathname,
             user_agent: navigator.userAgent.slice(0, 200),
           });
+        
+        // As a side effect, record a usage metric if user is admin or periodically
+        // This helps simulate a "cron" until real cron is available
+        if (Math.random() < 0.1) { // 10% chance to trigger record function
+          await supabase.functions.invoke("usage-metrics");
+        }
       } catch (err) {
         console.error("Error updating online status:", err);
       }
