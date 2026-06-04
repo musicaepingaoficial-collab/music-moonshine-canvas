@@ -176,108 +176,108 @@ const AdminUsuariosPage = () => {
           ) : filtered.length === 0 ? (
             <EmptyState icon={Users} title="Nenhum usuário encontrado" description="Tente alterar os termos da busca." />
           ) : (
-            <div className="overflow-hidden">
-              <Table className="w-full">
-                <TableHeader className="hidden md:table-header-group">
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead className="hidden md:table-cell">Email / WhatsApp</TableHead>
-                    <TableHead className="hidden lg:table-cell">Plano</TableHead>
-                    <TableHead className="hidden xl:table-cell">Discografias</TableHead>
-                    <TableHead className="hidden lg:table-cell">Cadastro</TableHead>
-                    <TableHead className="hidden md:table-cell">Indicação de</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <div className="overflow-hidden">
+                <Table className="w-full hidden md:table">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead className="hidden md:table-cell">Email / WhatsApp</TableHead>
+                      <TableHead className="hidden lg:table-cell">Plano</TableHead>
+                      <TableHead className="hidden xl:table-cell">Discografias</TableHead>
+                      <TableHead className="hidden lg:table-cell">Cadastro</TableHead>
+                      <TableHead className="hidden md:table-cell">Indicação de</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((user) => (
+                      <TableRow 
+                        key={user.id} 
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => navigate(`/admin/usuarios/${user.id}`)}
+                      >
+                        <TableCell className="font-black text-foreground uppercase tracking-tight">
+                          <div className="flex flex-col">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate">{user.name || "SEM NOME"}</span>
+                              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
+                            </div>
+                            <span className="text-[10px] font-bold text-primary lowercase md:hidden">
+                              {user.assinaturas.find(s => s.status === "active")?.plan || "free"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground hidden md:table-cell">
+                          <div className="flex flex-col max-w-[200px]">
+                            <span className="truncate">{user.email}</span>
+                            <span className="text-xs text-primary/70">{user.whatsapp || "Sem WhatsApp"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {user.assinaturas.filter(s => s.status === "active").length > 0 ? (
+                            <Badge className="bg-primary/20 text-primary border-0">
+                              {user.assinaturas.find(s => s.status === "active")?.plan}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Free</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Switch 
+                              checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
+                              disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual") || toggleDiscografiasMutation.isPending}
+                              onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap hidden lg:table-cell">
+                          {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground italic max-w-[150px] truncate hidden md:table-cell">
+                          {user.referred_by || "—"}
+                        </TableCell>
+                        <TableCell className="text-right hidden sm:table-cell">
+                          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
+                              const phone = user.whatsapp?.replace(/\D/g, "");
+                              if (!phone) return toast.error("Usuário sem WhatsApp");
+                              window.open(`https://wa.me/55${phone}`, "_blank");
+                            }}>
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={currentUser?.id === user.id} onClick={() => { setDeleteTarget(user); setConfirmText(""); }}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                <div className="md:hidden space-y-2 pt-2">
                   {filtered.map((user) => (
-                    <TableRow 
+                    <div 
                       key={user.id} 
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      className="rounded-xl border bg-card p-4 shadow-sm space-y-3 cursor-pointer active:bg-muted transition-colors" 
                       onClick={() => navigate(`/admin/usuarios/${user.id}`)}
                     >
-                      <TableCell className="font-black text-foreground uppercase tracking-tight">
-                        <div className="flex flex-col">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="truncate">{user.name || "SEM NOME"}</span>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
-                          </div>
-                          <span className="text-[10px] font-bold text-primary lowercase md:hidden">
-                            {user.assinaturas.find(s => s.status === "active")?.plan || "free"}
-                          </span>
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-black text-foreground uppercase tracking-tight truncate leading-tight">
+                            {user.name || "SEM NOME"}
+                          </p>
+                          <p className="text-xs font-bold text-primary uppercase mt-0.5">
+                            {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground hidden md:table-cell">
-                        <div className="flex flex-col max-w-[200px]">
-                          <span className="truncate">{user.email}</span>
-                          <span className="text-xs text-primary/70">{user.whatsapp || "Sem WhatsApp"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {user.assinaturas.filter(s => s.status === "active").length > 0 ? (
-                          <Badge className="bg-primary/20 text-primary border-0">
-                            {user.assinaturas.find(s => s.status === "active")?.plan}
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Free</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="hidden xl:table-cell">
-                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <Switch 
-                            checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
-                            disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual") || toggleDiscografiasMutation.isPending}
-                            onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap hidden lg:table-cell">
-                        {new Date(user.created_at).toLocaleDateString("pt-BR")}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground italic max-w-[150px] truncate hidden md:table-cell">
-                        {user.referred_by || "—"}
-                      </TableCell>
-                      <TableCell className="text-right hidden sm:table-cell">
-                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
-                            const phone = user.whatsapp?.replace(/\D/g, "");
-                            if (!phone) return toast.error("Usuário sem WhatsApp");
-                            window.open(`https://wa.me/55${phone}`, "_blank");
-                          }}>
-                            <MessageCircle className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={currentUser?.id === user.id} onClick={() => { setDeleteTarget(user); setConfirmText(""); }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
-              <div className="md:hidden space-y-4 pt-4">
-                {filtered.map((user) => (
-                  <div 
-                    key={user.id} 
-                    className="rounded-xl border bg-card p-4 shadow-sm space-y-3 cursor-pointer active:bg-muted transition-colors" 
-                    onClick={() => navigate(`/admin/usuarios/${user.id}`)}
-                  >
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-black text-foreground uppercase tracking-tight truncate leading-tight">
-                          {user.name || "SEM NOME"}
-                        </p>
-                        <p className="text-xs font-bold text-primary uppercase mt-0.5">
-                          {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
-                        </p>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
           )}
         </CardContent>
       </Card>
