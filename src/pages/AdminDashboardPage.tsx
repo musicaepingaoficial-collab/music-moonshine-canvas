@@ -436,15 +436,18 @@ const AdminDashboardPage = () => {
                 <YAxis 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                  domain={[0, 60]}
+                  tick={{ fontSize: 10, fontWeight: 'bold', fill: 'hsl(var(--muted-foreground))' }}
+                  domain={[0, (dataMax: number) => Math.max(20, Math.ceil(dataMax * 1.2))]}
                 />
                 <Tooltip 
+                  cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '4 4' }}
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))', 
                     borderColor: 'hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '12px'
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
                   }}
                   itemStyle={{ color: 'hsl(var(--primary))' }}
                 />
