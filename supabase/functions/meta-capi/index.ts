@@ -59,6 +59,19 @@ serve(async (req) => {
       });
     }
 
+    // Allowlist event_name to prevent arbitrary events from polluting Meta CAPI
+    const ALLOWED_EVENTS = new Set([
+      "PageView", "ViewContent", "AddToCart", "InitiateCheckout",
+      "AddPaymentInfo", "Purchase", "Lead", "CompleteRegistration",
+    ]);
+    if (!ALLOWED_EVENTS.has(body.event_name)) {
+      return new Response(JSON.stringify({ error: "event_name not allowed" }), {
+        status: 400,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
