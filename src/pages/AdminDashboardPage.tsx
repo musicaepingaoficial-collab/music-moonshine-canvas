@@ -14,6 +14,30 @@ import { useState } from "react";
 const AdminDashboardPage = () => {
   const { data: stats, isLoading, error, refetch } = useAdminStats();
   const [timeRange, setTimeRange] = useState<"day" | "week">("day");
+  const [salesTimeRange, setSalesTimeRange] = useState<"day" | "week" | "month">("day");
+
+  const { data: salesStats } = useQuery({
+    queryKey: ["sales-page-stats", salesTimeRange],
+    queryFn: async () => {
+      const startTime = new Date();
+      if (salesTimeRange === "day") {
+        startTime.setHours(0, 0, 0, 0);
+      } else if (salesTimeRange === "week") {
+        startTime.setDate(startTime.getDate() - 7);
+      } else {
+        startTime.setMonth(startTime.getMonth() - 1);
+      }
+
+      const { count, error } = await supabase
+        .from("sales_page_views" as any)
+        .select("*", { count: 'exact', head: true })
+        .gte("created_at", startTime.toISOString());
+
+      if (error) throw error;
+      return count || 0;
+    },
+    refetchInterval: 60000,
+  });
   const { data: onlineUsers, isLoading: loadingOnline } = useQuery({
     queryKey: ["online-users"],
     queryFn: async () => {
