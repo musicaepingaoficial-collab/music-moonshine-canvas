@@ -146,6 +146,25 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ sent: 0, reason: "no subs" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Deduplicate by (event_type, mp_payment_id) — protected at the DB level by a unique partial index.
+    // If a duplicate webhook fires (MP retries), skip the push and the log insert.
+    const mpId = data?.mp_payment_id ? String(data.mp_payment_id) : null;
+    if (mpId) {
+      const { data: existing } = await supabase
+        .from("admin_push_logs")
+        .select("id")
+        .eq("event_type", type)
+        .filter("data->>mp_payment_id", "eq", mpId)
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        return new Response(
+          JSON.stringify({ skipped: true, reason: "duplicate mp_payment_id", id: existing.id }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const notificationPayload = JSON.stringify({ title, body: bodyText, url, tag: type, data });
 
     let sent = 0;
@@ -175,7 +194,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    await supabase.from("admin_push_logs").insert({
+    const { error: logErr } = await supabase.from("admin_push_logs").insert({
       event_type: type,
       title,
       body: bodyText,
@@ -186,6 +205,10 @@ Deno.serve(async (req) => {
       removed,
       error: errors.length ? errors.join(" | ").slice(0, 1000) : null,
     });
+    // Duplicate-key (23505) means a concurrent call already logged this payment — safe to ignore.
+    if (logErr && (logErr as any).code !== "23505") {
+      console.error("[admin_push_logs insert]", logErr);
+    }
 
     return new Response(JSON.stringify({ sent, total: subs.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
