@@ -17,21 +17,23 @@ const AdminUserDetailsPage = () => {
 
   const toggleDiscografiasMutation = useMutation({
     mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
+      console.log(`[AdminUserDetails] Toggling discografias for ${userId} to ${enabled}`);
       const { error } = await supabase
         .from("profiles")
         .update({ has_discografias: enabled })
         .eq("id", userId);
       if (error) throw error;
-      return { enabled };
+      return { enabled, userId };
     },
     onSuccess: (data) => {
+      console.log(`[AdminUserDetails] Successfully toggled discografias for ${data.userId}`);
       queryClient.invalidateQueries({ queryKey: ["admin-user-details", id] });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success(data.enabled ? "Módulo Discografia ativado!" : "Módulo Discografia desativado!");
     },
-    onError: (error) => {
-      console.error(error);
-      toast.error("Erro ao atualizar acesso.");
+    onError: (error: any) => {
+      console.error("[AdminUserDetails] Error toggling discografias:", error);
+      toast.error(error.message || "Erro ao atualizar acesso.");
     },
   });
 
