@@ -305,24 +305,77 @@ const AdminNotificacoesPage = () => {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" /> Eventos recentes
-            </CardTitle>
-            <CardDescription>Todas as vendas e PIX gerados — com dados para recuperação.</CardDescription>
+        <CardHeader className="gap-3">
+          <div className="flex flex-row items-center justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" /> Eventos recentes
+              </CardTitle>
+              <CardDescription>Histórico completo de vendas e PIX gerados.</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={loadLogs} disabled={loadingLogs}>
+              Atualizar
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={loadLogs} disabled={loadingLogs}>
-            Atualizar
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Hoje</SelectItem>
+                <SelectItem value="yesterday">Ontem</SelectItem>
+                <SelectItem value="week">Esta semana</SelectItem>
+                <SelectItem value="month">Este mês</SelectItem>
+                <SelectItem value="all">Todo o período</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+            {dateFilter === "custom" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn(!customRange.from && "text-muted-foreground")}>
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    {customRange.from && customRange.to
+                      ? `${format(customRange.from, "dd/MM/yyyy")} - ${format(customRange.to, "dd/MM/yyyy")}`
+                      : "Selecione período"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: customRange.from, to: customRange.to }}
+                    onSelect={(r: any) => setCustomRange({ from: r?.from, to: r?.to })}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">{totalLogs} evento(s)</span>
+          </div>
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum evento registrado ainda.</p>
+            <p className="text-sm text-muted-foreground">Nenhum evento registrado no período.</p>
           ) : (
-            <div className="space-y-3">
-              {logs.map((l) => <EventCard key={l.id} log={l} />)}
-            </div>
+            <>
+              <div className="space-y-3">
+                {logs.map((l) => <EventCard key={l.id} log={l} />)}
+              </div>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/40">
+                <span className="text-xs text-muted-foreground">
+                  Página {page + 1} de {Math.max(1, Math.ceil(totalLogs / PAGE_SIZE))}
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0 || loadingLogs}>
+                    <ChevronLeft className="h-4 w-4" /> Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={(page + 1) * PAGE_SIZE >= totalLogs || loadingLogs}>
+                    Próxima <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
