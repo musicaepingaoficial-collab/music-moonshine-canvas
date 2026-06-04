@@ -250,7 +250,7 @@ const AdminAssinaturasPage = () => {
               onClick={() => setShowPending(!showPending)}
               className="gap-2"
             >
-              {showPending ? "Ver Efetivadas" : "Ver Pendentes/Aguardando Cadastro"}
+              {showPending ? "Efetivadas" : "Pendentes"}
             </Button>
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
               <DialogTrigger asChild>
