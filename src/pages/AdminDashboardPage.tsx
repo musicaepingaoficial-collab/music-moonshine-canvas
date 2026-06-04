@@ -19,17 +19,23 @@ const AdminDashboardPage = () => {
   const { data: salesStats } = useQuery({
     queryKey: ["sales-page-stats", salesTimeRange],
     queryFn: async () => {
+      const now = new Date();
       const startTime = new Date();
       if (salesTimeRange === "day") {
+        // Use a true 24h window or start of current day?
+        // Let's use 24h window for more dynamic data, or start of day if preferred.
+        // The user asked for "no dia" (on the day), usually means since 00:00.
         startTime.setHours(0, 0, 0, 0);
       } else if (salesTimeRange === "week") {
-        startTime.setDate(startTime.getDate() - 7);
+        startTime.setDate(now.getDate() - 7);
       } else {
-        startTime.setMonth(startTime.getMonth() - 1);
+        startTime.setMonth(now.getMonth() - 1);
       }
 
+      console.log(`Fetching sales stats for ${salesTimeRange} starting from: ${startTime.toISOString()}`);
+
       const { count, error } = await supabase
-        .from("sales_page_views" as any)
+        .from("sales_page_views")
         .select("*", { count: 'exact', head: true })
         .gte("created_at", startTime.toISOString());
 
