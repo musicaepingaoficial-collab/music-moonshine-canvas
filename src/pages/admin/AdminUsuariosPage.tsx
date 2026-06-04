@@ -200,7 +200,7 @@ const AdminUsuariosPage = () => {
                           <div className="flex flex-col">
                             <div className="flex items-center justify-between gap-2">
                               <span className="truncate">{user.name || "SEM NOME"}</span>
-                              
+                              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
                             </div>
                             <span className="text-[10px] font-bold text-primary lowercase md:hidden">
                               {user.assinaturas.find(s => s.status === "active")?.plan || "free"}
@@ -272,7 +272,7 @@ const AdminUsuariosPage = () => {
                             {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
                           </p>
                         </div>
-                        
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
                       </div>
                     </div>
                   ))}
