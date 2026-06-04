@@ -12,9 +12,45 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle, Copy, MessageCircle, Mail, User, DollarSign, Package } from "lucide-react";
+import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle, Copy, MessageCircle, Mail, User, DollarSign, Package, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+
+type DateFilter = "today" | "yesterday" | "week" | "month" | "all" | "custom";
+const PAGE_SIZE = 10;
+
+function getRange(filter: DateFilter, custom?: { from?: Date; to?: Date }): { from: Date | null; to: Date | null } {
+  const now = new Date();
+  const start = new Date(now); start.setHours(0, 0, 0, 0);
+  const end = new Date(now); end.setHours(23, 59, 59, 999);
+  switch (filter) {
+    case "today": return { from: start, to: end };
+    case "yesterday": {
+      const f = new Date(start); f.setDate(f.getDate() - 1);
+      const t = new Date(end); t.setDate(t.getDate() - 1);
+      return { from: f, to: t };
+    }
+    case "week": {
+      const f = new Date(start); f.setDate(f.getDate() - f.getDay());
+      return { from: f, to: end };
+    }
+    case "month": {
+      const f = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: f, to: end };
+    }
+    case "custom": {
+      const f = custom?.from ? new Date(custom.from.setHours(0, 0, 0, 0)) : null;
+      const t = custom?.to ? new Date(new Date(custom.to).setHours(23, 59, 59, 999)) : null;
+      return { from: f, to: t };
+    }
+    default: return { from: null, to: null };
+  }
+}
 
 const NOTIFICATION_TYPES = [
   {
@@ -41,16 +77,24 @@ const AdminNotificacoesPage = () => {
   const [busy, setBusy] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [page, setPage] = useState(0);
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
 
   const loadLogs = async () => {
     setLoadingLogs(true);
-    const { data: rawLogs } = await (supabase.from("admin_push_logs" as any) as any)
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(20);
+    const { from, to } = getRange(dateFilter, customRange);
+    let q: any = (supabase.from("admin_push_logs" as any) as any)
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false });
+    if (from) q = q.gte("created_at", from.toISOString());
+    if (to) q = q.lte("created_at", to.toISOString());
+    q = q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+    const { data: rawLogs, count } = await q;
     const list = (rawLogs || []) as any[];
 
-    // Enrich older logs missing buyer info by cross-referencing pending_subscriptions/profiles by time proximity (≤ 5 min)
+    // Enrich older logs missing buyer info by cross-referencing pending_subscriptions by time proximity (≤ 5 min)
     const needsEnrich = list.filter(
       (l) => (!l.data || !l.data.buyer_email) && (l.event_type === "pix_generated" || l.event_type === "purchase"),
     );
@@ -81,6 +125,7 @@ const AdminNotificacoesPage = () => {
     }
 
     setLogs(list);
+    setTotalLogs(count || 0);
     setLoadingLogs(false);
   };
 
@@ -90,7 +135,8 @@ const AdminNotificacoesPage = () => {
     notify_pix_generated: true,
   });
 
-  useEffect(() => { loadLogs(); }, []);
+  useEffect(() => { loadLogs(); /* eslint-disable-next-line */ }, [page, dateFilter, customRange.from, customRange.to]);
+  useEffect(() => { setPage(0); }, [dateFilter, customRange.from, customRange.to]);
 
   useEffect(() => {
     if (!user) return;
@@ -259,24 +305,77 @@ const AdminNotificacoesPage = () => {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" /> Eventos recentes
-            </CardTitle>
-            <CardDescription>Todas as vendas e PIX gerados — com dados para recuperação.</CardDescription>
+        <CardHeader className="gap-3">
+          <div className="flex flex-row items-center justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" /> Eventos recentes
+              </CardTitle>
+              <CardDescription>Histórico completo de vendas e PIX gerados.</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={loadLogs} disabled={loadingLogs}>
+              Atualizar
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={loadLogs} disabled={loadingLogs}>
-            Atualizar
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Hoje</SelectItem>
+                <SelectItem value="yesterday">Ontem</SelectItem>
+                <SelectItem value="week">Esta semana</SelectItem>
+                <SelectItem value="month">Este mês</SelectItem>
+                <SelectItem value="all">Todo o período</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+            {dateFilter === "custom" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn(!customRange.from && "text-muted-foreground")}>
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    {customRange.from && customRange.to
+                      ? `${format(customRange.from, "dd/MM/yyyy")} - ${format(customRange.to, "dd/MM/yyyy")}`
+                      : "Selecione período"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: customRange.from, to: customRange.to }}
+                    onSelect={(r: any) => setCustomRange({ from: r?.from, to: r?.to })}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">{totalLogs} evento(s)</span>
+          </div>
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum evento registrado ainda.</p>
+            <p className="text-sm text-muted-foreground">Nenhum evento registrado no período.</p>
           ) : (
-            <div className="space-y-3">
-              {logs.map((l) => <EventCard key={l.id} log={l} />)}
-            </div>
+            <>
+              <div className="space-y-3">
+                {logs.map((l) => <EventCard key={l.id} log={l} />)}
+              </div>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/40">
+                <span className="text-xs text-muted-foreground">
+                  Página {page + 1} de {Math.max(1, Math.ceil(totalLogs / PAGE_SIZE))}
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0 || loadingLogs}>
+                    <ChevronLeft className="h-4 w-4" /> Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={(page + 1) * PAGE_SIZE >= totalLogs || loadingLogs}>
+                    Próxima <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -324,28 +423,37 @@ function EventCard({ log }: { log: any }) {
     : undefined;
   const wa = waLink(d.buyer_whatsapp, recoveryMsg);
   const sentOk = (log.sent ?? 0) > 0 && !log.error;
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="rounded-lg border border-border/60 p-4 space-y-3 bg-card">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2 min-w-0">
+      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-start justify-between gap-3 text-left">
+        <div className="flex items-start gap-2 min-w-0 flex-1">
           {sentOk ? (
             <CheckCircle2 className="h-4 w-4 text-green-500 mt-1 shrink-0" />
           ) : (
             <XCircle className="h-4 w-4 text-destructive mt-1 shrink-0" />
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold text-foreground truncate">{log.title || log.event_type}</span>
               <Badge variant={badge.variant}>{badge.label}</Badge>
+              {!open && d.buyer_name && <span className="text-xs text-muted-foreground truncate">· {d.buyer_name}</span>}
+              {!open && amount && <span className="text-xs font-medium text-foreground">· {amount}</span>}
             </div>
-            {log.body && <p className="text-sm text-muted-foreground mt-0.5">{log.body}</p>}
+            {open && log.body && <p className="text-sm text-muted-foreground mt-0.5">{log.body}</p>}
           </div>
         </div>
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {new Date(log.created_at).toLocaleString("pt-BR")}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-xs text-muted-foreground whitespace-nowrap">
+            {new Date(log.created_at).toLocaleString("pt-BR")}
+          </div>
+          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </div>
-      </div>
+      </button>
+
+      {open && (<>
+
 
       {(d.buyer_name || d.buyer_email || d.buyer_whatsapp || amount || product) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm rounded-md bg-muted/40 p-3">
@@ -416,7 +524,9 @@ function EventCard({ log }: { log: any }) {
         {log.removed ? ` · ${log.removed} expirados` : ""}
         {log.error ? ` · erro: ${log.error}` : ""}
       </div>
+      </>)}
     </div>
+
   );
 }
 
