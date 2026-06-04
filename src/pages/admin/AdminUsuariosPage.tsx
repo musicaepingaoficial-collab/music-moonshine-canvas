@@ -176,8 +176,8 @@ const AdminUsuariosPage = () => {
           ) : filtered.length === 0 ? (
             <EmptyState icon={Users} title="Nenhum usuário encontrado" description="Tente alterar os termos da busca." />
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="hidden md:table">
+            <div className="overflow-hidden">
+              <Table className="w-full">
                 <TableHeader className="hidden md:table-header-group">
                   <TableRow>
                     <TableHead>Nome</TableHead>
