@@ -618,8 +618,10 @@ serve(async (req) => {
           .select("name, email, whatsapp")
           .eq("id", userId)
           .maybeSingle();
-        const who = profile?.name || profile?.email || "Usuário";
-        const amount = Number(plan.price).toFixed(2);
+        const who = profile?.name || profile?.email || "Cliente";
+        const amount = fmtBRL(plan.price);
+        const method = fmtMethod(payment);
+        const planName = (plan as any).name || planSlug;
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -628,13 +630,15 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase",
-            title: `💰 Venda aprovada — R$ ${amount}`,
-            body: `${who} • Plano ${planSlug}`,
+            title: `💰 Venda aprovada · R$ ${amount}`,
+            body: `${who} — ${planName} — ${method}`,
             url: "/admin/notificacoes",
             data: {
               kind: "purchase_subscription",
               product_type: "subscription",
               plan_slug: planSlug,
+              plan_name: planName,
+              payment_method: method,
               amount: Number(plan.price),
               buyer_name: profile?.name || null,
               buyer_email: profile?.email || null,
@@ -644,6 +648,7 @@ serve(async (req) => {
             },
           }),
         });
+
       } catch (err) {
         console.error("[push purchase] erro:", err);
       }
