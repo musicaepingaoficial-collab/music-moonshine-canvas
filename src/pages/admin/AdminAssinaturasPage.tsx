@@ -458,7 +458,7 @@ const AdminAssinaturasPage = () => {
                         </TableCell>
                       )}
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           {sub.status === "active" && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
