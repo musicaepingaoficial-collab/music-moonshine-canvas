@@ -77,16 +77,24 @@ const AdminNotificacoesPage = () => {
   const [busy, setBusy] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [page, setPage] = useState(0);
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
 
   const loadLogs = async () => {
     setLoadingLogs(true);
-    const { data: rawLogs } = await (supabase.from("admin_push_logs" as any) as any)
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(20);
+    const { from, to } = getRange(dateFilter, customRange);
+    let q: any = (supabase.from("admin_push_logs" as any) as any)
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false });
+    if (from) q = q.gte("created_at", from.toISOString());
+    if (to) q = q.lte("created_at", to.toISOString());
+    q = q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+    const { data: rawLogs, count } = await q;
     const list = (rawLogs || []) as any[];
 
-    // Enrich older logs missing buyer info by cross-referencing pending_subscriptions/profiles by time proximity (≤ 5 min)
+    // Enrich older logs missing buyer info by cross-referencing pending_subscriptions by time proximity (≤ 5 min)
     const needsEnrich = list.filter(
       (l) => (!l.data || !l.data.buyer_email) && (l.event_type === "pix_generated" || l.event_type === "purchase"),
     );
@@ -117,6 +125,7 @@ const AdminNotificacoesPage = () => {
     }
 
     setLogs(list);
+    setTotalLogs(count || 0);
     setLoadingLogs(false);
   };
 
