@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { Users, Music, DollarSign, TrendingUp, Loader2, Activity, AlertTriangle, Eye, MousePointer2, HardDrive } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAdminStats } from "@/hooks/useAdminStats";
@@ -12,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 
 const AdminDashboardPage = () => {
+  const navigate = useNavigate();
   const { data: stats, isLoading, error, refetch } = useAdminStats();
   const [timeRange, setTimeRange] = useState<"day" | "week">("day");
   const [salesTimeRange, setSalesTimeRange] = useState<"day" | "week" | "month">("day");
@@ -154,7 +156,8 @@ const AdminDashboardPage = () => {
           icon: Eye, 
           color: "text-purple-500",
           bgColor: "bg-purple-500/10",
-          controls: true
+          controls: true,
+          link: "/admin/vendas-stats"
         },
       ]
     : [];
@@ -196,7 +199,8 @@ const AdminDashboardPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="relative overflow-hidden rounded-2xl bg-card border border-border/50 p-6 shadow-sm hover:shadow-md transition-all group"
+                onClick={() => stat.link && navigate(stat.link)}
+                className={`relative overflow-hidden rounded-2xl bg-card border border-border/50 p-6 shadow-sm hover:shadow-md transition-all group ${stat.link ? 'cursor-pointer hover:border-primary/30' : ''}`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-2.5 rounded-xl ${stat.bgColor || 'bg-muted'}`}>
