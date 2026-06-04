@@ -135,7 +135,8 @@ const AdminNotificacoesPage = () => {
     notify_pix_generated: true,
   });
 
-  useEffect(() => { loadLogs(); }, []);
+  useEffect(() => { loadLogs(); /* eslint-disable-next-line */ }, [page, dateFilter, customRange.from, customRange.to]);
+  useEffect(() => { setPage(0); }, [dateFilter, customRange.from, customRange.to]);
 
   useEffect(() => {
     if (!user) return;
