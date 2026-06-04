@@ -113,10 +113,11 @@ async function getVapidHeaders(endpoint: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Restrict to internal service-role callers only.
+  // Accept service-role (internal calls) OR a signed-in admin JWT.
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const authHeader = req.headers.get("Authorization") || "";
-  if (authHeader !== `Bearer ${serviceRoleKey}`) {
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -127,6 +128,31 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     serviceRoleKey
   );
+
+  if (token !== serviceRoleKey) {
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: isAdmin } = await supabase.rpc("has_role", {
+      _user_id: data.user.id,
+      _role: "admin",
+    });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
 
 
   try {

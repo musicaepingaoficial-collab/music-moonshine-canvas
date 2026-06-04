@@ -9,14 +9,28 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Only callable by the scheduled cron / internal service-role caller.
+  // Accept either service-role (cron) or a signed-in user JWT — blocks anonymous internet callers.
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const authHeader = req.headers.get("Authorization") || "";
-  if (authHeader !== `Bearer ${serviceRoleKey}`) {
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+  if (token !== serviceRoleKey) {
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 
   try {
@@ -24,6 +38,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       serviceRoleKey
     );
+
 
 
     // Call the database function to record metric
