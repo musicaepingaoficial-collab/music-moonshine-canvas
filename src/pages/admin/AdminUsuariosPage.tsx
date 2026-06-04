@@ -189,15 +189,24 @@ const AdminUsuariosPage = () => {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium text-foreground">{user.name || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">
+                    <TableRow 
+                      key={user.id} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/admin/usuarios/${user.id}`)}
+                    >
+                      <TableCell className="font-bold text-foreground">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate">{user.name || "—"}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground hidden md:table-cell">
                         <div className="flex flex-col max-w-[200px]">
                           <span className="truncate">{user.email}</span>
                           <span className="text-xs text-primary/70">{user.whatsapp || "Sem WhatsApp"}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {user.assinaturas.filter(s => s.status === "active").length > 0 ? (
                           <Badge className="bg-primary/20 text-primary border-0">
                             {user.assinaturas.find(s => s.status === "active")?.plan}
@@ -206,8 +215,8 @@ const AdminUsuariosPage = () => {
                           <Badge variant="secondary">Free</Badge>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="hidden xl:table-cell">
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <Switch 
                             checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
                             disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual") || toggleDiscografiasMutation.isPending}
@@ -215,23 +224,20 @@ const AdminUsuariosPage = () => {
                           />
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                      <TableCell className="text-muted-foreground whitespace-nowrap hidden lg:table-cell">
                         {new Date(user.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground italic max-w-[150px] truncate">
+                      <TableCell className="text-xs text-muted-foreground italic max-w-[150px] truncate hidden md:table-cell">
                         {user.referred_by || "—"}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                      <TableCell className="text-right hidden sm:table-cell">
+                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
                             const phone = user.whatsapp?.replace(/\D/g, "");
                             if (!phone) return toast.error("Usuário sem WhatsApp");
                             window.open(`https://wa.me/55${phone}`, "_blank");
                           }}>
                             <MessageCircle className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setViewTarget(user)}>
-                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={currentUser?.id === user.id} onClick={() => { setDeleteTarget(user); setConfirmText(""); }}>
                             <Trash2 className="h-4 w-4" />
