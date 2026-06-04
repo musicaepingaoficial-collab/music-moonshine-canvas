@@ -58,7 +58,7 @@ const AdminDashboardPage = () => {
         const hourlyData: Record<string, { count: number, total: number }> = {};
         data.forEach(m => {
           const date = new Date(m.timestamp);
-          const hourKey = date.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '00' });
+          const hourKey = date.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }).split(':')[0] + ':00';
           if (!hourlyData[hourKey]) {
             hourlyData[hourKey] = { count: 0, total: 0 };
           }
