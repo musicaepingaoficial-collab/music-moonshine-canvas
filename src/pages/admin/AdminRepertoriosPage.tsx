@@ -141,19 +141,17 @@ const AdminRepertoriosPage = () => {
           <h2 className="text-sm font-semibold text-foreground">Novo repertório</h2>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               placeholder="Nome (ex: Repertório Abril 2026)"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="flex-1"
               aria-label="Nome do repertório"
             />
             <Input
               placeholder="Descrição (opcional)"
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
-              className="flex-1"
               aria-label="Descrição do repertório"
             />
           </div>
