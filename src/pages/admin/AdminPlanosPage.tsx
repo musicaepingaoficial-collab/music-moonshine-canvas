@@ -105,11 +105,11 @@ const AdminPlanosPage = () => {
                         <Input
                           value={edited.name}
                           onChange={(e) => handleChange(plano.id, "name", e.target.value)}
-                          className="h-8 w-32"
+                          className="h-8 w-24 sm:w-32 text-xs"
                         />
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{plano.slug}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">{plano.slug}</Badge>
                       </TableCell>
                       <TableCell>
                         <Input
