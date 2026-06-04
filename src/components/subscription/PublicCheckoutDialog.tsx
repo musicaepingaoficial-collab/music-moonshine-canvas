@@ -452,6 +452,8 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Clock className="h-4 w-4 text-primary animate-pulse" /> Aguardando pagamento via PIX
               </div>
+              <PixCountdown />
+
               {pixData.qrCodeBase64 && (
                 <div className="flex items-center justify-center">
                   <img src={`data:image/png;base64,${pixData.qrCodeBase64}`}
