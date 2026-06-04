@@ -39,7 +39,12 @@ const AdminDashboardPage = () => {
         .select("*", { count: 'exact', head: true })
         .gte("created_at", startTime.toISOString());
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching sales stats:", error);
+        throw error;
+      }
+      
+      console.log(`Sales count for ${salesTimeRange}:`, count);
       return count || 0;
     },
     refetchInterval: 60000,
