@@ -120,13 +120,43 @@ const AdminDashboardPage = () => {
 
   const statCards = stats
     ? [
-        { label: "Usuários", value: stats.totalUsers.toLocaleString("pt-BR"), icon: Users, change: "" },
-        { label: "Online Agora", value: String(onlineUsers?.length || 0), icon: Activity, change: "Em tempo real" },
-        { label: "Músicas", value: stats.totalMusicas.toLocaleString("pt-BR"), icon: Music, change: "" },
-        { label: "Assinantes ativos", value: stats.activeSubscriptions.toLocaleString("pt-BR"), icon: TrendingUp, change: "" },
-        { label: "Visitas Vendas", value: salesStats?.toLocaleString("pt-BR") || "0", icon: TrendingUp, change: "" },
+        { 
+          label: "Usuários Totais", 
+          value: stats.totalUsers.toLocaleString("pt-BR"), 
+          icon: Users, 
+          color: "text-blue-500",
+          bgColor: "bg-blue-500/10"
+        },
+        { 
+          label: "Assinantes Ativos", 
+          value: stats.activeSubscriptions.toLocaleString("pt-BR"), 
+          icon: TrendingUp, 
+          color: "text-emerald-500",
+          bgColor: "bg-emerald-500/10"
+        },
+        { 
+          label: "Online Agora", 
+          value: String(onlineUsers?.length || 0), 
+          icon: Activity, 
+          color: "text-orange-500",
+          bgColor: "bg-orange-500/10",
+          badge: "Tempo Real"
+        },
+        { 
+          label: "Visitas Vendas", 
+          value: salesStats?.toLocaleString("pt-BR") || "0", 
+          icon: Eye, 
+          color: "text-purple-500",
+          bgColor: "bg-purple-500/10",
+          controls: true
+        },
       ]
     : [];
+
+  const secondaryStats = stats ? [
+    { label: "Músicas", value: stats.totalMusicas.toLocaleString("pt-BR"), icon: Music },
+    { label: "Drives Ativos", value: String(stats.drives.filter(d => d.status === 'online').length), icon: HardDrive },
+  ] : [];
 
   return (
     <div className="space-y-8">
