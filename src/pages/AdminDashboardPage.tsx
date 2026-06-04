@@ -14,6 +14,30 @@ import { useState } from "react";
 const AdminDashboardPage = () => {
   const { data: stats, isLoading, error, refetch } = useAdminStats();
   const [timeRange, setTimeRange] = useState<"day" | "week">("day");
+  const [salesTimeRange, setSalesTimeRange] = useState<"day" | "week" | "month">("day");
+
+  const { data: salesStats } = useQuery({
+    queryKey: ["sales-page-stats", salesTimeRange],
+    queryFn: async () => {
+      const startTime = new Date();
+      if (salesTimeRange === "day") {
+        startTime.setHours(0, 0, 0, 0);
+      } else if (salesTimeRange === "week") {
+        startTime.setDate(startTime.getDate() - 7);
+      } else {
+        startTime.setMonth(startTime.getMonth() - 1);
+      }
+
+      const { count, error } = await supabase
+        .from("sales_page_views" as any)
+        .select("*", { count: 'exact', head: true })
+        .gte("created_at", startTime.toISOString());
+
+      if (error) throw error;
+      return count || 0;
+    },
+    refetchInterval: 60000,
+  });
   const { data: onlineUsers, isLoading: loadingOnline } = useQuery({
     queryKey: ["online-users"],
     queryFn: async () => {
@@ -100,6 +124,7 @@ const AdminDashboardPage = () => {
         { label: "Online Agora", value: String(onlineUsers?.length || 0), icon: Activity, change: "Em tempo real" },
         { label: "Músicas", value: stats.totalMusicas.toLocaleString("pt-BR"), icon: Music, change: "" },
         { label: "Assinantes ativos", value: stats.activeSubscriptions.toLocaleString("pt-BR"), icon: TrendingUp, change: "" },
+        { label: "Visitas Vendas", value: salesStats?.toLocaleString("pt-BR") || "0", icon: TrendingUp, change: "" },
       ]
     : [];
 
@@ -108,7 +133,30 @@ const AdminDashboardPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
-          <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
+            <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md">
+              <span className="text-[10px] font-medium uppercase text-muted-foreground">Vendas:</span>
+              <button 
+                onClick={() => setSalesTimeRange("day")}
+                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "day" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                Dia
+              </button>
+              <button 
+                onClick={() => setSalesTimeRange("week")}
+                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "week" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                Sem
+              </button>
+              <button 
+                onClick={() => setSalesTimeRange("month")}
+                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "month" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                Mês
+              </button>
+            </div>
+          </div>
         </div>
         {isNearLimit && (
           <motion.div 
