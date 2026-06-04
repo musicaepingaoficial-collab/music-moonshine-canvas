@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { claimPendingSubscription, pollPendingApproved } from "@/services/paymentService";
 import { CONSENT_VERSION } from "@/hooks/useCookieConsent";
-import logo from "@/assets/logo.jpeg";
+import logo from "@/assets/logo.webp";
 
 export default function FinalizarCadastroPage() {
   const [params] = useSearchParams();

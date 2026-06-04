@@ -21,6 +21,7 @@ import {
 } from "@/services/paymentService";
 import { trackEvent } from "@/lib/pixels";
 import { PixCountdown } from "@/components/subscription/PixCountdown";
+import { loadMercadoPagoSdk } from "@/lib/mercadoPagoLoader";
 
 interface Props {
   open: boolean;
@@ -105,10 +106,13 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
       return;
     }
     const publicKey = (import.meta as any).env.VITE_MP_PUBLIC_KEY;
-    if (!publicKey || !(window as any).MercadoPago) {
-      toast.error("SDK do Mercado Pago não carregado");
+    if (!publicKey) {
+      toast.error("Mercado Pago não configurado");
       return;
     }
+    let cancelled = false;
+    loadMercadoPagoSdk().then(() => {
+      if (cancelled) return;
     const mp = new (window as any).MercadoPago(publicKey, { locale: "pt-BR" });
     try { cardFormRef.current?.unmount(); } catch {}
 
@@ -148,6 +152,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
             const formData = cardFormRef.current.getCardFormData();
             let deviceId = "";
             try {
+              await loadMercadoPagoSdk();
               const mp2 = new (window as any).MercadoPago(publicKey);
               deviceId = await mp2.getDeviceSolution();
             } catch {}
@@ -184,7 +189,8 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
         },
       },
     });
-    return () => { try { cardFormRef.current?.unmount(); } catch {} };
+    });
+    return () => { cancelled = true; try { cardFormRef.current?.unmount(); } catch {} };
   }, [step, payMethod, plan, email, name, cpf, whatsapp, navigate]);
 
   // ---------- Etapa 2 (PIX) ----------
@@ -196,6 +202,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
     try {
       let deviceId = "";
       try {
+        await loadMercadoPagoSdk();
         const mp = new (window as any).MercadoPago((import.meta as any).env.VITE_MP_PUBLIC_KEY);
         deviceId = await mp.getDeviceSolution();
       } catch {}

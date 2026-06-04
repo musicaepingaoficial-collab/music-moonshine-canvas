@@ -1,5 +1,5 @@
 import { Library, Heart, User, Tag, LogOut, FolderOpen, FileText, Gift, Music, Download, Disc } from "lucide-react";
-import logo from "@/assets/logo.jpeg";
+import logo from "@/assets/logo.webp";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {

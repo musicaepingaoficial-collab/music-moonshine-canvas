@@ -1,5 +1,5 @@
 import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay, Truck, Video, Disc, MessageSquare } from "lucide-react";
-import logo from "@/assets/logo.jpeg";
+import logo from "@/assets/logo.webp";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,

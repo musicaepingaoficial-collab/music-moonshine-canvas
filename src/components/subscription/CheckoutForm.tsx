@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
 import { PixCountdown } from "@/components/subscription/PixCountdown";
+import { loadMercadoPagoSdk } from "@/lib/mercadoPagoLoader";
 
 interface CheckoutFormProps {
   planSlug: string;
@@ -168,11 +169,14 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     }
 
     const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY;
-    if (!publicKey || !window.MercadoPago) {
-      toast.error("SDK do Mercado Pago não carregado");
+    if (!publicKey) {
+      toast.error("Mercado Pago não configurado");
       return;
     }
 
+    let cancelled = false;
+    loadMercadoPagoSdk().then(() => {
+      if (cancelled) return;
     const mp = new window.MercadoPago(publicKey, { locale: "pt-BR" });
 
     try { cardFormRef.current?.unmount(); } catch {}
@@ -226,6 +230,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             // Get deviceId for maximum security score
             let deviceId = "";
             try {
+              await loadMercadoPagoSdk();
               const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
               deviceId = await mp.getDeviceSolution();
             } catch (deverr) {
@@ -279,7 +284,10 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
       },
     });
 
+    });
+
     return () => {
+      cancelled = true;
       try { cardFormRef.current?.unmount(); } catch {}
     };
   }, [paymentMethod, planPrice, planSlug]);
@@ -340,6 +348,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
       // Get deviceId for Pix as well
       let deviceId = "";
       try {
+        await loadMercadoPagoSdk();
         // @ts-ignore
         const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY);
         deviceId = await mp.getDeviceSolution();

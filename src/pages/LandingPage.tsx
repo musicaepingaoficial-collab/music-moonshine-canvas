@@ -28,16 +28,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import capaMaioLaranja from "@/assets/repertorios/capa-maio-laranja.jpg";
-import capaMaioRosa from "@/assets/repertorios/capa-maio-rosa.jpg";
-import capaFestaJunina from "@/assets/repertorios/capa-festa-junina.jpg";
-import capaMusicaPinga from "@/assets/repertorios/capa-musica-pinga.jpg";
+import capaMaioLaranja from "@/assets/repertorios/capa-maio-laranja.webp";
+import capaMaioRosa from "@/assets/repertorios/capa-maio-rosa.webp";
+import capaFestaJunina from "@/assets/repertorios/capa-festa-junina.webp";
+import capaMusicaPinga from "@/assets/repertorios/capa-musica-pinga.webp";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useUser";
 import { Loader2 } from "lucide-react";
-import logo from "@/assets/logo.jpeg";
-import heroMockup from "@/assets/hero-mockup.jpg";
+import logo from "@/assets/logo.webp";
+import heroMockup from "@/assets/hero-mockup.webp";
 import { PublicCheckoutDialog } from "@/components/subscription/PublicCheckoutDialog";
 import { VersionChecker } from "@/components/layout/VersionChecker";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -352,7 +352,10 @@ export default function LandingPage() {
                   className="w-full h-auto"
                   width={1536}
                   height={1024}
+                  fetchPriority="high"
+                  decoding="async"
                 />
+
               </div>
 
               {/* floating chips */}
