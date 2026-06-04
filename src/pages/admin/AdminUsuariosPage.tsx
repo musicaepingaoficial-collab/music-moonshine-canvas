@@ -209,8 +209,8 @@ const AdminUsuariosPage = () => {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Switch 
-                            checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio")}
-                            disabled={user.assinaturas.some(s => s.plan === "vitalicio") || toggleDiscografiasMutation.isPending}
+                            checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
+                            disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual") || toggleDiscografiasMutation.isPending}
                             onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
                           />
                         </div>
