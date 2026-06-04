@@ -438,7 +438,7 @@ serve(async (req) => {
 
       const { data: plan } = await supabase
         .from("planos")
-        .select("price, duration_days, slug")
+        .select("price, duration_days, slug, name")
         .eq("slug", planSlug)
         .single();
 
