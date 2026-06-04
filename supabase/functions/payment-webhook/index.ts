@@ -152,8 +152,8 @@ serve(async (req) => {
               },
               body: JSON.stringify({
                 type: "purchase",
-                title: "💰 Pagamento aprovado (pré-cadastro)",
-                body: `${pending.full_name} (${pending.email}) — ${pending.plan} R$ ${Number(pending.price).toFixed(2)}`,
+                title: "💰 Venda Aprovada (Novo Usuário)",
+                body: `${pending.full_name} (${pending.email}) — Plano ${pending.plan} R$ ${Number(pending.price).toFixed(2)}`,
                 url: "/admin/assinaturas",
               }),
             });
@@ -283,8 +283,8 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               type: "purchase",
-              title: "📀 Módulo Discografias vendido",
-              body: `${who} adquiriu o acesso vitalício às discografias!`,
+              title: "📀 Venda de Módulo",
+              body: `${who} comprou Módulo Discografias — R$ ${payment.transaction_amount}`,
               url: "/admin/usuarios",
             }),
           });
