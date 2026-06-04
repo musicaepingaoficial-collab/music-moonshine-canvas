@@ -209,8 +209,8 @@ const AdminUsuariosPage = () => {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Switch 
-                            checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio")}
-                            disabled={user.assinaturas.some(s => s.plan === "vitalicio") || toggleDiscografiasMutation.isPending}
+                            checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
+                            disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual") || toggleDiscografiasMutation.isPending}
                             onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
                           />
                         </div>
@@ -265,8 +265,8 @@ const AdminUsuariosPage = () => {
                     <div className="flex justify-between items-center pt-2 border-t">
                       <div className="flex items-center gap-2">
                         <Switch 
-                          checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio")}
-                          disabled={user.assinaturas.some(s => s.plan === "vitalicio")}
+                          checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
+                          disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
                           onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
                         />
                         <span className="text-xs text-muted-foreground">Discografias</span>

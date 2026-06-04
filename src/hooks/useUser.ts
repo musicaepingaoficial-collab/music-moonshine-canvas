@@ -123,7 +123,11 @@ export function useHasActiveSubscription() {
 
   const isVitalicio = assinatura?.plan === "vitalicio";
   const isAnual = assinatura?.plan === "anual";
+  
+  // Only vitalicio or anual plans include discografias by default
   const planIncludesDiscografias = (isVitalicio || isAnual) && notExpired;
+  
+  // Access is granted if they are admin, OR their plan includes it, OR they have the manual override flag
   const hasDiscografiasAccess = Boolean(isAdmin) || planIncludesDiscografias || !!profile?.has_discografias;
 
   return {
