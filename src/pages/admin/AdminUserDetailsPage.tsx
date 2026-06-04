@@ -22,10 +22,12 @@ const AdminUserDetailsPage = () => {
         .update({ has_discografias: enabled })
         .eq("id", userId);
       if (error) throw error;
+      return { enabled };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-user-details", id] });
-      toast.success("Acesso às discografias atualizado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success(data.enabled ? "Módulo Discografia ativado!" : "Módulo Discografia desativado!");
     },
     onError: (error) => {
       console.error(error);
