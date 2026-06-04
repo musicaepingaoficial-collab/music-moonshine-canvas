@@ -12,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle } from "lucide-react";
+import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle, Copy, MessageCircle, Mail, User, DollarSign, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 
 const NOTIFICATION_TYPES = [
