@@ -1,16 +1,37 @@
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, User, Phone, CreditCard, Calendar, Disc, Mail, UserCheck } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, ArrowLeft, User, Phone, CreditCard, Calendar, Disc, Mail, UserCheck, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { toast } from "sonner";
 
 const AdminUserDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const toggleDiscografiasMutation = useMutation({
+    mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ has_discografias: enabled })
+        .eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-user-details", id] });
+      toast.success("Acesso às discografias atualizado com sucesso!");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Erro ao atualizar acesso.");
+    },
+  });
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ["admin-user-details", id],
@@ -99,6 +120,20 @@ const AdminUserDetailsPage = () => {
               <UserCheck className="h-4 w-4 text-muted-foreground" />
               <span>Indicado por: {user.referred_by || "Direto"}</span>
             </div>
+            <div className="pt-2">
+              <Button 
+                className="w-full gap-2" 
+                variant="outline"
+                onClick={() => {
+                  const phone = user.whatsapp?.replace(/\D/g, "");
+                  if (!phone) return toast.error("Usuário sem WhatsApp");
+                  window.open(`https://wa.me/55${phone}`, "_blank");
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Conversar no WhatsApp
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -141,12 +176,22 @@ const AdminUserDetailsPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/30">
-                <span className="text-sm font-medium">Acesso às Discografias</span>
-                <Badge variant={user.has_discografias ? "default" : "secondary"}>
-                  {user.has_discografias ? "Liberado" : "Bloqueado"}
-                </Badge>
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-secondary/30">
+                <div className="space-y-0.5">
+                  <span className="text-sm font-bold">Módulo Discografias</span>
+                  <p className="text-xs text-muted-foreground">Ativar/desativar acesso manual</p>
+                </div>
+                <Switch 
+                  checked={user.has_discografias || user.assinaturas.some((s: any) => s.status === "active" && (s.plan === "vitalicio" || s.plan === "anual"))}
+                  disabled={user.assinaturas.some((s: any) => s.status === "active" && (s.plan === "vitalicio" || s.plan === "anual")) || toggleDiscografiasMutation.isPending}
+                  onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
+                />
               </div>
+              {user.assinaturas.some((s: any) => s.status === "active" && (s.plan === "vitalicio" || s.plan === "anual")) && (
+                <p className="text-[10px] text-primary mt-2 italic px-1">
+                  * Acesso liberado automaticamente pelo plano atual.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
