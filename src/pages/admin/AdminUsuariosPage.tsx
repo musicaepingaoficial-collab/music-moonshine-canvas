@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User, MessageCircle } from "lucide-react";
+import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User, MessageCircle, ChevronRight } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
