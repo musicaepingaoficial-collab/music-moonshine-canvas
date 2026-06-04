@@ -56,21 +56,31 @@ const AdminUsuariosPage = () => {
   const { data: users, isLoading, error, refetch } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      console.log("[AdminUsuarios:fetch]");
+      console.log("[AdminUsuarios:fetch] Starting fetch...");
       const { data, error } = await supabase
         .from("profiles")
         .select("id, name, email, whatsapp, cpf, has_discografias, created_at")
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      
+      if (error) {
+        console.error("[AdminUsuarios:fetch] Error fetching profiles:", error);
+        throw error;
+      }
+
+      console.log(`[AdminUsuarios:fetch] Fetched ${data?.length} profiles`);
 
       // Fetch subscriptions for all users
-      const { data: subs } = await supabase
+      const { data: subs, error: subsError } = await supabase
         .from("assinaturas")
         .select("user_id, plan, status, expires_at, created_at")
         .order("created_at", { ascending: false });
 
-      // Fetch referral info for these users
-      const { data: refs } = await supabase
+      if (subsError) {
+        console.error("[AdminUsuarios:fetch] Error fetching subscriptions:", subsError);
+      }
+
+      // Fetch referral info
+      const { data: refs, error: refsError } = await supabase
         .from("indicacoes")
         .select(`
           referred_user_id,
@@ -81,7 +91,11 @@ const AdminUsuariosPage = () => {
           )
         `);
 
-      return (data ?? []).map((u) => {
+      if (refsError) {
+        console.error("[AdminUsuarios:fetch] Error fetching referrals:", refsError);
+      }
+
+      const mappedData = (data ?? []).map((u) => {
         const userRef = (refs ?? []).find(r => r.referred_user_id === u.id);
         const referrerEmail = (userRef?.afiliados as any)?.profiles?.email;
 
@@ -91,6 +105,9 @@ const AdminUsuariosPage = () => {
           referred_by: referrerEmail
         };
       }) as UserWithSub[];
+
+      console.log("[AdminUsuarios:fetch] Fetch complete and data mapped");
+      return mappedData;
     },
   });
 
