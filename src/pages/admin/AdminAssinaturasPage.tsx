@@ -49,6 +49,7 @@ const AdminAssinaturasPage = () => {
   const [status, setStatus] = useState<string>("active");
   const [price, setPrice] = useState<string>("0");
   const [durationDays, setDurationDays] = useState<string>("30");
+  const [lifetime, setLifetime] = useState(false);
   const [showPending, setShowPending] = useState(false);
 
   const { data: subs, isLoading, error, refetch } = useQuery({
