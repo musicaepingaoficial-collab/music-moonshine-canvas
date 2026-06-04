@@ -172,7 +172,7 @@ const AdminBibliotecaPage = () => {
 
   const MusicaFormFields = () => (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Título *</Label>
           <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Nome da música" />
@@ -182,7 +182,7 @@ const AdminBibliotecaPage = () => {
           <Input value={form.artist} onChange={(e) => setForm((p) => ({ ...p, artist: e.target.value }))} placeholder="Nome do artista" />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Categoria</Label>
           <Select value={form.categoria_id} onValueChange={(v) => setForm((p) => ({ ...p, categoria_id: v }))}>
@@ -210,7 +210,7 @@ const AdminBibliotecaPage = () => {
         <Label>URL do arquivo</Label>
         <Input value={form.file_url} onChange={(e) => setForm((p) => ({ ...p, file_url: e.target.value }))} placeholder="https://..." />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>URL da capa</Label>
           <Input value={form.cover_url} onChange={(e) => setForm((p) => ({ ...p, cover_url: e.target.value }))} placeholder="https://..." />
