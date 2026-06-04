@@ -1,4 +1,4 @@
-import { Users, Music, DollarSign, TrendingUp, Loader2 } from "lucide-react";
+import { Users, Music, DollarSign, TrendingUp, Loader2, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { StatCardSkeleton } from "@/components/ui/Skeletons";
@@ -6,14 +6,32 @@ import { ErrorState } from "@/components/ui/ErrorState";
 
 const AdminDashboardPage = () => {
   const { data: stats, isLoading, error, refetch } = useAdminStats();
+  const { data: onlineUsers, isLoading: loadingOnline } = useQuery({
+    queryKey: ["online-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("online_users")
+        .select(`
+          *,
+          profiles (
+            name,
+            email
+          )
+        `)
+        .order("last_seen_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 30000, // Update every 30s
+  });
 
   console.log("[AdminDashboard:render]", { isLoading, hasError: !!error });
 
   const statCards = stats
     ? [
         { label: "Usuários", value: stats.totalUsers.toLocaleString("pt-BR"), icon: Users, change: "" },
+        { label: "Online Agora", value: String(onlineUsers?.length || 0), icon: Activity, change: "Em tempo real" },
         { label: "Músicas", value: stats.totalMusicas.toLocaleString("pt-BR"), icon: Music, change: "" },
-        { label: "Receita mensal", value: `R$ ${stats.totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: DollarSign, change: "" },
         { label: "Assinantes ativos", value: stats.activeSubscriptions.toLocaleString("pt-BR"), icon: TrendingUp, change: "" },
       ]
     : [];
@@ -64,6 +82,32 @@ const AdminDashboardPage = () => {
                     <span className="text-xs text-muted-foreground">
                       {new Date(user.created_at).toLocaleDateString("pt-BR")}
                     </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-card p-6">
+            <h2 className="mb-4 text-lg font-semibold text-foreground flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              Usuários Online (Tempo Real)
+            </h2>
+            <div className="space-y-3">
+              {!onlineUsers || onlineUsers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">Ninguém online no momento.</p>
+              ) : (
+                onlineUsers.map((u: any) => (
+                  <div key={u.user_id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
+                    <div className="min-w-0 flex-1 pr-4">
+                      <span className="text-sm font-medium text-foreground block truncate">
+                        {(u.profiles as any)?.name || (u.profiles as any)?.email || "Anônimo"}
+                      </span>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {u.path} • {new Date(u.last_seen_at).toLocaleTimeString("pt-BR")}
+                      </p>
+                    </div>
+                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse flex-shrink-0" />
                   </div>
                 ))
               )}

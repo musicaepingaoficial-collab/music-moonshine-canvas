@@ -87,6 +87,13 @@ function SingleSessionGuard() {
   return null;
 }
 
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+
+function OnlineStatusTracker() {
+  useOnlineStatus();
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -100,6 +107,7 @@ const App = () => (
           <CookieBanner />
           <CookiePreferencesDialog />
           <ReferralTracker />
+          <OnlineStatusTracker />
           <SingleSessionGuard />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
