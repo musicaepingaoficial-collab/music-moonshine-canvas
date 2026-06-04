@@ -166,7 +166,7 @@ fbq('init', '${s.meta_pixel_id}', ${amJson});`,
     // Re-init when the auth session changes (login/logout) so Advanced
     // Matching reflects the current user.
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      if (s?.meta_enabled && s.meta_pixel_id && marketingOk) init();
+      init();
     });
     return () => {
       cancelled = true;
