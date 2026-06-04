@@ -154,8 +154,9 @@ serve(async (req) => {
 
     if (payment.status === "refunded" || payment.status === "charged_back") {
       try {
-        const amount = Number(payment.transaction_amount || 0).toFixed(2);
+        const amount = fmtBRL(payment.transaction_amount);
         const refunded = payment.status === "refunded";
+        const who = payment.payer?.email || "Cliente";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -164,8 +165,8 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase_refunded",
-            title: refunded ? `↩️ Reembolso — R$ ${amount}` : `⚠️ Chargeback — R$ ${amount}`,
-            body: `${payment.payer?.email || "Cliente"}`,
+            title: refunded ? `↩️ Reembolso · R$ ${amount}` : `⚠️ Chargeback · R$ ${amount}`,
+            body: who,
             url: "/admin/notificacoes",
             data: {
               kind: refunded ? "purchase_refunded" : "chargeback",
@@ -176,6 +177,7 @@ serve(async (req) => {
             },
           }),
         });
+
       } catch (err) {
         console.error("[push refunded] erro:", err);
       }
