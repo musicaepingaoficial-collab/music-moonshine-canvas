@@ -251,17 +251,23 @@ const AdminUsuariosPage = () => {
                 </TableBody>
               </Table>
               
-              <div className="md:hidden space-y-4">
+              <div className="md:hidden space-y-4 pt-4">
                 {filtered.map((user) => (
-                  <div key={user.id} className="rounded-lg border bg-card p-4 space-y-3 cursor-pointer active:bg-muted" onClick={() => navigate(`/admin/usuarios/${user.id}`)}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-bold">{user.name || "—"}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <div 
+                    key={user.id} 
+                    className="rounded-xl border bg-card p-4 shadow-sm space-y-3 cursor-pointer active:bg-muted transition-colors" 
+                    onClick={() => navigate(`/admin/usuarios/${user.id}`)}
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black text-foreground uppercase tracking-tight truncate leading-tight">
+                          {user.name || "SEM NOME"}
+                        </p>
+                        <p className="text-xs font-bold text-primary uppercase mt-0.5">
+                          {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
+                        </p>
                       </div>
-                      <Badge className={user.assinaturas.some(s => s.status === "active") ? "bg-primary/20 text-primary" : "bg-secondary"}>
-                        {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
-                      </Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
                     </div>
                   </div>
                 ))}
