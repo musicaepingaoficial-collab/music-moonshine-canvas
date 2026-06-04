@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PixCountdown } from "@/components/subscription/PixCountdown";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Download, Loader2, Lock, Sparkles, ShoppingCart, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
