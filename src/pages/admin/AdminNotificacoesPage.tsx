@@ -524,7 +524,9 @@ function EventCard({ log }: { log: any }) {
         {log.removed ? ` · ${log.removed} expirados` : ""}
         {log.error ? ` · erro: ${log.error}` : ""}
       </div>
+      </>)}
     </div>
+
   );
 }
 
