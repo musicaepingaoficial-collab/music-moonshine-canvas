@@ -314,10 +314,11 @@ serve(async (req) => {
         try {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("name, email")
+            .select("name, email, whatsapp")
             .eq("id", userId)
             .maybeSingle();
           const who = profile?.name || profile?.email || "Usuário";
+          const amount = Number(payment.transaction_amount || 0).toFixed(2);
           await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
             method: "POST",
             headers: {
@@ -326,14 +327,26 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               type: "purchase",
-              title: "📀 Venda de Módulo",
-              body: `${who} comprou Módulo Discografias — R$ ${payment.transaction_amount}`,
-              url: "/admin/usuarios",
+              title: `📀 Módulo Discografias — R$ ${amount}`,
+              body: `${who} ativou o módulo Discografias`,
+              url: "/admin/notificacoes",
+              data: {
+                kind: "purchase_module",
+                product_type: "module",
+                module: "discografias",
+                amount: Number(payment.transaction_amount || 0),
+                buyer_name: profile?.name || null,
+                buyer_email: profile?.email || null,
+                buyer_whatsapp: profile?.whatsapp || null,
+                user_id: userId,
+                mp_payment_id: payment.id,
+              },
             }),
           });
         } catch (err) {
           console.error("[push disc purchase]", err);
         }
+
 
         return new Response(JSON.stringify({ received: true }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
