@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { usePixelSettings } from "@/hooks/useSiteSettings";
-import { _setCachedPixelSettings } from "@/lib/pixels";
+import { _setCachedPixelSettings, _setCachedUserData } from "@/lib/pixels";
 import { useCookieConsent } from "@/hooks/useCookieConsent";
 import { supabase } from "@/integrations/supabase/client";
 
