@@ -20,6 +20,7 @@ import {
   type PaymentResponse,
 } from "@/services/paymentService";
 import { trackEvent } from "@/lib/pixels";
+import { PixCountdown } from "@/components/subscription/PixCountdown";
 
 interface Props {
   open: boolean;
