@@ -397,20 +397,20 @@ const AdminAssinaturasPage = () => {
           ) : (
             <div className="overflow-x-auto">
               <Table className="hidden md:table">
-                <TableHeader>
+                <TableHeader className="hidden md:table-header-group">
                   <TableRow>
                     <TableHead>Usuário</TableHead>
                     {showPending && (
                       <>
-                        <TableHead>WhatsApp / CPF</TableHead>
-                        <TableHead>Método</TableHead>
+                        <TableHead className="hidden md:table-cell">WhatsApp / CPF</TableHead>
+                        <TableHead className="hidden lg:table-cell">Método</TableHead>
                       </>
                     )}
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>{showPending ? "Criado em" : "Início"}</TableHead>
-                    {!showPending && <TableHead>Expiração</TableHead>}
+                    <TableHead className="hidden sm:table-cell">Plano</TableHead>
+                    <TableHead className="hidden md:table-cell">Status</TableHead>
+                    <TableHead className="hidden lg:table-cell">Valor</TableHead>
+                    <TableHead className="hidden xl:table-cell">{showPending ? "Criado em" : "Início"}</TableHead>
+                    {!showPending && <TableHead className="hidden xl:table-cell">Expiração</TableHead>}
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
