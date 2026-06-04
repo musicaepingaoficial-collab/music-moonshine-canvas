@@ -12,9 +12,45 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle, Copy, MessageCircle, Mail, User, DollarSign, Package } from "lucide-react";
+import { Bell, BellOff, Send, ShoppingCart, QrCode, History, CheckCircle2, XCircle, Copy, MessageCircle, Mail, User, DollarSign, Package, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+
+type DateFilter = "today" | "yesterday" | "week" | "month" | "all" | "custom";
+const PAGE_SIZE = 10;
+
+function getRange(filter: DateFilter, custom?: { from?: Date; to?: Date }): { from: Date | null; to: Date | null } {
+  const now = new Date();
+  const start = new Date(now); start.setHours(0, 0, 0, 0);
+  const end = new Date(now); end.setHours(23, 59, 59, 999);
+  switch (filter) {
+    case "today": return { from: start, to: end };
+    case "yesterday": {
+      const f = new Date(start); f.setDate(f.getDate() - 1);
+      const t = new Date(end); t.setDate(t.getDate() - 1);
+      return { from: f, to: t };
+    }
+    case "week": {
+      const f = new Date(start); f.setDate(f.getDate() - f.getDay());
+      return { from: f, to: end };
+    }
+    case "month": {
+      const f = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: f, to: end };
+    }
+    case "custom": {
+      const f = custom?.from ? new Date(custom.from.setHours(0, 0, 0, 0)) : null;
+      const t = custom?.to ? new Date(new Date(custom.to).setHours(23, 59, 59, 999)) : null;
+      return { from: f, to: t };
+    }
+    default: return { from: null, to: null };
+  }
+}
 
 const NOTIFICATION_TYPES = [
   {
