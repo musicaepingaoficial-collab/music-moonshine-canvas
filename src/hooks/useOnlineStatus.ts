@@ -23,8 +23,8 @@ export const useOnlineStatus = () => {
         
         // As a side effect, record a usage metric if user is admin or periodically
         // This helps simulate a "cron" until real cron is available
-        if (Math.random() < 0.2) { // 20% chance to trigger record function
-          await (supabase.rpc as any)("record_usage_metric");
+        if (Math.random() < 0.1) { // 10% chance to trigger record function
+          await supabase.functions.invoke("usage-metrics");
         }
       } catch (err) {
         console.error("Error updating online status:", err);
