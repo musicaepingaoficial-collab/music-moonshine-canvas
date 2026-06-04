@@ -147,19 +147,19 @@ const AdminUsuariosPage = () => {
       {error && <ErrorState message="Erro ao carregar usuários." onRetry={() => refetch()} />}
 
       <Card className="border-0">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
+        <CardHeader className="pb-3 px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome ou email..."
+                placeholder="Buscar..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
                 aria-label="Buscar usuários"
               />
             </div>
-            <Badge variant="secondary" className="whitespace-nowrap">
+            <Badge variant="secondary" className="whitespace-nowrap w-fit">
               {filtered.length} usuário{filtered.length !== 1 ? "s" : ""}
             </Badge>
           </div>
