@@ -8,6 +8,21 @@ const corsHeaders = {
 };
 
 
+function fmtBRL(n: number) {
+  return Number(n || 0).toFixed(2).replace(".", ",");
+}
+
+function fmtMethod(p: any): string {
+  if (!p) return "—";
+  if (p.payment_method_id === "pix") return "PIX";
+  const t = p.payment_type_id;
+  const inst = Number(p.installments || 1);
+  if (t === "credit_card") return inst > 1 ? `Cartão ${inst}x` : "Cartão";
+  if (t === "debit_card") return "Débito";
+  if (t === "ticket") return "Boleto";
+  if (t === "account_money") return "Saldo MP";
+  return t || "—";
+}
 
 
 async function verifyMpSignature(req: Request, paymentId: string): Promise<boolean> {
@@ -106,7 +121,9 @@ serve(async (req) => {
     // ==== Notificar admin sobre status não-aprovados ====
     if (payment.status === "rejected" || payment.status === "cancelled") {
       try {
-        const amount = Number(payment.transaction_amount || 0).toFixed(2);
+        const amount = fmtBRL(payment.transaction_amount);
+        const method = fmtMethod(payment);
+        const who = payment.payer?.email || "Cliente";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -115,19 +132,21 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "purchase_rejected",
-            title: `❌ Pagamento recusado — R$ ${amount}`,
-            body: `${payment.payer?.email || "Cliente"} • ${payment.status_detail || payment.status}`,
+            title: `❌ Pagamento recusado · R$ ${amount}`,
+            body: `${who} — ${method} — ${payment.status_detail || payment.status}`,
             url: "/admin/notificacoes",
             data: {
               kind: "purchase_rejected",
               amount: Number(payment.transaction_amount || 0),
               buyer_email: payment.payer?.email || null,
+              payment_method: method,
               status_detail: payment.status_detail || payment.status,
               mp_payment_id: payment.id,
               external_reference: payment.external_reference || null,
             },
           }),
         });
+
       } catch (err) {
         console.error("[push rejected] erro:", err);
       }
