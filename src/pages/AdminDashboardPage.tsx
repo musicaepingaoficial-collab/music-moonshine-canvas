@@ -133,7 +133,30 @@ const AdminDashboardPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
-          <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
+            <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md">
+              <span className="text-[10px] font-medium uppercase text-muted-foreground">Vendas:</span>
+              <button 
+                onClick={() => setSalesTimeRange("day")}
+                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "day" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                Dia
+              </button>
+              <button 
+                onClick={() => setSalesTimeRange("week")}
+                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "week" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                Sem
+              </button>
+              <button 
+                onClick={() => setSalesTimeRange("month")}
+                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "month" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                Mês
+              </button>
+            </div>
+          </div>
         </div>
         {isNearLimit && (
           <motion.div 
