@@ -188,8 +188,69 @@ const AdminDashboardPage = () => {
                   </div>
                 ))}
               </div>
+        </div>
+      )}
+
+      {/* Usage Graph */}
+      <Card className="border-0 shadow-sm overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Picos de Acessos Simultâneos
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Monitoramento histórico de carga no servidor de arquivos</p>
+        </CardHeader>
+        <CardContent className="h-[300px] w-full pt-4">
+          {usageMetrics && usageMetrics.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={usageMetrics}>
+                <defs>
+                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted-foreground))" opacity={0.1} />
+                <XAxis 
+                  dataKey="time" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  minTickGap={30}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  domain={[0, 60]}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    borderColor: 'hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  itemStyle={{ color: 'hsl(var(--primary))' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="count" 
+                  name="Usuários"
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorCount)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center border-2 border-dashed rounded-xl border-muted">
+              <p className="text-sm text-muted-foreground">Coletando dados iniciais...</p>
             </div>
           )}
+        </CardContent>
+      </Card>
         </div>
       )}
     </div>
