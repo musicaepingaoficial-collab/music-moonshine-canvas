@@ -159,50 +159,29 @@ const AdminDashboardPage = () => {
   ] : [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
-          <div className="flex items-center gap-4">
-            <p className="text-sm text-muted-foreground">Visão geral da plataforma</p>
-            <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md">
-              <span className="text-[10px] font-medium uppercase text-muted-foreground">Vendas:</span>
-              <button 
-                onClick={() => setSalesTimeRange("day")}
-                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "day" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-              >
-                Dia
-              </button>
-              <button 
-                onClick={() => setSalesTimeRange("week")}
-                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "week" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-              >
-                Sem
-              </button>
-              <button 
-                onClick={() => setSalesTimeRange("month")}
-                className={`text-[10px] px-1.5 py-0.5 rounded ${salesTimeRange === "month" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-              >
-                Mês
-              </button>
-            </div>
-          </div>
+          <h1 className="text-3xl font-black text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Monitoramento geral da plataforma em tempo real</p>
         </div>
+        
         {isNearLimit && (
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg animate-pulse"
+            className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-xl animate-pulse"
           >
             <AlertTriangle className="h-5 w-5" />
-            <span className="text-sm font-bold">ALERTA: PICO DE ACESSOS ({onlineUsers?.length})</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Alerta de Tráfego</span>
           </motion.div>
         )}
       </div>
 
       {error && <ErrorState message="Erro ao carregar estatísticas." onRetry={() => refetch()} />}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Main Stats Grid */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
           : statCards.map((stat, i) => (
@@ -211,15 +190,61 @@ const AdminDashboardPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="rounded-xl bg-card p-5"
+                className="relative overflow-hidden rounded-2xl bg-card border border-border/50 p-6 shadow-sm hover:shadow-md transition-all group"
               >
-                <div className="flex items-center justify-between">
-                  <stat.icon className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-2.5 rounded-xl ${stat.bgColor || 'bg-muted'}`}>
+                    <stat.icon className={`h-5 w-5 ${stat.color || 'text-muted-foreground'}`} />
+                  </div>
+                  {stat.badge && (
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] font-bold uppercase tracking-wider">
+                      {stat.badge}
+                    </Badge>
+                  )}
+                  {stat.controls && (
+                    <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg">
+                      {['day', 'week', 'month'].map((range) => (
+                        <button
+                          key={range}
+                          onClick={() => setSalesTimeRange(range as any)}
+                          className={`text-[9px] px-2 py-1 rounded-md font-bold uppercase transition-all ${
+                            salesTimeRange === range 
+                              ? "bg-card text-foreground shadow-sm" 
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {range === 'day' ? 'Dia' : range === 'week' ? 'Sem' : 'Mês'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className="mt-3 text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">{stat.label}</h3>
+                  <p className="text-3xl font-black text-foreground mt-1 tracking-tight">
+                    {stat.value}
+                  </p>
+                </div>
+                
+                {/* Decorative background element */}
+                <div className={`absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity`}>
+                   <stat.icon size={100} />
+                </div>
               </motion.div>
             ))}
+      </div>
+
+      {/* Secondary Stats Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+         {secondaryStats.map((stat, i) => (
+           <div key={i} className="bg-muted/30 border border-border/40 rounded-xl px-4 py-3 flex items-center gap-3">
+             <stat.icon className="h-4 w-4 text-muted-foreground" />
+             <div className="flex flex-col">
+               <span className="text-xs text-muted-foreground font-medium">{stat.label}</span>
+               <span className="text-sm font-bold">{stat.value}</span>
+             </div>
+           </div>
+         ))}
       </div>
 
       {!isLoading && stats && (
