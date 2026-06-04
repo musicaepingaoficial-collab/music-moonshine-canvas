@@ -177,7 +177,22 @@ export default function LandingPage() {
 
   useEffect(() => {
     trackEvent("view_content", { content_category: "landing", content_name: "LandingPage" });
-  }, []);
+    
+    // Track page view in the database for admin stats
+    const recordPageView = async () => {
+      try {
+        await supabase.from("sales_page_views").insert({
+          user_id: user?.id,
+          user_agent: navigator.userAgent,
+          referrer: document.referrer
+        });
+      } catch (err) {
+        console.error("Erro ao registrar visualização da página:", err);
+      }
+    };
+    
+    recordPageView();
+  }, [user]);
 
   const handleStartVideo = () => {
     const video = document.querySelector('video');
