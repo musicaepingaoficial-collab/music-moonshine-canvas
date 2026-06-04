@@ -143,7 +143,9 @@ serve(async (req) => {
 
     // Push admin: pix gerado
     try {
-      const amount = Number(pdf.price).toFixed(2);
+      const amount = Number(pdf.price).toFixed(2).replace(".", ",");
+      const buyerName = `${firstName} ${lastName}`.trim();
+      const who = buyerName || payerEmail || "Cliente";
       await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
         method: "POST",
         headers: {
@@ -152,16 +154,17 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           type: "pix_generated",
-          title: `🧾 PIX (PDF) — R$ ${amount}`,
-          body: `${payerEmail} • ${pdf.title}`,
+          title: `🟢 PIX gerado · R$ ${amount}`,
+          body: `${who} — PDF "${pdf.title}" — PIX`,
           url: "/admin/notificacoes",
           data: {
             kind: "pix_generated",
             product_type: "pdf",
             pdf_id: pdf.id,
             pdf_title: pdf.title,
+            payment_method: "PIX",
             amount: Number(pdf.price),
-            buyer_name: `${firstName} ${lastName}`.trim(),
+            buyer_name: buyerName,
             buyer_email: payerEmail,
             buyer_cpf: cpf,
             user_id: user.id,
@@ -169,6 +172,7 @@ serve(async (req) => {
           },
         }),
       });
+
     } catch (e) {
       console.error("[push pix pdf]", e);
     }

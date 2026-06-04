@@ -324,8 +324,9 @@ serve(async (req) => {
 
     if (isPix && transactionData.qr_code) {
       try {
-        const amount = Number(selectedPlan.price).toFixed(2);
+        const amount = Number(selectedPlan.price).toFixed(2).replace(".", ",");
         const buyerName = `${firstName} ${lastName}`.trim();
+        const who = buyerName || payerEmail || "Cliente";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -334,14 +335,15 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             type: "pix_generated",
-            title: `🟢 PIX gerado — R$ ${amount}`,
-            body: `${buyerName} • Plano ${selectedPlan.name}`,
+            title: `🟢 PIX gerado · R$ ${amount}`,
+            body: `${who} — ${selectedPlan.name} — PIX`,
             url: "/admin/notificacoes",
             data: {
               kind: "pix_generated",
               product_type: "subscription",
               plan_slug: selectedPlan.slug,
               plan_name: selectedPlan.name,
+              payment_method: "PIX",
               amount: Number(selectedPlan.price),
               buyer_name: buyerName,
               buyer_email: payerEmail,
@@ -354,6 +356,7 @@ serve(async (req) => {
             },
           }),
         });
+
       } catch (err) {
         console.error("[push pix] erro:", err);
       }
