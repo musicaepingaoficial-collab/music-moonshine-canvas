@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PixCountdown } from "@/components/subscription/PixCountdown";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Download, Loader2, Lock, Sparkles, ShoppingCart, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -188,7 +189,9 @@ export default function PdfsPage() {
             </div>
           ) : (
             <div className="space-y-3 text-center">
+              <PixCountdown />
               <p className="text-sm text-muted-foreground">Escaneie o QR code ou copie o código:</p>
+
               {pix.qr && (
                 <img src={`data:image/png;base64,${pix.qr}`} alt="QR PIX" className="mx-auto w-56 h-56 border rounded" />
               )}

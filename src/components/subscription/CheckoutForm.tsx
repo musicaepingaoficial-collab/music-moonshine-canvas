@@ -8,6 +8,7 @@ import { createPixPayment, getSubscriptionStatus, processTransparentPayment } fr
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
+import { PixCountdown } from "@/components/subscription/PixCountdown";
 
 interface CheckoutFormProps {
   planSlug: string;
@@ -500,6 +501,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             <QrCode className="h-4 w-4 text-primary" />
             Pagamento via Pix
           </div>
+
+          <PixCountdown />
+
 
           {pixData.qrCodeBase64 ? (
             <div className="flex items-center justify-center">
