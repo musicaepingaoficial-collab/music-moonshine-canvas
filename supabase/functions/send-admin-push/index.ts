@@ -178,6 +178,9 @@ Deno.serve(async (req) => {
     await supabase.from("admin_push_logs").insert({
       event_type: type,
       title,
+      body: bodyText,
+      url,
+      data,
       total_subs: subs.length,
       sent,
       removed,
