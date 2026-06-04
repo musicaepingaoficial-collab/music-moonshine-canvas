@@ -44,11 +44,43 @@ const AdminNotificacoesPage = () => {
 
   const loadLogs = async () => {
     setLoadingLogs(true);
-    const { data } = await (supabase.from("admin_push_logs" as any) as any)
+    const { data: rawLogs } = await (supabase.from("admin_push_logs" as any) as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(20);
-    setLogs(data || []);
+    const list = (rawLogs || []) as any[];
+
+    // Enrich older logs missing buyer info by cross-referencing pending_subscriptions/profiles by time proximity (≤ 5 min)
+    const needsEnrich = list.filter(
+      (l) => (!l.data || !l.data.buyer_email) && (l.event_type === "pix_generated" || l.event_type === "purchase"),
+    );
+    if (needsEnrich.length) {
+      const oldest = new Date(Math.min(...needsEnrich.map((l) => +new Date(l.created_at))) - 5 * 60_000).toISOString();
+      const newest = new Date(Math.max(...needsEnrich.map((l) => +new Date(l.created_at))) + 5 * 60_000).toISOString();
+      const { data: pendings } = await (supabase.from("pending_subscriptions") as any)
+        .select("full_name, email, whatsapp, plan, price, status, created_at, approved_at")
+        .gte("created_at", oldest)
+        .lte("created_at", newest);
+      const pool = ((pendings || []) as any[]).map((p) => ({
+        ts: +new Date(p.approved_at || p.created_at),
+        buyer_name: p.full_name, buyer_email: p.email, buyer_whatsapp: p.whatsapp,
+        plan_slug: p.plan, amount: Number(p.price),
+      }));
+      list.forEach((l) => {
+        if (l.data && l.data.buyer_email) return;
+        const lt = +new Date(l.created_at);
+        let best: any = null; let bestDiff = Infinity;
+        for (const p of pool) {
+          const diff = Math.abs(p.ts - lt);
+          if (diff < bestDiff && diff <= 5 * 60_000) { best = p; bestDiff = diff; }
+        }
+        if (best) {
+          l.data = { ...(l.data || {}), ...best, _enriched: true };
+        }
+      });
+    }
+
+    setLogs(list);
     setLoadingLogs(false);
   };
 
