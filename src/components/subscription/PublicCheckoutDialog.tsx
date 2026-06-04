@@ -46,7 +46,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
   // Etapa 2
   const [payMethod, setPayMethod] = useState<PayMethod>("pix");
   const [pixData, setPixData] = useState<{
-    qrCode?: string; qrCodeBase64?: string; ticketUrl?: string; paymentId?: number;
+    qrCode?: string; qrCodeBase64?: string; ticketUrl?: string; paymentId?: number; purchaseEventId?: string;
   } | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const cardFormRef = useRef<any>(null);
@@ -166,7 +166,10 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
                 identification: { type: "CPF", number: cpfDigits },
               },
             });
-            handlePaymentResult(result);
+            
+            // Generate a stable event_id for deduplication
+            const purchaseEventId = `pur_${result.id}_${Date.now()}`;
+            handlePaymentResult(result, purchaseEventId);
           } catch (err: any) {
             if (err.code === "email_exists") {
               toast.error("Este e-mail já tem conta. Faça login e volte para concluir.");
@@ -206,7 +209,9 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
           identification: { type: "CPF", number: onlyDigits(cpf) },
         },
       });
-      handlePaymentResult(result);
+      // Generate a stable event_id for deduplication
+      const purchaseEventId = `pur_${result.id}_${Date.now()}`;
+      handlePaymentResult(result, purchaseEventId);
     } catch (err: any) {
       if (err.code === "email_exists") {
         toast.error("Este e-mail já tem conta. Faça login e volte para concluir.");
@@ -264,7 +269,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
       if (res?.status === "approved") {
         clearInterval(interval);
         toast.success("Pagamento confirmado!");
-        if (pixData?.paymentId) trackPurchase({ id: pixData.paymentId } as any);
+        if (pixData?.paymentId) trackPurchase({ id: pixData.paymentId } as any, pixData.purchaseEventId);
         setStep("set-password");
       } else if (res?.status === "claimed") {
         clearInterval(interval);
