@@ -127,36 +127,58 @@ const AdminFinanceiroPage = () => {
               <CardTitle className="text-lg">Últimas assinaturas</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Valor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.recentSubs.map((sub) => (
-                    <TableRow key={sub.id}>
-                      <TableCell className="text-foreground">{sub.plan}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`border-0 ${
-                            sub.status === "active"
-                              ? "bg-primary/20 text-primary"
-                              : "bg-destructive/20 text-destructive"
-                          }`}
-                        >
-                          {sub.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        R$ {Number(sub.price || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </TableCell>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Plano</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Valor</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {data.recentSubs.map((sub) => (
+                      <TableRow key={sub.id}>
+                        <TableCell className="text-foreground">{sub.plan}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`border-0 ${
+                              sub.status === "active"
+                                ? "bg-primary/20 text-primary"
+                                : "bg-destructive/20 text-destructive"
+                            }`}
+                          >
+                            {sub.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          R$ {Number(sub.price || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="md:hidden space-y-3">
+                {data.recentSubs.map((sub) => (
+                  <div key={sub.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-bold uppercase">{sub.plan}</p>
+                      <p className="text-xs text-muted-foreground">R$ {Number(sub.price || 0).toFixed(2)}</p>
+                    </div>
+                    <Badge
+                      className={`border-0 ${
+                        sub.status === "active"
+                          ? "bg-primary/20 text-primary"
+                          : "bg-destructive/20 text-destructive"
+                      }`}
+                    >
+                      {sub.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
