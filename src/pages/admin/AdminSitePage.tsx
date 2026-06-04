@@ -140,11 +140,11 @@ const AdminSitePage = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card p-4 sm:p-6 rounded-2xl border border-border shadow-sm">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-foreground tracking-tight">Gerenciamento do Site</h1>
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
-            <Settings className="h-4 w-4" /> Personalize a experiência e regras do seu aplicativo.
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Gerenciamento do Site</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2">
+            <Settings className="h-4 w-4" /> Personalize seu aplicativo.
           </p>
         </div>
         <Button 

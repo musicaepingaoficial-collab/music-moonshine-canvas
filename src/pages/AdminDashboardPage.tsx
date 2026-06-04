@@ -122,10 +122,10 @@ const AdminDashboardPage = () => {
             </div>
           </div>
 
-          <div className="rounded-xl bg-card p-6">
+          <div className="rounded-xl bg-card p-4 sm:p-6 overflow-hidden">
             <h2 className="mb-4 text-lg font-semibold text-foreground flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
-              Usuários Online (Tempo Real)
+              Usuários Online
             </h2>
             <div className="space-y-3">
               {!onlineUsers || onlineUsers.length === 0 ? (
@@ -192,15 +192,15 @@ const AdminDashboardPage = () => {
       )}
 
       {/* Usage Graph */}
-      <Card className="border-0 shadow-sm overflow-hidden">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-bold flex items-center gap-2">
+      <Card className="border-0 shadow-sm overflow-hidden w-full">
+        <CardHeader className="pb-2 px-4">
+          <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
-            Picos de Acessos Simultâneos
+            Picos de Acessos
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Monitoramento histórico de carga no servidor de arquivos</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Monitoramento histórico de carga</p>
         </CardHeader>
-        <CardContent className="h-[300px] w-full pt-4">
+        <CardContent className="h-[250px] sm:h-[300px] w-full pt-4 px-2">
           {usageMetrics && usageMetrics.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={usageMetrics}>

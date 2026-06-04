@@ -192,8 +192,8 @@ const AdminUsuariosPage = () => {
                     <TableRow key={user.id}>
                       <TableCell className="font-medium text-foreground">{user.name || "—"}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        <div className="flex flex-col">
-                          <span>{user.email}</span>
+                        <div className="flex flex-col max-w-[200px]">
+                          <span className="truncate">{user.email}</span>
                           <span className="text-xs text-primary/70">{user.whatsapp || "Sem WhatsApp"}</span>
                         </div>
                       </TableCell>
@@ -215,17 +215,10 @@ const AdminUsuariosPage = () => {
                           />
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(user.created_at).toLocaleString("pt-BR", { 
-                          timeZone: "America/Sao_Paulo",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {new Date(user.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground italic">
+                      <TableCell className="text-xs text-muted-foreground italic max-w-[150px] truncate">
                         {user.referred_by || "—"}
                       </TableCell>
                       <TableCell className="text-right">
