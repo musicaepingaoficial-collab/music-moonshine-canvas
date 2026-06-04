@@ -45,6 +45,7 @@ interface UserWithSub {
 }
 
 const AdminUsuariosPage = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<UserWithSub | null>(null);
   const [viewTarget, setViewTarget] = useState<UserWithSub | null>(null);
