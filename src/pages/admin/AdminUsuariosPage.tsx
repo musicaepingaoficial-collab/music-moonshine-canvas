@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User, MessageCircle } from "lucide-react";
+import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User, MessageCircle, ChevronRight } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useUser";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface UserWithSub {
   id: string;
@@ -44,6 +45,7 @@ interface UserWithSub {
 }
 
 const AdminUsuariosPage = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<UserWithSub | null>(null);
   const [viewTarget, setViewTarget] = useState<UserWithSub | null>(null);
@@ -174,30 +176,39 @@ const AdminUsuariosPage = () => {
           ) : filtered.length === 0 ? (
             <EmptyState icon={Users} title="Nenhum usuário encontrado" description="Tente alterar os termos da busca." />
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="hidden md:table">
-                <TableHeader>
+            <div className="overflow-hidden">
+              <Table className="w-full">
+                <TableHeader className="hidden md:table-header-group">
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Email / WhatsApp</TableHead>
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Discografias</TableHead>
-                    <TableHead>Cadastro</TableHead>
-                    <TableHead>Indicação de</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="hidden md:table-cell">Email / WhatsApp</TableHead>
+                    <TableHead className="hidden lg:table-cell">Plano</TableHead>
+                    <TableHead className="hidden xl:table-cell">Discografias</TableHead>
+                    <TableHead className="hidden lg:table-cell">Cadastro</TableHead>
+                    <TableHead className="hidden md:table-cell">Indicação de</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium text-foreground">{user.name || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">
+                    <TableRow 
+                      key={user.id} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/admin/usuarios/${user.id}`)}
+                    >
+                      <TableCell className="font-bold text-foreground">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate">{user.name || "—"}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground hidden md:table-cell">
                         <div className="flex flex-col max-w-[200px]">
                           <span className="truncate">{user.email}</span>
                           <span className="text-xs text-primary/70">{user.whatsapp || "Sem WhatsApp"}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {user.assinaturas.filter(s => s.status === "active").length > 0 ? (
                           <Badge className="bg-primary/20 text-primary border-0">
                             {user.assinaturas.find(s => s.status === "active")?.plan}
@@ -206,8 +217,8 @@ const AdminUsuariosPage = () => {
                           <Badge variant="secondary">Free</Badge>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="hidden xl:table-cell">
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <Switch 
                             checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
                             disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual") || toggleDiscografiasMutation.isPending}
@@ -215,23 +226,20 @@ const AdminUsuariosPage = () => {
                           />
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                      <TableCell className="text-muted-foreground whitespace-nowrap hidden lg:table-cell">
                         {new Date(user.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground italic max-w-[150px] truncate">
+                      <TableCell className="text-xs text-muted-foreground italic max-w-[150px] truncate hidden md:table-cell">
                         {user.referred_by || "—"}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                      <TableCell className="text-right hidden sm:table-cell">
+                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
                             const phone = user.whatsapp?.replace(/\D/g, "");
                             if (!phone) return toast.error("Usuário sem WhatsApp");
                             window.open(`https://wa.me/55${phone}`, "_blank");
                           }}>
                             <MessageCircle className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setViewTarget(user)}>
-                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={currentUser?.id === user.id} onClick={() => { setDeleteTarget(user); setConfirmText(""); }}>
                             <Trash2 className="h-4 w-4" />
@@ -245,7 +253,7 @@ const AdminUsuariosPage = () => {
               
               <div className="md:hidden space-y-4">
                 {filtered.map((user) => (
-                  <div key={user.id} className="rounded-lg border bg-card p-4 space-y-3">
+                  <div key={user.id} className="rounded-lg border bg-card p-4 space-y-3 cursor-pointer active:bg-muted" onClick={() => navigate(`/admin/usuarios/${user.id}`)}>
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-bold">{user.name || "—"}</p>
@@ -254,20 +262,6 @@ const AdminUsuariosPage = () => {
                       <Badge className={user.assinaturas.some(s => s.status === "active") ? "bg-primary/20 text-primary" : "bg-secondary"}>
                         {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
                       </Badge>
-                    </div>
-                    <div className="flex justify-between items-center pt-2 border-t">
-                      <div className="flex items-center gap-2">
-                        <Switch 
-                          checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
-                          disabled={user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}
-                          onCheckedChange={(checked) => toggleDiscografiasMutation.mutate({ userId: user.id, enabled: checked })}
-                        />
-                        <span className="text-xs text-muted-foreground">Discografias</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => setViewTarget(user)}><Eye className="h-4 w-4"/></Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setDeleteTarget(user); setConfirmText(""); }}><Trash2 className="h-4 w-4"/></Button>
-                      </div>
                     </div>
                   </div>
                 ))}

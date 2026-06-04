@@ -6,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, Plus, Search, Trash2, Ban } from "lucide-react";
+import { CreditCard, Plus, Search, Trash2, Ban, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,6 +57,7 @@ const translateStatus = (status: string) => {
 };
 
 const AdminAssinaturasPage = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [userSearch, setUserSearch] = useState("");
@@ -393,60 +395,65 @@ const AdminAssinaturasPage = () => {
           ) : (subs ?? []).length === 0 ? (
             <EmptyState icon={CreditCard} title="Nenhuma assinatura" description="Ainda não há assinaturas registradas." />
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="hidden md:table">
-                <TableHeader>
+            <div className="overflow-hidden">
+              <Table className="w-full">
+                <TableHeader className="hidden md:table-header-group">
                   <TableRow>
                     <TableHead>Usuário</TableHead>
                     {showPending && (
                       <>
-                        <TableHead>WhatsApp / CPF</TableHead>
-                        <TableHead>Método</TableHead>
+                        <TableHead className="hidden md:table-cell">WhatsApp / CPF</TableHead>
+                        <TableHead className="hidden lg:table-cell">Método</TableHead>
                       </>
                     )}
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>{showPending ? "Criado em" : "Início"}</TableHead>
-                    {!showPending && <TableHead>Expiração</TableHead>}
+                    <TableHead className="hidden sm:table-cell">Plano</TableHead>
+                    <TableHead className="hidden md:table-cell">Status</TableHead>
+                    <TableHead className="hidden lg:table-cell">Valor</TableHead>
+                    <TableHead className="hidden xl:table-cell">{showPending ? "Criado em" : "Início"}</TableHead>
+                    {!showPending && <TableHead className="hidden xl:table-cell">Expiração</TableHead>}
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(subs ?? []).map((sub) => (
-                    <TableRow key={sub.id}>
+                    <TableRow 
+                      key={sub.id} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => navigate(`/admin/assinaturas/${sub.id}`)}
+                    >
                       <TableCell>
-                        <div className="max-w-[150px] truncate">
-                          <span className="text-foreground">{sub.profile?.name || sub.profile?.email || "—"}</span>
+                        <div className="flex items-center justify-between gap-2 max-w-[200px]">
+                          <span className="text-foreground font-bold truncate">{sub.profile?.name || sub.profile?.email || "—"}</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden" />
                         </div>
                       </TableCell>
                       {showPending && (
                         <>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="text-muted-foreground hidden md:table-cell">
                             <div className="flex flex-col text-[10px]">
                               <span className="font-medium text-foreground">{sub.whatsapp || "—"}</span>
                               <span className="truncate max-w-[80px]">{sub.cpf || "—"}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-[10px] uppercase text-muted-foreground">
+                          <TableCell className="text-[10px] uppercase text-muted-foreground hidden lg:table-cell">
                             {sub.payment_method || "—"}
                           </TableCell>
                         </>
                       )}
-                      <TableCell className="font-medium text-foreground uppercase text-xs">{sub.plan}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-foreground uppercase text-xs hidden sm:table-cell">{sub.plan}</TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Badge className={`border-0 text-[10px] ${statusColors[sub.status] || "bg-muted text-muted-foreground"}`}>
                           {translateStatus(sub.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap hidden lg:table-cell">
                         R$ {Number(sub.price || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap hidden xl:table-cell">
                         {sub.starts_at ? new Date(sub.starts_at).toLocaleDateString("pt-BR") : new Date(sub.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
                       {!showPending && (
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap hidden xl:table-cell">
                           {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}
                         </TableCell>
                       )}
@@ -505,31 +512,15 @@ const AdminAssinaturasPage = () => {
 
               <div className="md:hidden space-y-4">
                 {(subs ?? []).map((sub) => (
-                  <div key={sub.id} className="rounded-lg border bg-card p-4 space-y-3">
+                  <div key={sub.id} className="rounded-lg border bg-card p-4 space-y-3 cursor-pointer active:bg-muted" onClick={() => navigate(`/admin/assinaturas/${sub.id}`)}>
                     <div className="flex justify-between items-start">
                       <div className="min-w-0">
                         <p className="font-bold truncate">{sub.profile?.name || sub.profile?.email || "—"}</p>
-                        <p className="text-xs text-muted-foreground">{sub.plan.toUpperCase()}</p>
+                        <p className="text-xs text-muted-foreground uppercase">{sub.plan}</p>
                       </div>
                       <Badge className={statusColors[sub.status] || "bg-muted"}>
                         {translateStatus(sub.status)}
                       </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t pt-3">
-                      <div>
-                        <p className="uppercase font-semibold">Valor</p>
-                        <p className="text-foreground">R$ {Number(sub.price || 0).toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p className="uppercase font-semibold">Expiração</p>
-                        <p className="text-foreground">{sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2 border-t">
-                       {sub.status === "active" && (
-                         <Button size="sm" variant="outline" onClick={() => cancelSub.mutate(sub.id)}><Ban className="h-4 w-4 mr-2" /> Cancelar</Button>
-                       )}
-                       <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteSub.mutate(sub.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 ))}
