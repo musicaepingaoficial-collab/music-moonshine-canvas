@@ -344,6 +344,29 @@ export function _setCachedPixelSettings(s: PixelSettings | null | undefined) {
   cachedSettings = s;
 }
 
+/**
+ * Cached user identity for Advanced Matching / CAPI. Populated by
+ * PixelInjector whenever the auth session changes. Auto-merged into every
+ * track call so events (especially ViewContent/InitiateCheckout) carry
+ * external_id, email, phone and name.
+ */
+export interface CachedUserData {
+  email?: string;
+  phone?: string;
+  external_id?: string;
+  first_name?: string;
+  last_name?: string;
+}
+let cachedUserData: CachedUserData = {};
+
+export function _setCachedUserData(u: CachedUserData) {
+  cachedUserData = u || {};
+}
+
+export function _getCachedUserData(): CachedUserData {
+  return cachedUserData;
+}
+
 export function trackEvent(event: PixelEvent, payload: PixelPayload = {}, debug = false) {
   dispatchEvent(event, payload, { settings: cachedSettings, debug });
 }
