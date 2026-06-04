@@ -8,6 +8,7 @@ import { createPixPayment, getSubscriptionStatus, processTransparentPayment } fr
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
+import { PixCountdown } from "@/components/subscription/PixCountdown";
 
 interface CheckoutFormProps {
   planSlug: string;
