@@ -50,10 +50,25 @@ const AdminAssinaturasPage = () => {
   const [price, setPrice] = useState<string>("0");
   const [durationDays, setDurationDays] = useState<string>("30");
   const [lifetime, setLifetime] = useState(false);
+  const [showPending, setShowPending] = useState(false);
 
   const { data: subs, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin-subscriptions"],
+    queryKey: ["admin-subscriptions", showPending],
     queryFn: async () => {
+      if (showPending) {
+        const { data, error } = await supabase
+          .from("pending_subscriptions")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return (data ?? []).map((s) => ({
+          ...s,
+          user_id: s.id,
+          profile: { name: s.full_name, email: s.email },
+          is_pending: true,
+        }));
+      }
+
       const { data, error } = await supabase
         .from("assinaturas")
         .select("id, user_id, plan, status, price, starts_at, expires_at, created_at")
@@ -209,13 +224,21 @@ const AdminAssinaturasPage = () => {
               R$ {totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </p>
           </div>
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                <Plus className="h-4 w-4" />
-                Adicionar plano
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={showPending ? "default" : "outline"} 
+              onClick={() => setShowPending(!showPending)}
+              className="gap-2"
+            >
+              {showPending ? "Ver Efetivadas" : "Ver Pendentes/Aguardando Cadastro"}
+            </Button>
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Plus className="h-4 w-4" />
+                  Adicionar plano
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Adicionar plano manualmente</DialogTitle>
@@ -335,6 +358,7 @@ const AdminAssinaturasPage = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
@@ -380,7 +404,7 @@ const AdminAssinaturasPage = () => {
                         R$ {Number(sub.price || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {new Date(sub.starts_at).toLocaleDateString("pt-BR")}
+                        {sub.starts_at ? new Date(sub.starts_at).toLocaleDateString("pt-BR") : new Date(sub.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("pt-BR") : "—"}
