@@ -315,11 +315,11 @@ const AdminUsuariosPage = () => {
       </AlertDialog>
 
       <Dialog open={!!viewTarget} onOpenChange={(v) => !v && setViewTarget(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Detalhes do Usuário</DialogTitle>
-            <DialogDescription>
-              Informações detalhadas sobre o cadastro e assinaturas.
+            <DialogDescription className="text-xs">
+              Informações detalhadas sobre o cadastro.
             </DialogDescription>
           </DialogHeader>
 
