@@ -183,11 +183,7 @@ const AdminDashboardPage = () => {
                         <p className="text-sm text-foreground">{track.title}</p>
                         <p className="text-xs text-muted-foreground">{track.artist}</p>
                       </div>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{track.download_count} downloads</span>
-                  </div>
-                ))}
-              </div>
+          </div>
         </div>
       )}
 
@@ -251,8 +247,6 @@ const AdminDashboardPage = () => {
           )}
         </CardContent>
       </Card>
-        </div>
-      )}
     </div>
   );
 };
