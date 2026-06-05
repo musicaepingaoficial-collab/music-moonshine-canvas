@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Musica } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { demoBridge } from "@/contexts/DemoModeContext";
 
 let audio: HTMLAudioElement | null = null;
 let progressInterval: ReturnType<typeof setInterval> | null = null;
@@ -32,7 +33,8 @@ function cleanupAudio() {
 
 async function getStreamUrl(fileId: string): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Não autenticado");
+  const isDemo = !session && demoBridge.isDemo();
+  if (!session && !isDemo) throw new Error("Não autenticado");
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -42,11 +44,11 @@ async function getStreamUrl(fileId: string): Promise<string> {
   const res = await fetch(`${supabaseUrl}/functions/v1/google-drive`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${session ? session.access_token : apikey}`,
       "Content-Type": "application/json",
       apikey,
     },
-    body: JSON.stringify({ action: "stream", fileId }),
+    body: JSON.stringify({ action: "stream", fileId, demo: isDemo }),
   });
 
   if (!res.ok) {
