@@ -57,7 +57,7 @@ export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, pref
   const getDurationLabel = (days: number | null) => {
     if (days === null) return "Acesso vitalício";
     if (days === 30) return "30 dias";
-    if (days === 180) return "6 meses";
+    if (days === 90) return "3 meses";
     return `${days} dias`;
   };
 

@@ -85,7 +85,7 @@ const FAQ = [
   { q: "Posso ouvir as músicas antes de baixar?", a: "Sim. O painel tem player integrado — você dá play e escuta a faixa completa antes de decidir baixar." },
   { q: "Funciona no celular?", a: "Funciona perfeitamente. O sistema é 100% online e responsivo. Você acessa pelo navegador do celular sem precisar instalar nada." },
   { q: "Como recebo o acesso?", a: "Após a confirmação do pagamento (instantânea no PIX e cartão), você recebe login e senha por e-mail e já pode entrar no painel." },
-  { q: "Preciso pagar mensalidade?", a: "Você escolhe: planos mensal, semestral, anual ou vitalício. No vitalício é pagamento único e o acesso é para sempre." },
+  { q: "Preciso pagar mensalidade?", a: "Você escolhe: planos mensal, trimestral, anual ou vitalício. No vitalício é pagamento único e o acesso é para sempre." },
   { q: "Qual é a qualidade das músicas?", a: "Todas as faixas em MP3 320 Kbps, sem vinhetas, com capinha e organizadas por estilo." },
   { q: "Posso baixar packs completos?", a: "Sim. Você pode baixar faixa por faixa ou o pack inteiro com 1 clique." },
   { q: "Tenho garantia?", a: "Sim, 7 dias de garantia incondicional. Se não gostar, devolvemos 100% do seu dinheiro sem perguntas." },
@@ -692,11 +692,11 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             {visiblePlanos.map((p: any, idx: number) => {
               const isLifetime = p.slug === "vitalicio";
-              const isSemestral = p.slug === "semestral";
+              const isTrimestral = p.slug === "trimestral";
               const isHighlight = isLifetime;
               const periodLabel =
                 p.slug === "mensal" ? "/ mês" :
-                p.slug === "semestral" ? "/ 6 meses" :
+                p.slug === "trimestral" ? "/ 3 meses" :
                 p.slug === "anual" ? "/ ano" : "pagamento único";
               return (
                 <motion.div
@@ -717,7 +717,7 @@ export default function LandingPage() {
                         Melhor Custo
                       </div>
                     )}
-                    {isSemestral && (
+                    {isTrimestral && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-card border border-primary/60 text-primary text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full flex items-center gap-1">
                         <TrendingUp className="h-3 w-3" />
                         Mais Vendido

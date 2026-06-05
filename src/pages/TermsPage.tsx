@@ -57,7 +57,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-foreground mt-6 mb-2">4. Planos, pagamento e renovação</h2>
             <ul className="list-disc pl-6 space-y-1">
-              <li>Os planos disponíveis (mensal, semestral, anual e vitalício) e seus preços estão descritos na página de planos.</li>
+              <li>Os planos disponíveis (mensal, trimestral, anual e vitalício) e seus preços estão descritos na página de planos.</li>
               <li>O pagamento é processado pelo Mercado Pago, via cartão ou Pix.</li>
               <li>Após a confirmação do pagamento, o acesso é liberado imediatamente.</li>
               <li>Planos recorrentes podem ser cancelados a qualquer momento e o acesso permanece ativo até o fim do período pago.</li>
