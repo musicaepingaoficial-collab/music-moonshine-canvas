@@ -104,6 +104,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   play: async (track, queueContext) => {
     const { queue, volume, muted, currentTrack, isLoading } = get();
 
+    // Demo mode gate: limit total distinct plays
+    if (demoBridge.isDemo()) {
+      const last = demoBridge.lastTrack();
+      const used = demoBridge.playsUsed();
+      const isNewTrack = last !== track.id;
+      if (isNewTrack && used >= demoBridge.limit) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("demo:gate", { detail: { reason: "plays" } }));
+        }
+        return;
+      }
+      if (isNewTrack) {
+        try {
+          localStorage.setItem("demo_plays_used", String(used + 1));
+          localStorage.setItem("demo_last_track", track.id);
+          window.dispatchEvent(new CustomEvent("demo:plays-changed"));
+        } catch {}
+      }
+    }
+
     // Anti double-tap: ignore repeated clicks while same track is loading
     if (isLoading && currentTrack?.id === track.id) {
       return;
