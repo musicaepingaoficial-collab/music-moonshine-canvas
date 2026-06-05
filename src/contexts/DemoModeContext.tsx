@@ -32,6 +32,11 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const [demoFlag, setDemoFlag] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("demo") === "1") {
+      try { localStorage.setItem(DEMO_FLAG_KEY, "1"); } catch {}
+      return true;
+    }
     return localStorage.getItem(DEMO_FLAG_KEY) === "1";
   });
   const [playsUsed, setPlaysUsed] = useState<number>(() => {
@@ -39,16 +44,6 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     return parseInt(localStorage.getItem(DEMO_PLAYS_KEY) || "0", 10) || 0;
   });
   const [gate, setGate] = useState<GateState>({ open: false, reason: null });
-
-  // Auto-activate from URL ?demo=1
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("demo") === "1") {
-      localStorage.setItem(DEMO_FLAG_KEY, "1");
-      setDemoFlag(true);
-    }
-  }, []);
 
   // Once a real user logs in, demo mode ends
   useEffect(() => {
