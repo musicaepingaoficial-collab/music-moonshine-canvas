@@ -84,7 +84,10 @@ serve(async (req) => {
       });
     }
 
-    const isAnonymousUser = (user as any).is_anonymous === true;
+    const isAnonymousUser =
+      (user as any).is_anonymous === true ||
+      (user as any).app_metadata?.demo_user === true ||
+      (user as any).user_metadata?.demo_user === true;
     const DEMO_LIMIT = 5;
 
     // Server-side play limit for anonymous (demo) users
