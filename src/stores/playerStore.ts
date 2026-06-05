@@ -60,6 +60,9 @@ async function getStreamUrl(fileId: string): Promise<string> {
   }
 
   const blob = await res.blob();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("demo:play-consumed"));
+  }
   return URL.createObjectURL(blob);
 }
 
