@@ -173,7 +173,7 @@ export default function LandingPage() {
       
       // Se estamos na landing e viemos de um erro ou redirect conhecido, limpamos o estado
       if (ref && (ref.includes("hostinger") || ref.includes("hstgr"))) {
-        window.history.replaceState(null, "", "/");
+        window.history.replaceState(null, "", "/" + window.location.hash);
       }
 
       // Se o usuário tenta voltar e cai num loop, forçamos a limpeza do histórico para esta sessão
