@@ -34,7 +34,13 @@ export function SignupGateDialog() {
     // End the anonymous session before the checkout/login flow so the user
     // can sign up with a real email without colliding with the anon session.
     await deactivateDemo();
+    const [path, hash] = to.split("#");
     navigate(to);
+    if (hash) {
+      setTimeout(() => {
+        document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+    }
   };
 
   return (
