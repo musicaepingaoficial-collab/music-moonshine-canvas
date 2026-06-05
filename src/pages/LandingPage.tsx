@@ -85,7 +85,7 @@ const FAQ = [
   { q: "Posso ouvir as músicas antes de baixar?", a: "Sim. O painel tem player integrado — você dá play e escuta a faixa completa antes de decidir baixar." },
   { q: "Funciona no celular?", a: "Funciona perfeitamente. O sistema é 100% online e responsivo. Você acessa pelo navegador do celular sem precisar instalar nada." },
   { q: "Como recebo o acesso?", a: "Após a confirmação do pagamento (instantânea no PIX e cartão), você recebe login e senha por e-mail e já pode entrar no painel." },
-  { q: "Preciso pagar mensalidade?", a: "Você escolhe: planos mensal, semestral, anual ou vitalício. No vitalício é pagamento único e o acesso é para sempre." },
+  { q: "Preciso pagar mensalidade?", a: "Você escolhe: planos mensal, trimestral, anual ou vitalício. No vitalício é pagamento único e o acesso é para sempre." },
   { q: "Qual é a qualidade das músicas?", a: "Todas as faixas em MP3 320 Kbps, sem vinhetas, com capinha e organizadas por estilo." },
   { q: "Posso baixar packs completos?", a: "Sim. Você pode baixar faixa por faixa ou o pack inteiro com 1 clique." },
   { q: "Tenho garantia?", a: "Sim, 7 dias de garantia incondicional. Se não gostar, devolvemos 100% do seu dinheiro sem perguntas." },
