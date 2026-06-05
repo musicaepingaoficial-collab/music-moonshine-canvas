@@ -23,11 +23,19 @@ const COPY: Record<string, { title: string; desc: string; icon: typeof Crown }> 
 };
 
 export function SignupGateDialog() {
-  const { gate, closeGate } = useDemoMode();
+  const { gate, closeGate, deactivateDemo } = useDemoMode();
   const navigate = useNavigate();
   const reason = gate.reason || "plays";
   const meta = COPY[reason] ?? COPY.plays;
   const Icon = meta.icon;
+
+  const handleConvert = async (to: string) => {
+    closeGate();
+    // End the anonymous session before the checkout/login flow so the user
+    // can sign up with a real email without colliding with the anon session.
+    await deactivateDemo();
+    navigate(to);
+  };
 
   return (
     <Dialog open={gate.open} onOpenChange={(open) => !open && closeGate()}>
@@ -41,36 +49,16 @@ export function SignupGateDialog() {
         </DialogHeader>
 
         <ul className="space-y-2 py-2 text-sm">
-          <li className="flex items-center gap-2">
-            <Crown className="h-4 w-4 text-primary" /> Acesso completo à biblioteca
-          </li>
-          <li className="flex items-center gap-2">
-            <Crown className="h-4 w-4 text-primary" /> Downloads ilimitados
-          </li>
-          <li className="flex items-center gap-2">
-            <Crown className="h-4 w-4 text-primary" /> Repertórios e PDFs inclusos
-          </li>
+          <li className="flex items-center gap-2"><Crown className="h-4 w-4 text-primary" /> Acesso completo à biblioteca</li>
+          <li className="flex items-center gap-2"><Crown className="h-4 w-4 text-primary" /> Downloads ilimitados</li>
+          <li className="flex items-center gap-2"><Crown className="h-4 w-4 text-primary" /> Repertórios e PDFs inclusos</li>
         </ul>
 
         <div className="flex flex-col gap-2">
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={() => {
-              closeGate();
-              navigate("/ofertas");
-            }}
-          >
+          <Button size="lg" className="w-full" onClick={() => handleConvert("/ofertas")}>
             Ver planos e assinar
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              closeGate();
-              navigate("/login");
-            }}
-          >
+          <Button variant="ghost" size="sm" onClick={() => handleConvert("/login")}>
             Já tenho conta
           </Button>
         </div>
