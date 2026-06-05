@@ -97,8 +97,6 @@ serve(async (req) => {
 
 
     const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
-    const body = await req.json();
-    const { action } = body;
 
     if (action === "stream") {
       const { fileId } = body;
