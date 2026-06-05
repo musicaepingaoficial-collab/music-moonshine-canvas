@@ -118,12 +118,121 @@ serve(async (req) => {
       });
     }
 
+    // ==== Resolver dados do comprador a partir do external_reference ====
+    async function resolveBuyer(ref: string) {
+      const out: {
+        name: string | null;
+        email: string | null;
+        whatsapp: string | null;
+        cpf: string | null;
+        user_id: string | null;
+        pending_id: string | null;
+        plan_slug: string | null;
+        plan_name: string | null;
+        product_type: "subscription" | "pdf" | "discografias" | "unknown";
+        product_title: string | null;
+      } = {
+        name: null, email: null, whatsapp: null, cpf: null,
+        user_id: null, pending_id: null,
+        plan_slug: null, plan_name: null,
+        product_type: "unknown", product_title: null,
+      };
+
+      try {
+        if (ref.startsWith("pending:")) {
+          const pendingId = ref.split(":")[1];
+          out.pending_id = pendingId || null;
+          out.product_type = "subscription";
+          if (pendingId) {
+            const { data: p } = await supabase
+              .from("pending_subscriptions")
+              .select("email, full_name, whatsapp, cpf, plan")
+              .eq("id", pendingId)
+              .maybeSingle();
+            if (p) {
+              out.email = p.email || null;
+              out.name = p.full_name || null;
+              out.whatsapp = p.whatsapp || null;
+              out.cpf = p.cpf || null;
+              out.plan_slug = p.plan || null;
+              if (p.plan) {
+                const { data: plano } = await supabase
+                  .from("planos").select("name").eq("slug", p.plan).maybeSingle();
+                out.plan_name = plano?.name || p.plan;
+                out.product_title = out.plan_name;
+              }
+            }
+          }
+        } else if (ref.startsWith("pdf:")) {
+          out.product_type = "pdf";
+          const [, userId, pdfId] = ref.split(":");
+          out.user_id = userId || null;
+          if (userId) {
+            const { data: prof } = await supabase
+              .from("profiles").select("name, email, whatsapp, cpf").eq("id", userId).maybeSingle();
+            if (prof) {
+              out.name = prof.name || null;
+              out.email = prof.email || null;
+              out.whatsapp = prof.whatsapp || null;
+              out.cpf = prof.cpf || null;
+            }
+          }
+          if (pdfId) {
+            const { data: pdf } = await supabase
+              .from("pdfs").select("title").eq("id", pdfId).maybeSingle();
+            out.product_title = pdf?.title || null;
+          }
+        } else if (ref.includes(":")) {
+          const [userId, planSlug] = ref.split(":");
+          out.user_id = userId || null;
+          out.plan_slug = planSlug || null;
+          out.product_type = planSlug === "discografias" ? "discografias" : "subscription";
+          if (userId) {
+            const { data: prof } = await supabase
+              .from("profiles").select("name, email, whatsapp, cpf").eq("id", userId).maybeSingle();
+            if (prof) {
+              out.name = prof.name || null;
+              out.email = prof.email || null;
+              out.whatsapp = prof.whatsapp || null;
+              out.cpf = prof.cpf || null;
+            }
+          }
+          if (planSlug) {
+            const { data: plano } = await supabase
+              .from("planos").select("name").eq("slug", planSlug).maybeSingle();
+            out.plan_name = plano?.name || planSlug;
+            out.product_title = out.plan_name;
+          }
+        }
+      } catch (e) {
+        console.error("[resolveBuyer] erro:", e);
+      }
+
+      // Fallback para dados do payer MP
+      if (!out.email) out.email = payment.payer?.email || null;
+      if (!out.name) {
+        const fn = payment.payer?.first_name || payment.additional_info?.payer?.first_name || "";
+        const ln = payment.payer?.last_name || payment.additional_info?.payer?.last_name || "";
+        const composed = `${fn} ${ln}`.trim();
+        out.name = composed || null;
+      }
+      if (!out.cpf) out.cpf = payment.payer?.identification?.number || null;
+      if (!out.whatsapp) {
+        const ph = payment.additional_info?.payer?.phone;
+        if (ph) out.whatsapp = `${ph.area_code || ""}${ph.number || ""}` || null;
+      }
+      return out;
+    }
+
     // ==== Notificar admin sobre status não-aprovados ====
     if (payment.status === "rejected" || payment.status === "cancelled") {
       try {
         const amount = fmtBRL(payment.transaction_amount);
         const method = fmtMethod(payment);
-        const who = payment.payer?.email || "Cliente";
+        const ref = String(payment.external_reference || "");
+        const buyer = await resolveBuyer(ref);
+        const who = buyer.name || buyer.email || "Cliente";
+        const product = buyer.product_title ? ` — ${buyer.product_title}` : "";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -133,16 +242,25 @@ serve(async (req) => {
           body: JSON.stringify({
             type: "purchase_rejected",
             title: `❌ Pagamento recusado · R$ ${amount}`,
-            body: `${who} — ${method} — ${payment.status_detail || payment.status}`,
+            body: `${who}${product} — ${method} — ${payment.status_detail || payment.status}`,
             url: "/admin/notificacoes",
             data: {
               kind: "purchase_rejected",
               amount: Number(payment.transaction_amount || 0),
-              buyer_email: payment.payer?.email || null,
               payment_method: method,
               status_detail: payment.status_detail || payment.status,
               mp_payment_id: payment.id,
-              external_reference: payment.external_reference || null,
+              external_reference: ref || null,
+              product_type: buyer.product_type,
+              plan_slug: buyer.plan_slug,
+              plan_name: buyer.plan_name,
+              product_title: buyer.product_title,
+              buyer_name: buyer.name,
+              buyer_email: buyer.email,
+              buyer_whatsapp: buyer.whatsapp,
+              buyer_cpf: buyer.cpf,
+              user_id: buyer.user_id,
+              pending_id: buyer.pending_id,
             },
           }),
         });
@@ -156,7 +274,10 @@ serve(async (req) => {
       try {
         const amount = fmtBRL(payment.transaction_amount);
         const refunded = payment.status === "refunded";
-        const who = payment.payer?.email || "Cliente";
+        const ref = String(payment.external_reference || "");
+        const buyer = await resolveBuyer(ref);
+        const who = buyer.name || buyer.email || "Cliente";
+        const product = buyer.product_title ? ` — ${buyer.product_title}` : "";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
           method: "POST",
           headers: {
@@ -166,14 +287,23 @@ serve(async (req) => {
           body: JSON.stringify({
             type: "purchase_refunded",
             title: refunded ? `↩️ Reembolso · R$ ${amount}` : `⚠️ Chargeback · R$ ${amount}`,
-            body: who,
+            body: `${who}${product}`,
             url: "/admin/notificacoes",
             data: {
               kind: refunded ? "purchase_refunded" : "chargeback",
               amount: Number(payment.transaction_amount || 0),
-              buyer_email: payment.payer?.email || null,
               mp_payment_id: payment.id,
-              external_reference: payment.external_reference || null,
+              external_reference: ref || null,
+              product_type: buyer.product_type,
+              plan_slug: buyer.plan_slug,
+              plan_name: buyer.plan_name,
+              product_title: buyer.product_title,
+              buyer_name: buyer.name,
+              buyer_email: buyer.email,
+              buyer_whatsapp: buyer.whatsapp,
+              buyer_cpf: buyer.cpf,
+              user_id: buyer.user_id,
+              pending_id: buyer.pending_id,
             },
           }),
         });
