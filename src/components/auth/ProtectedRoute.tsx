@@ -25,8 +25,12 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  // Anonymous (demo) users are not allowed in strictly private routes
-  if ((user as any).is_anonymous) {
+  // Demo users are not allowed in strictly private routes
+  if (
+    (user as any).is_anonymous ||
+    (user as any).app_metadata?.demo_user === true ||
+    (user as any).user_metadata?.demo_user === true
+  ) {
     return <Navigate to="/ofertas" replace />;
   }
 
