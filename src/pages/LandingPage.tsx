@@ -896,6 +896,12 @@ export default function LandingPage() {
                 <Play className="mr-2 h-5 w-5 fill-current" />
                 QUERO ACESSAR AGORA
               </Button>
+              <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_final_cta" })}>
+                <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Experimentar grátis
+                </Button>
+              </Link>
               {waLink && (
                 <a href={waLink} target="_blank" rel="noreferrer">
                   <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
