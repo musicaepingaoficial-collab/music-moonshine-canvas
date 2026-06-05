@@ -25,6 +25,11 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
+  // Anonymous (demo) users are not allowed in strictly private routes
+  if ((user as any).is_anonymous) {
+    return <Navigate to="/ofertas" replace />;
+  }
+
   // Redirect to complete profile if whatsapp is missing
   if (!profile?.whatsapp && location.pathname !== "/completar-perfil") {
     return <Navigate to="/completar-perfil" replace />;

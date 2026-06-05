@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useUser";
+import { supabase } from "@/integrations/supabase/client";
 
-const DEMO_FLAG_KEY = "demo_active";
-const DEMO_PLAYS_KEY = "demo_plays_used";
-const DEMO_LAST_TRACK_KEY = "demo_last_track";
 const DEMO_LIMIT = 5;
+const PENDING_FLAG = "demo_pending"; // session marker while signInAnonymously is in flight
 
 interface GateState {
   open: boolean;
@@ -16,11 +16,8 @@ interface DemoModeContextValue {
   playsUsed: number;
   playsLimit: number;
   playsLeft: number;
-  activateDemo: () => void;
-  deactivateDemo: () => void;
-  /** Tries to count a play. Returns true if allowed, false if limit reached. */
-  tryConsumePlay: (trackId: string) => boolean;
-  /** Open the signup gate dialog */
+  activateDemo: () => Promise<void>;
+  deactivateDemo: () => Promise<void>;
   openGate: (reason: GateState["reason"]) => void;
   closeGate: () => void;
   gate: GateState;
@@ -30,92 +27,96 @@ const DemoModeContext = createContext<DemoModeContextValue | null>(null);
 
 export function DemoModeProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const [demoFlag, setDemoFlag] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("demo") === "1") {
-      try { localStorage.setItem(DEMO_FLAG_KEY, "1"); } catch {}
-      return true;
-    }
-    return localStorage.getItem(DEMO_FLAG_KEY) === "1";
-  });
-  const [playsUsed, setPlaysUsed] = useState<number>(() => {
-    if (typeof window === "undefined") return 0;
-    return parseInt(localStorage.getItem(DEMO_PLAYS_KEY) || "0", 10) || 0;
-  });
+  const queryClient = useQueryClient();
   const [gate, setGate] = useState<GateState>({ open: false, reason: null });
+  const [activating, setActivating] = useState(false);
 
-  // Once a real user logs in, demo mode ends
-  useEffect(() => {
-    if (user && demoFlag) {
-      localStorage.removeItem(DEMO_FLAG_KEY);
-      localStorage.removeItem(DEMO_PLAYS_KEY);
-      localStorage.removeItem(DEMO_LAST_TRACK_KEY);
-      setDemoFlag(false);
-      setPlaysUsed(0);
-    }
-  }, [user, demoFlag]);
+  const isAnonymous = !!(user as any)?.is_anonymous;
+  const isDemo = !loading && isAnonymous;
 
-  // Listen for events from non-React modules (player store)
+  // Auto-activate from URL ?demo=1 (creates an anonymous Supabase user)
   useEffect(() => {
+    if (loading || user || activating) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const wantsDemo =
+      params.get("demo") === "1" ||
+      sessionStorage.getItem(PENDING_FLAG) === "1";
+    if (!wantsDemo) return;
+
+    setActivating(true);
+    sessionStorage.setItem(PENDING_FLAG, "1");
+    supabase.auth.signInAnonymously().then(({ error }) => {
+      if (error) {
+        console.error("[Demo] signInAnonymously falhou:", error.message);
+        sessionStorage.removeItem(PENDING_FLAG);
+      }
+      setActivating(false);
+    });
+  }, [loading, user, activating]);
+
+  // Clear pending flag once we have an anon user
+  useEffect(() => {
+    if (isAnonymous) sessionStorage.removeItem(PENDING_FLAG);
+  }, [isAnonymous]);
+
+  // Server-side counter via demo_play_log (RLS: user reads own row only)
+  const { data: logRow } = useQuery({
+    queryKey: ["demo-play-log", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await (supabase.from("demo_play_log" as any) as any)
+        .select("plays_used, last_track_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data as { plays_used: number; last_track_id: string | null } | null;
+    },
+    enabled: isDemo && !!user?.id,
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
+  });
+
+  const playsUsed = logRow?.plays_used ?? 0;
+
+  // Refetch counter whenever the player consumed a new play
+  useEffect(() => {
+    const onConsumed = () => {
+      queryClient.invalidateQueries({ queryKey: ["demo-play-log", user?.id] });
+    };
     const onGate = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      setGate({ open: true, reason: (detail?.reason as GateState["reason"]) || "plays" });
+      const reason = ((e as CustomEvent).detail?.reason as GateState["reason"]) || "plays";
+      setGate({ open: true, reason });
+      queryClient.invalidateQueries({ queryKey: ["demo-play-log", user?.id] });
     };
-    const onPlaysChanged = () => {
-      const v = parseInt(localStorage.getItem(DEMO_PLAYS_KEY) || "0", 10) || 0;
-      setPlaysUsed(v);
-    };
+    window.addEventListener("demo:play-consumed", onConsumed);
     window.addEventListener("demo:gate", onGate);
-    window.addEventListener("demo:plays-changed", onPlaysChanged);
     return () => {
+      window.removeEventListener("demo:play-consumed", onConsumed);
       window.removeEventListener("demo:gate", onGate);
-      window.removeEventListener("demo:plays-changed", onPlaysChanged);
     };
-  }, []);
+  }, [queryClient, user?.id]);
 
-  const isDemo = !loading && !user && demoFlag;
+  const activateDemo = useCallback(async () => {
+    if (user) return;
+    sessionStorage.setItem(PENDING_FLAG, "1");
+    const { error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      sessionStorage.removeItem(PENDING_FLAG);
+      console.error("[Demo] activate falhou:", error.message);
+    }
+  }, [user]);
 
-  const activateDemo = useCallback(() => {
-    localStorage.setItem(DEMO_FLAG_KEY, "1");
-    setDemoFlag(true);
-  }, []);
-
-  const deactivateDemo = useCallback(() => {
-    localStorage.removeItem(DEMO_FLAG_KEY);
-    localStorage.removeItem(DEMO_PLAYS_KEY);
-    localStorage.removeItem(DEMO_LAST_TRACK_KEY);
-    setDemoFlag(false);
-    setPlaysUsed(0);
-  }, []);
+  const deactivateDemo = useCallback(async () => {
+    sessionStorage.removeItem(PENDING_FLAG);
+    if (isAnonymous) {
+      await supabase.auth.signOut();
+    }
+  }, [isAnonymous]);
 
   const openGate = useCallback((reason: GateState["reason"]) => {
     setGate({ open: true, reason });
   }, []);
-
-  const closeGate = useCallback(() => {
-    setGate({ open: false, reason: null });
-  }, []);
-
-  const tryConsumePlay = useCallback(
-    (trackId: string) => {
-      if (!isDemo) return true;
-      const last = localStorage.getItem(DEMO_LAST_TRACK_KEY);
-      // Same track replay doesn't count
-      if (last === trackId) return true;
-      const current = parseInt(localStorage.getItem(DEMO_PLAYS_KEY) || "0", 10) || 0;
-      if (current >= DEMO_LIMIT) {
-        setGate({ open: true, reason: "plays" });
-        return false;
-      }
-      const next = current + 1;
-      localStorage.setItem(DEMO_PLAYS_KEY, String(next));
-      localStorage.setItem(DEMO_LAST_TRACK_KEY, trackId);
-      setPlaysUsed(next);
-      return true;
-    },
-    [isDemo]
-  );
+  const closeGate = useCallback(() => setGate({ open: false, reason: null }), []);
 
   const value: DemoModeContextValue = {
     isDemo,
@@ -124,7 +125,6 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     playsLeft: Math.max(0, DEMO_LIMIT - playsUsed),
     activateDemo,
     deactivateDemo,
-    tryConsumePlay,
     openGate,
     closeGate,
     gate,
@@ -136,15 +136,13 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
 export function useDemoMode() {
   const ctx = useContext(DemoModeContext);
   if (!ctx) {
-    // Safe default if used outside provider (shouldn't happen)
     return {
       isDemo: false,
       playsUsed: 0,
       playsLimit: DEMO_LIMIT,
       playsLeft: DEMO_LIMIT,
-      activateDemo: () => {},
-      deactivateDemo: () => {},
-      tryConsumePlay: () => true,
+      activateDemo: async () => {},
+      deactivateDemo: async () => {},
       openGate: () => {},
       closeGate: () => {},
       gate: { open: false, reason: null } as GateState,
@@ -152,20 +150,3 @@ export function useDemoMode() {
   }
   return ctx;
 }
-
-// Imperative accessors for non-React modules (player store, services)
-export const demoBridge = {
-  isDemo(): boolean {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(DEMO_FLAG_KEY) === "1";
-  },
-  playsUsed(): number {
-    if (typeof window === "undefined") return 0;
-    return parseInt(localStorage.getItem(DEMO_PLAYS_KEY) || "0", 10) || 0;
-  },
-  lastTrack(): string | null {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(DEMO_LAST_TRACK_KEY);
-  },
-  limit: DEMO_LIMIT,
-};

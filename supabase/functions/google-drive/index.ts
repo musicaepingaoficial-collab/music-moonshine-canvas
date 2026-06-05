@@ -55,37 +55,83 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Peek body first so we can detect demo streaming
     const body = await req.json();
-    const { action, demo } = body;
+    const { action } = body;
 
-    const isDemoStream = action === "stream" && demo === true;
+    // Auth is always required now (anonymous demo users have JWTs too)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Não autenticado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (!isDemoStream) {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader?.startsWith("Bearer ")) {
-        return new Response(JSON.stringify({ error: "Não autenticado" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const token = authHeader.replace("Bearer ", "").trim();
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+    const { data: userData, error: authError } = await userClient.auth.getUser(token);
+    const user = userData?.user;
+
+    if (authError || !user) {
+      console.error("[google-drive] Erro de autenticação:", authError?.message || "Usuário não encontrado");
+      return new Response(JSON.stringify({
+        error: "Token inválido ou sessão expirada",
+      }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const isAnonymousUser = (user as any).is_anonymous === true;
+    const DEMO_LIMIT = 5;
+
+    // Server-side play limit for anonymous (demo) users
+    if (action === "stream" && isAnonymousUser) {
+      const { fileId } = body;
+      if (!fileId) {
+        return new Response(JSON.stringify({ error: "fileId obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const token = authHeader.replace("Bearer ", "").trim();
-      const userClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      );
-      const { data: userData, error: authError } = await userClient.auth.getUser(token);
-      const user = userData?.user;
+      const { data: log } = await supabase
+        .from("demo_play_log")
+        .select("plays_used, last_track_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (authError || !user) {
-        console.error("[google-drive] Erro de autenticação:", authError?.message || "Usuário não encontrado");
+      const playsUsed = log?.plays_used ?? 0;
+      const lastTrack = log?.last_track_id ?? null;
+      const isNewTrack = lastTrack !== fileId;
+
+      if (isNewTrack && playsUsed >= DEMO_LIMIT) {
         return new Response(JSON.stringify({
-          error: "Token inválido ou sessão expirada",
+          error: "Limite de demonstração atingido. Assine para continuar ouvindo.",
+          code: "DEMO_LIMIT",
         }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      if (isNewTrack) {
+        await supabase
+          .from("demo_play_log")
+          .upsert({
+            user_id: user.id,
+            plays_used: playsUsed + 1,
+            last_track_id: fileId,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id" });
+      }
+    }
+
+    // Anonymous users may only stream. All other actions are blocked.
+    if (isAnonymousUser && action !== "stream") {
+      return new Response(JSON.stringify({ error: "Acesso negado" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const GOOGLE_SERVICE_ACCOUNT_KEY = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
@@ -94,7 +140,6 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
 
     const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
 

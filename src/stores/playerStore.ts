@@ -2,7 +2,6 @@ import { create } from "zustand";
 import type { Musica } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { demoBridge } from "@/contexts/DemoModeContext";
 
 let audio: HTMLAudioElement | null = null;
 let progressInterval: ReturnType<typeof setInterval> | null = null;
@@ -33,31 +32,37 @@ function cleanupAudio() {
 
 async function getStreamUrl(fileId: string): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();
-  const isDemo = !session && demoBridge.isDemo();
-  if (!session && !isDemo) throw new Error("Não autenticado");
+  if (!session) throw new Error("Não autenticado");
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  console.log("[Player:getStreamUrl] Fetching for fileId:", fileId);
-
   const res = await fetch(`${supabaseUrl}/functions/v1/google-drive`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${session ? session.access_token : apikey}`,
+      Authorization: `Bearer ${session.access_token}`,
       "Content-Type": "application/json",
       apikey,
     },
-    body: JSON.stringify({ action: "stream", fileId, demo: isDemo }),
+    body: JSON.stringify({ action: "stream", fileId }),
   });
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     console.error("[Player:getStreamUrl] Error:", res.status, errorData);
-    throw new Error(errorData.error || "Falha ao obter áudio");
+    // Server-enforced demo limit → open signup gate
+    if (errorData?.code === "DEMO_LIMIT" && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("demo:gate", { detail: { reason: "plays" } }));
+    }
+    const err: any = new Error(errorData.error || "Falha ao obter áudio");
+    err.code = errorData?.code;
+    throw err;
   }
 
   const blob = await res.blob();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("demo:play-consumed"));
+  }
   return URL.createObjectURL(blob);
 }
 
@@ -104,25 +109,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   play: async (track, queueContext) => {
     const { queue, volume, muted, currentTrack, isLoading } = get();
 
-    // Demo mode gate: limit total distinct plays
-    if (demoBridge.isDemo()) {
-      const last = demoBridge.lastTrack();
-      const used = demoBridge.playsUsed();
-      const isNewTrack = last !== track.id;
-      if (isNewTrack && used >= demoBridge.limit) {
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("demo:gate", { detail: { reason: "plays" } }));
-        }
-        return;
-      }
-      if (isNewTrack) {
-        try {
-          localStorage.setItem("demo_plays_used", String(used + 1));
-          localStorage.setItem("demo_last_track", track.id);
-          window.dispatchEvent(new CustomEvent("demo:plays-changed"));
-        } catch {}
-      }
-    }
+    // Demo limit is enforced server-side in the google-drive edge function.
+    // If the limit is reached, getStreamUrl will throw and the gate dialog
+    // opens via the "demo:gate" event.
 
     // Anti double-tap: ignore repeated clicks while same track is loading
     if (isLoading && currentTrack?.id === track.id) {

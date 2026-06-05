@@ -1,19 +1,19 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth, useProfile, useAssinatura, useIsAdmin } from "@/hooks/useUser";
-import { useDemoMode } from "@/contexts/DemoModeContext";
 import { Loader2 } from "lucide-react";
 
 /**
- * Like ProtectedRoute, but also allows anonymous "demo mode" visitors
- * to browse the page (read-only). Downloads and play limits are gated
- * elsewhere (MusicCard, playerStore).
+ * Allows:
+ *  - logged-in users with profile+subscription (or admin), like ProtectedRoute
+ *  - anonymous Supabase users (demo mode) — read-only browsing
+ * Otherwise redirects to /login.
  */
 export function DemoOrProtectedRoute() {
   const { user, loading } = useAuth();
-  const { isDemo } = useDemoMode();
-  const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
-  const { data: assinatura, isLoading: subLoading } = useAssinatura(user?.id);
-  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
+  const isAnonymous = !!(user as any)?.is_anonymous;
+  const { data: profile, isLoading: profileLoading } = useProfile(isAnonymous ? null : user?.id);
+  const { data: assinatura, isLoading: subLoading } = useAssinatura(isAnonymous ? null : user?.id);
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(isAnonymous ? null : user?.id);
   const location = useLocation();
 
   if (loading) {
@@ -24,17 +24,29 @@ export function DemoOrProtectedRoute() {
     );
   }
 
-  // Anonymous demo visitor → just render
-  if (!user && isDemo) {
+  // Anonymous (demo) user → just render, server enforces limits
+  if (isAnonymous) {
     return <Outlet />;
   }
 
+  // Allow URL ?demo=1 to render briefly while signInAnonymously resolves
   if (!user) {
+    if (typeof window !== "undefined") {
+      const wantsDemo =
+        new URLSearchParams(window.location.search).get("demo") === "1" ||
+        sessionStorage.getItem("demo_pending") === "1";
+      if (wantsDemo) {
+        return (
+          <div className="flex min-h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        );
+      }
+    }
     return <Navigate to="/login" replace />;
   }
 
-  const isInitialLoading = profileLoading || subLoading || adminLoading;
-  if (isInitialLoading) {
+  if (profileLoading || subLoading || adminLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
