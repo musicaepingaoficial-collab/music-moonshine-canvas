@@ -22,7 +22,7 @@ export function AppLayout() {
       <MusicPlayer />
       <InstallBanner />
       <WelcomePopup />
-      <VersionChecker />
+      
     </SidebarProvider>
   );
 }
