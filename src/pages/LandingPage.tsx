@@ -690,8 +690,22 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
+
+          <motion.div {...fadeUp} className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_social_proof" })}>
+              <Button size="lg" variant="outline" className="border-primary/40 hover:border-primary hover:bg-primary/10 h-12 px-6 font-bold">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Experimentar grátis
+              </Button>
+            </Link>
+            <Button size="lg" onClick={scrollToPrices} className="bg-gradient-cta hover:opacity-95 text-primary-foreground h-12 px-6 font-bold">
+              Ver planos
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </motion.div>
         </div>
       </section>
+
 
       {/* PLANS */}
       <section id="planos" className="py-20 sm:py-28 border-t border-border/40 relative">
