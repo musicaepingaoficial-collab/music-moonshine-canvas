@@ -61,6 +61,24 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, demoFlag]);
 
+  // Listen for events from non-React modules (player store)
+  useEffect(() => {
+    const onGate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setGate({ open: true, reason: (detail?.reason as GateState["reason"]) || "plays" });
+    };
+    const onPlaysChanged = () => {
+      const v = parseInt(localStorage.getItem(DEMO_PLAYS_KEY) || "0", 10) || 0;
+      setPlaysUsed(v);
+    };
+    window.addEventListener("demo:gate", onGate);
+    window.addEventListener("demo:plays-changed", onPlaysChanged);
+    return () => {
+      window.removeEventListener("demo:gate", onGate);
+      window.removeEventListener("demo:plays-changed", onPlaysChanged);
+    };
+  }, []);
+
   const isDemo = !loading && !user && demoFlag;
 
   const activateDemo = useCallback(() => {
