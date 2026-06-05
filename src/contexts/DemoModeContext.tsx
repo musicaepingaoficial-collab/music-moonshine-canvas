@@ -14,6 +14,8 @@ interface GateState {
 
 interface DemoModeContextValue {
   isDemo: boolean;
+  isActivatingDemo: boolean;
+  demoActivationError: string | null;
   playsUsed: number;
   playsLimit: number;
   playsLeft: number;
@@ -32,20 +34,23 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [gate, setGate] = useState<GateState>({ open: false, reason: null });
   const [activating, setActivating] = useState(false);
+  const [demoActivationError, setDemoActivationError] = useState<string | null>(null);
 
   const isAnonymous = !!(user as any)?.is_anonymous;
   const isDemo = !loading && isAnonymous;
+  const wantsDemo =
+    typeof window !== "undefined" &&
+    (new URLSearchParams(location.search).get("demo") === "1" ||
+      sessionStorage.getItem(PENDING_FLAG) === "1");
 
   // Auto-activate from URL ?demo=1 (creates an anonymous Supabase user)
   // Re-runs on route changes so the LandingPage → /dashboard?demo=1 navigation triggers it.
   useEffect(() => {
-    if (loading || user || activating) return;
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(location.search);
-    const wantsDemo =
-      params.get("demo") === "1" ||
-      sessionStorage.getItem(PENDING_FLAG) === "1";
-    if (!wantsDemo) return;
+    if (!wantsDemo) {
+      setDemoActivationError(null);
+      return;
+    }
+    if (loading || user || activating || demoActivationError) return;
 
     setActivating(true);
     sessionStorage.setItem(PENDING_FLAG, "1");
@@ -53,10 +58,11 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error("[Demo] signInAnonymously falhou:", error.message);
         sessionStorage.removeItem(PENDING_FLAG);
+        setDemoActivationError(error.message);
       }
       setActivating(false);
     });
-  }, [loading, user, activating, location.pathname, location.search]);
+  }, [loading, user, activating, wantsDemo, demoActivationError]);
 
   // Clear pending flag once we have an anon user
   useEffect(() => {
@@ -101,11 +107,13 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
 
   const activateDemo = useCallback(async () => {
     if (user) return;
+    setDemoActivationError(null);
     sessionStorage.setItem(PENDING_FLAG, "1");
     const { error } = await supabase.auth.signInAnonymously();
     if (error) {
       sessionStorage.removeItem(PENDING_FLAG);
       console.error("[Demo] activate falhou:", error.message);
+      setDemoActivationError(error.message);
     }
   }, [user]);
 
@@ -123,6 +131,8 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
 
   const value: DemoModeContextValue = {
     isDemo,
+    isActivatingDemo: activating || (!loading && !user && wantsDemo && !demoActivationError),
+    demoActivationError,
     playsUsed,
     playsLimit: DEMO_LIMIT,
     playsLeft: Math.max(0, DEMO_LIMIT - playsUsed),
@@ -141,6 +151,8 @@ export function useDemoMode() {
   if (!ctx) {
     return {
       isDemo: false,
+      isActivatingDemo: false,
+      demoActivationError: null,
       playsUsed: 0,
       playsLimit: DEMO_LIMIT,
       playsLeft: DEMO_LIMIT,
