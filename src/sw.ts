@@ -11,6 +11,11 @@ declare const self: ServiceWorkerGlobalScope & {
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
 
+// Ativa o novo SW imediatamente, sem esperar todas as abas fecharem
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
 // HTML navigations: NetworkFirst puro, SEM fallback para index.html precacheado.
 // Servir o HTML antigo após um deploy faz o browser pedir chunks com hashes
 // que não existem mais → tela em branco / spinner infinito.
@@ -30,13 +35,6 @@ registerRoute(
     }
   )
 );
-
-// O cliente decide quando ativar o novo SW (botão "Atualizar agora")
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());

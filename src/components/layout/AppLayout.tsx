@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { MusicPlayer } from "@/components/player/MusicPlayer";
 import { InstallBanner } from "@/components/pwa/InstallBanner";
 import { WelcomePopup } from "@/components/popup/WelcomePopup";
-import { VersionChecker } from "@/components/layout/VersionChecker";
+
 
 export function AppLayout() {
   return (
@@ -22,7 +22,7 @@ export function AppLayout() {
       <MusicPlayer />
       <InstallBanner />
       <WelcomePopup />
-      <VersionChecker />
+      
     </SidebarProvider>
   );
 }

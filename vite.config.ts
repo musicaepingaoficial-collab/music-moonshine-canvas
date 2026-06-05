@@ -1,8 +1,27 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+
+// Gera public/version.json no build com timestamp para detectar deploy novo em runtime
+function versionJsonPlugin(): Plugin {
+  return {
+    name: "version-json",
+    apply: "build",
+    closeBundle() {
+      const version = String(Date.now());
+      const outDir = path.resolve(__dirname, "dist");
+      try {
+        if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+        fs.writeFileSync(path.join(outDir, "version.json"), JSON.stringify({ version }));
+      } catch (err) {
+        console.warn("[version-json] falha ao escrever version.json:", err);
+      }
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -16,11 +35,13 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    versionJsonPlugin(),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate",
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
+      injectRegister: null,
       devOptions: {
         enabled: false,
       },
