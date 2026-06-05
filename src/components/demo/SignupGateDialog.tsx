@@ -34,7 +34,13 @@ export function SignupGateDialog() {
     // End the anonymous session before the checkout/login flow so the user
     // can sign up with a real email without colliding with the anon session.
     await deactivateDemo();
+    const [path, hash] = to.split("#");
     navigate(to);
+    if (hash) {
+      setTimeout(() => {
+        document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+    }
   };
 
   return (
@@ -55,7 +61,7 @@ export function SignupGateDialog() {
         </ul>
 
         <div className="flex flex-col gap-2">
-          <Button size="lg" className="w-full" onClick={() => handleConvert("/ofertas")}>
+          <Button size="lg" className="w-full" onClick={() => handleConvert("/#planos")}>
             Ver planos e assinar
           </Button>
           <Button variant="ghost" size="sm" onClick={() => handleConvert("/login")}>
