@@ -65,8 +65,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
     queryKey: ["demo-play-log", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await supabase
-        .from("demo_play_log" as any)
+      const { data } = await (supabase.from("demo_play_log" as any) as any)
         .select("plays_used, last_track_id")
         .eq("user_id", user.id)
         .maybeSingle();
