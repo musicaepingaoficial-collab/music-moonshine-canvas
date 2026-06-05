@@ -26,7 +26,7 @@ const menuItems = [
   { title: "Meus Repertórios", url: "/repertorios", icon: FolderOpen, privateForDemo: false },
   { title: "PDFs", url: "/pdfs", icon: FileText, privateForDemo: false },
   { title: "Favoritos", url: "/favoritos", icon: Heart, privateForDemo: true },
-  { title: "Assinatura", url: "/ofertas", icon: Tag, privateForDemo: false },
+  { title: "Assinatura", url: "/ofertas", icon: Tag, privateForDemo: true },
   { title: "Discografias", url: "/discografias", icon: Disc, privateForDemo: false },
   { title: "Indicações", url: "/indicacoes", icon: Gift, privateForDemo: true },
   { title: "Conta", url: "/conta", icon: User, privateForDemo: true },
