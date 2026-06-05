@@ -18,18 +18,19 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useUser";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 
 const menuItems = [
-  { title: "Biblioteca", url: "/biblioteca", icon: Library },
-  { title: "Músicas", url: "/musicas", icon: Music },
-  { title: "Meus Repertórios", url: "/repertorios", icon: FolderOpen },
-  { title: "PDFs", url: "/pdfs", icon: FileText },
-  { title: "Favoritos", url: "/favoritos", icon: Heart },
-  { title: "Assinatura", url: "/ofertas", icon: Tag },
-  { title: "Discografias", url: "/discografias", icon: Disc },
-  { title: "Indicações", url: "/indicacoes", icon: Gift },
-  { title: "Conta", url: "/conta", icon: User },
-  { title: "Como Baixar", url: "/como-baixar", icon: Download },
+  { title: "Biblioteca", url: "/biblioteca", icon: Library, privateForDemo: false },
+  { title: "Músicas", url: "/musicas", icon: Music, privateForDemo: false },
+  { title: "Meus Repertórios", url: "/repertorios", icon: FolderOpen, privateForDemo: true },
+  { title: "PDFs", url: "/pdfs", icon: FileText, privateForDemo: false },
+  { title: "Favoritos", url: "/favoritos", icon: Heart, privateForDemo: true },
+  { title: "Assinatura", url: "/ofertas", icon: Tag, privateForDemo: false },
+  { title: "Discografias", url: "/discografias", icon: Disc, privateForDemo: false },
+  { title: "Indicações", url: "/indicacoes", icon: Gift, privateForDemo: true },
+  { title: "Conta", url: "/conta", icon: User, privateForDemo: true },
+  { title: "Como Baixar", url: "/como-baixar", icon: Download, privateForDemo: false },
 ];
 
 export function AppSidebar() {
@@ -38,7 +39,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+  const { isDemo, openGate } = useDemoMode();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -68,21 +69,35 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      activeClassName="bg-sidebar-accent text-primary font-medium"
-                    >
-                      <item.icon className="h-5 w-5 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                const blocked = isDemo && item.privateForDemo;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      {blocked ? (
+                        <button
+                          type="button"
+                          onClick={() => openGate("private")}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </button>
+                      ) : (
+                        <NavLink
+                          to={item.url}
+                          end
+                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          activeClassName="bg-sidebar-accent text-primary font-medium"
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </NavLink>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -90,9 +105,9 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout}>
+            <SidebarMenuButton onClick={isDemo ? () => openGate("private") : handleLogout}>
               <LogOut className="h-5 w-5 shrink-0 text-muted-foreground" />
-              {!collapsed && <span className="text-muted-foreground">Sair</span>}
+              {!collapsed && <span className="text-muted-foreground">{isDemo ? "Criar conta" : "Sair"}</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
