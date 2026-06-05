@@ -502,8 +502,17 @@ export default function LandingPage() {
             <p className="text-2xl sm:text-3xl font-black tracking-tight">
               Chega disso. <span className="text-gradient-brand">A gente resolve tudo.</span>
             </p>
+            <div className="mt-6 flex justify-center">
+              <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_problem" })}>
+                <Button size="lg" variant="outline" className="border-primary/40 hover:border-primary hover:bg-primary/10 h-12 px-6 font-bold">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Experimentar grátis agora
+                </Button>
+              </Link>
+            </div>
             <ArrowRight className="h-8 w-8 text-primary mx-auto mt-4 rotate-90 animate-bounce" />
           </motion.div>
+
         </div>
       </section>
 
@@ -540,8 +549,19 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
+
+          <motion.div {...fadeUp} className="mt-12 text-center">
+            <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_benefits" })}>
+              <Button size="lg" variant="outline" className="border-primary/40 hover:border-primary hover:bg-primary/10 h-12 px-6 font-bold">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Testar grátis sem cartão
+              </Button>
+            </Link>
+            <p className="mt-3 text-xs text-muted-foreground">Acesso imediato — 5 músicas grátis para conhecer o painel</p>
+          </motion.div>
         </div>
       </section>
+
 
       {/* GENRES GRID */}
       <section className="py-20 sm:py-28 border-t border-border/40">
@@ -670,8 +690,22 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
+
+          <motion.div {...fadeUp} className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_social_proof" })}>
+              <Button size="lg" variant="outline" className="border-primary/40 hover:border-primary hover:bg-primary/10 h-12 px-6 font-bold">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Experimentar grátis
+              </Button>
+            </Link>
+            <Button size="lg" onClick={scrollToPrices} className="bg-gradient-cta hover:opacity-95 text-primary-foreground h-12 px-6 font-bold">
+              Ver planos
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </motion.div>
         </div>
       </section>
+
 
       {/* PLANS */}
       <section id="planos" className="py-20 sm:py-28 border-t border-border/40 relative">
@@ -862,6 +896,12 @@ export default function LandingPage() {
                 <Play className="mr-2 h-5 w-5 fill-current" />
                 QUERO ACESSAR AGORA
               </Button>
+              <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_final_cta" })}>
+                <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Experimentar grátis
+                </Button>
+              </Link>
               {waLink && (
                 <a href={waLink} target="_blank" rel="noreferrer">
                   <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
