@@ -6,6 +6,7 @@ import { usePlayerStore } from "@/stores/playerStore";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useHasActiveSubscription } from "@/hooks/useUser";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import { downloadSingle } from "@/services/zipService";
 import { AddToQueueButton } from "./AddToQueueButton";
 import trackPlaceholder from "@/assets/track-placeholder.png";
@@ -24,6 +25,7 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
   const toggleFav = useToggleFavorito();
   const [downloading, setDownloading] = useState(false);
   const { hasAccess, isLoading: accessLoading, isAdmin } = useHasActiveSubscription();
+  const { isDemo, openGate } = useDemoMode();
   const navigate = useNavigate();
   const play = usePlayerStore((s) => s.play);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -36,11 +38,13 @@ export function MusicCard({ id, title, artist, coverUrl, fileUrl, driveId, queue
   };
 
   const handleFavorite = () => {
+    if (isDemo) { openGate("private"); return; }
     console.log("[MusicCard:toggleFavorite]", { id, title });
     toggleFav.mutate(id);
   };
 
   const handleDownload = async () => {
+    if (isDemo) { openGate("download"); return; }
     if (accessLoading) return;
     if (!hasAccess) {
       toast.error("Assine um plano para baixar músicas.");

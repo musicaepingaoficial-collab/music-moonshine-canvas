@@ -11,6 +11,9 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useSingleSession } from "@/hooks/useSingleSession";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { DemoOrProtectedRoute } from "@/components/auth/DemoOrProtectedRoute";
+import { DemoModeProvider } from "@/contexts/DemoModeContext";
+import { SignupGateDialog } from "@/components/demo/SignupGateDialog";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
 import { PixelInjector } from "@/components/pixels/PixelInjector";
@@ -105,6 +108,7 @@ const App = () => (
       
       <ErrorBoundary>
         <BrowserRouter>
+          <DemoModeProvider>
           <PixelInjector />
           <RouteTracker />
           <CookieBanner />
@@ -112,6 +116,7 @@ const App = () => (
           <ReferralTracker />
           <OnlineStatusTracker />
           <SingleSessionGuard />
+          <SignupGateDialog />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
             <Routes>
@@ -127,24 +132,30 @@ const App = () => (
               <Route path="/instalar" element={<InstalarPage />} />
               <Route path="/finalizar-cadastro" element={<FinalizarCadastroPage />} />
 
-              {/* App routes */}
+              {/* Demo + Logged-in browseable routes */}
+              <Route element={<DemoOrProtectedRoute />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/biblioteca" element={<BibliotecaPage />} />
+                  <Route path="/categoria/:id" element={<CategoriaPage />} />
+                  <Route path="/musicas" element={<TodasMusicasPage />} />
+                  <Route path="/musica/:id" element={<MusicaPage />} />
+                  <Route path="/ofertas" element={<OfertasPage />} />
+                  <Route path="/pdfs" element={<PdfsPage />} />
+                  <Route path="/discografias" element={<DiscografiasPage />} />
+                  <Route path="/como-baixar" element={<ComoBaixarPage />} />
+                </Route>
+              </Route>
+
+              {/* Strictly private routes (logged-in only) */}
               <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/biblioteca" element={<BibliotecaPage />} />
-                <Route path="/categoria/:id" element={<CategoriaPage />} />
-                <Route path="/musicas" element={<TodasMusicasPage />} />
                 <Route path="/favoritos" element={<FavoritosPage />} />
                 <Route path="/downloads" element={<DownloadsPage />} />
                 <Route path="/conta" element={<ContaPage />} />
-                <Route path="/musica/:id" element={<MusicaPage />} />
-                <Route path="/ofertas" element={<OfertasPage />} />
                 <Route path="/repertorio/:id" element={<RepertorioPage />} />
                 <Route path="/repertorios" element={<MeusRepertoriosPage />} />
-                <Route path="/pdfs" element={<PdfsPage />} />
                 <Route path="/indicacoes" element={<IndicacoesPage />} />
-                <Route path="/como-baixar" element={<ComoBaixarPage />} />
-                <Route path="/discografias" element={<DiscografiasPage />} />
               </Route>
               </Route>
 
@@ -178,6 +189,7 @@ const App = () => (
             </Routes>
             </MaintenanceGate>
           </Suspense>
+          </DemoModeProvider>
         </BrowserRouter>
       </ErrorBoundary>
     </TooltipProvider>
