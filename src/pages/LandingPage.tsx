@@ -692,11 +692,11 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             {visiblePlanos.map((p: any, idx: number) => {
               const isLifetime = p.slug === "vitalicio";
-              const isSemestral = p.slug === "semestral";
+              const isTrimestral = p.slug === "trimestral";
               const isHighlight = isLifetime;
               const periodLabel =
                 p.slug === "mensal" ? "/ mês" :
-                p.slug === "semestral" ? "/ 6 meses" :
+                p.slug === "trimestral" ? "/ 3 meses" :
                 p.slug === "anual" ? "/ ano" : "pagamento único";
               return (
                 <motion.div
@@ -717,7 +717,7 @@ export default function LandingPage() {
                         Melhor Custo
                       </div>
                     )}
-                    {isSemestral && (
+                    {isTrimestral && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-card border border-primary/60 text-primary text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full flex items-center gap-1">
                         <TrendingUp className="h-3 w-3" />
                         Mais Vendido
