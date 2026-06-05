@@ -149,6 +149,22 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Scroll to hash target (e.g. /#planos) once content is mounted
+  useEffect(() => {
+    if (!window.location.hash) return;
+    const id = window.location.hash.slice(1);
+    let attempts = 0;
+    const tryScroll = () => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (attempts++ < 20) {
+        setTimeout(tryScroll, 100);
+      }
+    };
+    tryScroll();
+  }, []);
+
   // Mitiga loop do "Voltar" e problemas de cache/redirect da Hostinger
   useEffect(() => {
     try {
@@ -157,7 +173,7 @@ export default function LandingPage() {
       
       // Se estamos na landing e viemos de um erro ou redirect conhecido, limpamos o estado
       if (ref && (ref.includes("hostinger") || ref.includes("hstgr"))) {
-        window.history.replaceState(null, "", "/");
+        window.history.replaceState(null, "", "/" + window.location.hash);
       }
 
       // Se o usuário tenta voltar e cai num loop, forçamos a limpeza do histórico para esta sessão
