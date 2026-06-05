@@ -23,7 +23,7 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
 const menuItems = [
   { title: "Biblioteca", url: "/biblioteca", icon: Library, privateForDemo: false },
   { title: "Músicas", url: "/musicas", icon: Music, privateForDemo: false },
-  { title: "Meus Repertórios", url: "/repertorios", icon: FolderOpen, privateForDemo: true },
+  { title: "Meus Repertórios", url: "/repertorios", icon: FolderOpen, privateForDemo: false },
   { title: "PDFs", url: "/pdfs", icon: FileText, privateForDemo: false },
   { title: "Favoritos", url: "/favoritos", icon: Heart, privateForDemo: true },
   { title: "Assinatura", url: "/ofertas", icon: Tag, privateForDemo: false },

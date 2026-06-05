@@ -144,6 +144,8 @@ const App = () => (
                   <Route path="/pdfs" element={<PdfsPage />} />
                   <Route path="/discografias" element={<DiscografiasPage />} />
                   <Route path="/como-baixar" element={<ComoBaixarPage />} />
+                  <Route path="/repertorios" element={<MeusRepertoriosPage />} />
+                  <Route path="/repertorio/:id" element={<RepertorioPage />} />
                 </Route>
               </Route>
 
@@ -153,9 +155,8 @@ const App = () => (
                 <Route path="/favoritos" element={<FavoritosPage />} />
                 <Route path="/downloads" element={<DownloadsPage />} />
                 <Route path="/conta" element={<ContaPage />} />
-                <Route path="/repertorio/:id" element={<RepertorioPage />} />
-                <Route path="/repertorios" element={<MeusRepertoriosPage />} />
                 <Route path="/indicacoes" element={<IndicacoesPage />} />
+
               </Route>
               </Route>
 
