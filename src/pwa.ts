@@ -1,6 +1,5 @@
-import { toast } from "sonner";
-
 const RECOVERY_FLAG = "pwa-recovery-attempted";
+const RELOAD_FLAG = "pwa-reloaded-once";
 
 function isInIframe(): boolean {
   try {
@@ -47,6 +46,53 @@ async function recoverAndReload(reason: string) {
   window.location.reload();
 }
 
+// Poll de /version.json a cada 60s para detectar deploy novo enquanto a aba está aberta
+function startVersionPoll(getRegistration: () => ServiceWorkerRegistration | null) {
+  let initialVersion: string | null = null;
+
+  const fetchVersion = async (): Promise<string | null> => {
+    try {
+      const res = await fetch("/version.json", { cache: "no-store" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return typeof data?.version === "string" ? data.version : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const check = async () => {
+    if (document.visibilityState !== "visible") return;
+    const current = await fetchVersion();
+    if (!current) return;
+    if (initialVersion === null) {
+      initialVersion = current;
+      return;
+    }
+    if (current !== initialVersion) {
+      const reg = getRegistration();
+      if (reg) {
+        try {
+          await reg.update();
+        } catch {
+          /* noop */
+        }
+      } else {
+        // Sem SW: força reload direto (o .htaccess garante HTML fresco)
+        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+          sessionStorage.setItem(RELOAD_FLAG, "1");
+          window.location.reload();
+        }
+      }
+    }
+  };
+
+  // Primeira leitura imediata + a cada 60s + sempre que voltar a ficar visível
+  void check();
+  setInterval(() => void check(), 60_000);
+  document.addEventListener("visibilitychange", () => void check());
+}
+
 export function registerPwa() {
   if (typeof window === "undefined") return;
 
@@ -74,26 +120,28 @@ export function registerPwa() {
     }
   });
 
-  // Em produção: registrar com prompt de atualização
+  // Quando um SW novo assume controle, recarrega automaticamente — sem prompt
+  if ("serviceWorker" in navigator) {
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded) return;
+      reloaded = true;
+      window.location.reload();
+    });
+  }
+
+  // Em produção: registrar o SW (autoUpdate) e iniciar polling de versão
   if (!import.meta.env.PROD) return;
+
+  let registration: ServiceWorkerRegistration | null = null;
 
   import("virtual:pwa-register")
     .then(({ registerSW }) => {
-      const updateSW = registerSW({
+      registerSW({
         immediate: true,
-        onNeedRefresh() {
-          toast.info("Nova versão disponível", {
-            description: "Toque em atualizar para carregar as novidades.",
-            duration: Infinity,
-            action: {
-              label: "Atualizar",
-              onClick: () => updateSW(true),
-            },
-          });
-        },
-        onRegisteredSW(_swUrl, registration) {
-          // Limpa flag de recuperação após primeiro registro bem-sucedido
-          if (registration?.active) {
+        onRegisteredSW(_swUrl, reg) {
+          if (reg) {
+            registration = reg;
             sessionStorage.removeItem(RECOVERY_FLAG);
           }
         },
@@ -103,4 +151,6 @@ export function registerPwa() {
       });
     })
     .catch((err) => console.warn("[pwa] virtual:pwa-register indisponível:", err));
+
+  startVersionPoll(() => registration);
 }
