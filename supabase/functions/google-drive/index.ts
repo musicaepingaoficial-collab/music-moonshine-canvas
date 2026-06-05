@@ -55,30 +55,37 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Peek body first so we can detect demo streaming
+    const body = await req.json();
+    const { action, demo } = body;
 
-    const token = authHeader.replace("Bearer ", "").trim();
-    // Validate JWT signature server-side via Supabase auth
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: `Bearer ${token}` } } }
-    );
-    const { data: userData, error: authError } = await userClient.auth.getUser(token);
-    const user = userData?.user;
+    const isDemoStream = action === "stream" && demo === true;
 
-    if (authError || !user) {
-      console.error("[google-drive] Erro de autenticação:", authError?.message || "Usuário não encontrado");
-      return new Response(JSON.stringify({
-        error: "Token inválido ou sessão expirada",
-      }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!isDemoStream) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Não autenticado" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const token = authHeader.replace("Bearer ", "").trim();
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+      const { data: userData, error: authError } = await userClient.auth.getUser(token);
+      const user = userData?.user;
+
+      if (authError || !user) {
+        console.error("[google-drive] Erro de autenticação:", authError?.message || "Usuário não encontrado");
+        return new Response(JSON.stringify({
+          error: "Token inválido ou sessão expirada",
+        }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const GOOGLE_SERVICE_ACCOUNT_KEY = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
