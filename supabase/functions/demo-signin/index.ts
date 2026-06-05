@@ -20,7 +20,7 @@ serve(async (req) => {
     const publicClient = createClient(supabaseUrl, anonKey);
 
     const id = crypto.randomUUID();
-    const email = `demo-${id}@demo.musicaepinga.invalid`;
+    const email = `demo-${id}@demo.musicaepinga.com`;
     const password = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
 
     const { data: created, error: createError } = await admin.auth.admin.createUser({
