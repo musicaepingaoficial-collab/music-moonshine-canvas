@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useUser";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,7 @@ const DemoModeContext = createContext<DemoModeContextValue | null>(null);
 export function DemoModeProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [gate, setGate] = useState<GateState>({ open: false, reason: null });
   const [activating, setActivating] = useState(false);
 
@@ -35,10 +37,11 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const isDemo = !loading && isAnonymous;
 
   // Auto-activate from URL ?demo=1 (creates an anonymous Supabase user)
+  // Re-runs on route changes so the LandingPage → /dashboard?demo=1 navigation triggers it.
   useEffect(() => {
     if (loading || user || activating) return;
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const wantsDemo =
       params.get("demo") === "1" ||
       sessionStorage.getItem(PENDING_FLAG) === "1";
@@ -53,7 +56,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
       }
       setActivating(false);
     });
-  }, [loading, user, activating]);
+  }, [loading, user, activating, location.pathname, location.search]);
 
   // Clear pending flag once we have an anon user
   useEffect(() => {
