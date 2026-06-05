@@ -225,7 +225,11 @@ serve(async (req) => {
     }
 
     // ==== Notificar admin sobre status não-aprovados ====
-    if (payment.status === "rejected" || payment.status === "cancelled") {
+    // Ignora PIX/boleto que apenas expiraram (não é "recusa" real do banco/cartão)
+    const isExpiredOrCancelledByUser =
+      payment.status === "cancelled" ||
+      ["expired", "by_collector", "by_payer"].includes(String(payment.status_detail || ""));
+    if ((payment.status === "rejected" || payment.status === "cancelled") && !isExpiredOrCancelledByUser) {
       try {
         const amount = fmtBRL(payment.transaction_amount);
         const method = fmtMethod(payment);
