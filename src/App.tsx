@@ -189,6 +189,7 @@ const App = () => (
             </Routes>
             </MaintenanceGate>
           </Suspense>
+          </DemoModeProvider>
         </BrowserRouter>
       </ErrorBoundary>
     </TooltipProvider>
