@@ -502,8 +502,17 @@ export default function LandingPage() {
             <p className="text-2xl sm:text-3xl font-black tracking-tight">
               Chega disso. <span className="text-gradient-brand">A gente resolve tudo.</span>
             </p>
+            <div className="mt-6 flex justify-center">
+              <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_problem" })}>
+                <Button size="lg" variant="outline" className="border-primary/40 hover:border-primary hover:bg-primary/10 h-12 px-6 font-bold">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Experimentar grátis agora
+                </Button>
+              </Link>
+            </div>
             <ArrowRight className="h-8 w-8 text-primary mx-auto mt-4 rotate-90 animate-bounce" />
           </motion.div>
+
         </div>
       </section>
 
