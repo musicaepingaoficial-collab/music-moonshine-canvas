@@ -37,6 +37,9 @@ const AdminRepertoriosPage = () => {
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
   const [editFeatured, setEditFeatured] = useState(false);
+  const [editBadgeText, setEditBadgeText] = useState("");
+  const [editBadgeBg, setEditBadgeBg] = useState("#e11d48");
+  const [editBadgeFg, setEditBadgeFg] = useState("#ffffff");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
