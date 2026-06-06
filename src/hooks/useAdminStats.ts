@@ -28,11 +28,11 @@ export function useAdminStats() {
         { data: drives },
         { data: downloads },
       ] = await Promise.all([
-        s.from("profiles").select("*", { count: "exact", head: true }),
+        s.from("profiles").select("*", { count: "exact", head: true }).neq("email", ""),
         s.from("assinaturas").select("*", { count: "exact", head: true }).eq("status", "active"),
         s.from("musicas").select("*", { count: "exact", head: true }),
         s.from("assinaturas").select("price").eq("status", "active"),
-        s.from("profiles").select("id, name, email, created_at").order("created_at", { ascending: false }).limit(5),
+        s.from("profiles").select("id, name, email, created_at").neq("email", "").order("created_at", { ascending: false }).limit(5),
         s.from("google_drives").select("name, status, usage_percent"),
         s.from("downloads").select("musica_id, musicas(id, title, artist)").limit(100),
       ]);
