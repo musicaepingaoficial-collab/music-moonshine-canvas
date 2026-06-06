@@ -6,8 +6,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, Star } from "lucide-react";
 import type { RepertorioWithCount } from "@/hooks/useRepertorios";
-import { useHasActiveSubscription } from "@/hooks/useUser";
 import { Badge } from "@/components/ui/badge";
+import { RepertorioBadge } from "@/components/repertorios/RepertorioBadge";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -45,6 +45,7 @@ const MeusRepertoriosPage = () => {
                     to={`/repertorio/${rep.id}`}
                     className="group relative aspect-[2/3] w-full overflow-hidden rounded-md bg-card transition-all duration-300 hover:scale-[1.05] hover:shadow-2xl hover:z-10 ring-2 ring-amber-500/20"
                   >
+                    <RepertorioBadge text={rep.badge_text} bgColor={rep.badge_bg_color} textColor={rep.badge_text_color} />
                     {rep.cover_url ? (
                       <img
                         src={rep.cover_url}
@@ -91,6 +92,7 @@ const MeusRepertoriosPage = () => {
                   to={`/repertorio/${rep.id}`}
                   className="group relative aspect-[2/3] w-full overflow-hidden rounded-md bg-card transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:z-10"
                 >
+                  <RepertorioBadge text={rep.badge_text} bgColor={rep.badge_bg_color} textColor={rep.badge_text_color} />
                   {rep.cover_url ? (
                     <img
                       src={rep.cover_url}
