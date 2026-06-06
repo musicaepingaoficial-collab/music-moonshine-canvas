@@ -10,6 +10,9 @@ export interface Repertorio {
   user_id: string | null;
   created_at: string;
   featured?: boolean;
+  badge_text?: string | null;
+  badge_bg_color?: string | null;
+  badge_text_color?: string | null;
 }
 
 export interface RepertorioWithCount extends Repertorio {
@@ -125,11 +128,14 @@ export function useCreateRepertorio() {
 export function useUpdateRepertorio() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ repertorioId, name, description, coverFile, featured }: { repertorioId: string; name?: string; description?: string; coverFile?: File; featured?: boolean }) => {
+    mutationFn: async ({ repertorioId, name, description, coverFile, featured, badge_text, badge_bg_color, badge_text_color }: { repertorioId: string; name?: string; description?: string; coverFile?: File; featured?: boolean; badge_text?: string | null; badge_bg_color?: string | null; badge_text_color?: string | null }) => {
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
       if (description !== undefined) updates.description = description;
       if (featured !== undefined) updates.featured = featured;
+      if (badge_text !== undefined) updates.badge_text = badge_text;
+      if (badge_bg_color !== undefined) updates.badge_bg_color = badge_bg_color;
+      if (badge_text_color !== undefined) updates.badge_text_color = badge_text_color;
 
       if (coverFile) {
         const coverUrl = await uploadRepertorioCover(coverFile, repertorioId);

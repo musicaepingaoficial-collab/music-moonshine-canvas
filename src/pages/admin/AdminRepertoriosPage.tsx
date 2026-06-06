@@ -37,6 +37,9 @@ const AdminRepertoriosPage = () => {
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
   const [editFeatured, setEditFeatured] = useState(false);
+  const [editBadgeText, setEditBadgeText] = useState("");
+  const [editBadgeBg, setEditBadgeBg] = useState("#e11d48");
+  const [editBadgeFg, setEditBadgeFg] = useState("#ffffff");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,6 +83,9 @@ const AdminRepertoriosPage = () => {
     setEditDesc(r.description || "");
     setEditCoverPreview(r.cover_url);
     setEditFeatured(r.featured || false);
+    setEditBadgeText(r.badge_text || "");
+    setEditBadgeBg(r.badge_bg_color || "#e11d48");
+    setEditBadgeFg(r.badge_text_color || "#ffffff");
     setEditCoverFile(null);
   };
 
@@ -97,7 +103,10 @@ const AdminRepertoriosPage = () => {
         name: editName.trim(),
         description: editDesc.trim(),
         coverFile: editCoverFile || undefined,
-        featured: editFeatured
+        featured: editFeatured,
+        badge_text: editBadgeText.trim() || null,
+        badge_bg_color: editBadgeBg,
+        badge_text_color: editBadgeFg,
       });
       setEditingId(null);
       toast.success("Repertório atualizado!");
@@ -287,12 +296,45 @@ const AdminRepertoriosPage = () => {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {editingId === r.id ? (
-                            <Input 
-                              value={editDesc} 
-                              onChange={(e) => setEditDesc(e.target.value)} 
-                              className="h-8"
-                            />
-                          ) : r.description || "—"}
+                            <div className="space-y-2 min-w-[220px]">
+                              <Input
+                                value={editDesc}
+                                onChange={(e) => setEditDesc(e.target.value)}
+                                className="h-8"
+                                placeholder="Descrição"
+                              />
+                              <div className="border-t pt-2 space-y-1.5">
+                                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Tarja (vazio = sem tarja)</label>
+                                <Input
+                                  value={editBadgeText}
+                                  onChange={(e) => setEditBadgeText(e.target.value)}
+                                  className="h-8"
+                                  placeholder="Ex: Sem Vinheta"
+                                  maxLength={30}
+                                />
+                                <div className="flex items-center gap-2">
+                                  <label className="text-[10px] text-muted-foreground">Fundo</label>
+                                  <input type="color" value={editBadgeBg} onChange={(e) => setEditBadgeBg(e.target.value)} className="h-7 w-10 rounded border cursor-pointer" />
+                                  <label className="text-[10px] text-muted-foreground ml-2">Texto</label>
+                                  <input type="color" value={editBadgeFg} onChange={(e) => setEditBadgeFg(e.target.value)} className="h-7 w-10 rounded border cursor-pointer" />
+                                </div>
+                                {editBadgeText.trim() && (
+                                  <div className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase rounded-r-sm" style={{ background: editBadgeBg, color: editBadgeFg }}>
+                                    {editBadgeText}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <div>{r.description || "—"}</div>
+                              {r.badge_text && (
+                                <div className="inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-r-sm" style={{ background: r.badge_bg_color || "#e11d48", color: r.badge_text_color || "#fff" }}>
+                                  {r.badge_text}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">{r.musica_count}</Badge>
