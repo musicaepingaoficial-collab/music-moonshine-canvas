@@ -51,6 +51,7 @@ const AllRepertorios = () => {
                 to={`/repertorio/${rep.id}`}
                 className="group relative aspect-[2/3] w-full overflow-hidden rounded-md bg-card transition-all duration-300 hover:scale-[1.05] hover:shadow-2xl hover:z-10 ring-2 ring-amber-500/30"
               >
+                <RepertorioBadge text={rep.badge_text} bgColor={rep.badge_bg_color} textColor={rep.badge_text_color} />
                 {rep.cover_url ? (
                   <img 
                     src={rep.cover_url} 
