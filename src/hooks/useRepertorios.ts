@@ -10,6 +10,9 @@ export interface Repertorio {
   user_id: string | null;
   created_at: string;
   featured?: boolean;
+  badge_text?: string | null;
+  badge_bg_color?: string | null;
+  badge_text_color?: string | null;
 }
 
 export interface RepertorioWithCount extends Repertorio {
