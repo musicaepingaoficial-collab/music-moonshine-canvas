@@ -103,7 +103,10 @@ const AdminRepertoriosPage = () => {
         name: editName.trim(),
         description: editDesc.trim(),
         coverFile: editCoverFile || undefined,
-        featured: editFeatured
+        featured: editFeatured,
+        badge_text: editBadgeText.trim() || null,
+        badge_bg_color: editBadgeBg,
+        badge_text_color: editBadgeFg,
       });
       setEditingId(null);
       toast.success("Repertório atualizado!");
