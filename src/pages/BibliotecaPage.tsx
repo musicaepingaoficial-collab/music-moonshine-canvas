@@ -11,6 +11,7 @@ import { AdBanner } from "@/components/ads/AdBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Library, FolderOpen, Music2, ChevronRight, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { RepertorioBadge } from "@/components/repertorios/RepertorioBadge";
 
 const BibliotecaPage = () => {
   const { data: categorias, isLoading: loadingCats, error: errorCats, refetch: refetchCats } = useCategorias();
