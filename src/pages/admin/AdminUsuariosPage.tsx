@@ -60,6 +60,7 @@ const AdminUsuariosPage = () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, name, email, whatsapp, cpf, has_discografias, created_at")
+        .neq("email", "")
         .order("created_at", { ascending: false });
       
       if (error) {
