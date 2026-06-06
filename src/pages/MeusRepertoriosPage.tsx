@@ -6,8 +6,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, Star } from "lucide-react";
 import type { RepertorioWithCount } from "@/hooks/useRepertorios";
-import { useHasActiveSubscription } from "@/hooks/useUser";
 import { Badge } from "@/components/ui/badge";
+import { RepertorioBadge } from "@/components/repertorios/RepertorioBadge";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
