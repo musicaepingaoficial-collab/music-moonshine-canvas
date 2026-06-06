@@ -83,6 +83,9 @@ const AdminRepertoriosPage = () => {
     setEditDesc(r.description || "");
     setEditCoverPreview(r.cover_url);
     setEditFeatured(r.featured || false);
+    setEditBadgeText(r.badge_text || "");
+    setEditBadgeBg(r.badge_bg_color || "#e11d48");
+    setEditBadgeFg(r.badge_text_color || "#ffffff");
     setEditCoverFile(null);
   };
 
