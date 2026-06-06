@@ -1070,6 +1070,9 @@ export type Database = {
       }
       repertorios: {
         Row: {
+          badge_bg_color: string | null
+          badge_text: string | null
+          badge_text_color: string | null
           cover_url: string | null
           created_at: string
           description: string | null
@@ -1079,6 +1082,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          badge_bg_color?: string | null
+          badge_text?: string | null
+          badge_text_color?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
@@ -1088,6 +1094,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          badge_bg_color?: string | null
+          badge_text?: string | null
+          badge_text_color?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
