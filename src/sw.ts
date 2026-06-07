@@ -86,3 +86,35 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
     })()
   );
 });
+
+// ── Push subscription rotation/expiration ──
+// Quando o browser/SO invalida a inscrição (comum em PWA iOS/Android após
+// inatividade), tenta reinscrever e notifica abas abertas para fazer o upsert
+// em admin_push_subscriptions. Se nenhuma aba estiver aberta, a próxima
+// abertura do app dispara o auto-sync e sincroniza.
+self.addEventListener("pushsubscriptionchange", (event: any) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const oldKey =
+          event.oldSubscription?.options?.applicationServerKey ||
+          event.newSubscription?.options?.applicationServerKey;
+        const newSub =
+          event.newSubscription ||
+          (oldKey
+            ? await self.registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: oldKey,
+              })
+            : null);
+        if (!newSub) return;
+        const clientsList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+        for (const c of clientsList) {
+          c.postMessage({ type: "push-subscription-changed", subscription: newSub.toJSON() });
+        }
+      } catch (err) {
+        console.warn("[sw] pushsubscriptionchange falhou:", err);
+      }
+    })()
+  );
+});
