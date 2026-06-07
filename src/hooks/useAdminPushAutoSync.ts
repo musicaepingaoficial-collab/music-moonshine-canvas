@@ -64,8 +64,41 @@ export function useAdminPushAutoSync() {
       }
     })();
 
+    // Escuta atualizações de subscription enviadas pelo service worker
+    // (evento pushsubscriptionchange) e sincroniza com o banco em tempo real.
+    const onMessage = async (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || data.type !== "push-subscription-changed") return;
+      try {
+        const json = data.subscription;
+        const endpoint = json?.endpoint;
+        if (!endpoint) return;
+        await (supabase.from("admin_push_subscriptions" as any) as any).upsert(
+          {
+            user_id: user.id,
+            endpoint,
+            p256dh: json?.keys?.p256dh ?? "",
+            auth: json?.keys?.auth ?? "",
+            user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+            last_used_at: new Date().toISOString(),
+          },
+          { onConflict: "endpoint" }
+        );
+      } catch (err) {
+        console.warn("[push-autosync] sw message upsert falhou:", err);
+      }
+    };
+
+    if (isPushSupported()) {
+      navigator.serviceWorker.addEventListener("message", onMessage);
+    }
+
     return () => {
       cancelled = true;
+      if (isPushSupported()) {
+        navigator.serviceWorker.removeEventListener("message", onMessage);
+      }
     };
   }, [user, isAdmin]);
 }
+
