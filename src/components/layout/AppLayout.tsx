@@ -6,9 +6,11 @@ import { MusicPlayer } from "@/components/player/MusicPlayer";
 import { InstallBanner } from "@/components/pwa/InstallBanner";
 import { WelcomePopup } from "@/components/popup/WelcomePopup";
 import { DemoBanner } from "@/components/demo/DemoBanner";
+import { useAdminPushAutoSync } from "@/hooks/useAdminPushAutoSync";
 
 
 export function AppLayout() {
+  useAdminPushAutoSync();
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full min-w-0 overflow-x-hidden">
