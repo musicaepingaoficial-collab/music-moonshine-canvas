@@ -37,7 +37,7 @@ export function useMusicas() {
         offset += limit;
       }
       
-      return allData;
+      return sortTracksNatural(allData);
     },
   });
 }
