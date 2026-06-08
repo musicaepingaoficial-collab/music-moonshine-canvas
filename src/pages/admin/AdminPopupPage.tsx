@@ -17,9 +17,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useUpdateWelcomePopup,
-  useWelcomePopupSettings,
+  useAllWelcomePopups,
+  useCreateWelcomePopup,
+  useDeleteWelcomePopup,
   type PopupLink,
 } from "@/hooks/useWelcomePopup";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 const ICON_OPTIONS = [
   { value: "whatsapp", label: "WhatsApp", Icon: MessageCircle },
