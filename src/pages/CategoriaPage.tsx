@@ -30,7 +30,7 @@ const CategoriaPage = () => {
 
   // Get unique subfolders
   const subfolders = tracks
-    ? [...new Set(tracks.filter((t) => t.subfolder).map((t) => t.subfolder as string))].sort()
+    ? [...new Set(tracks.filter((t) => t.subfolder).map((t) => t.subfolder as string))].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true, sensitivity: "base" }))
     : [];
 
   // Loose tracks (no subfolder)

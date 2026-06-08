@@ -2,6 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { MusicaWithCategoria, Categoria } from "@/types/database";
 
+// Natural sort: "2 - Música" antes de "10 - Música"
+const naturalCollator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+const sortTracksNatural = (list: MusicaWithCategoria[]): MusicaWithCategoria[] =>
+  [...list].sort((a, b) => {
+    const sa = (a.subfolder ?? "").toString();
+    const sb = (b.subfolder ?? "").toString();
+    const bySub = naturalCollator.compare(sa, sb);
+    if (bySub !== 0) return bySub;
+    return naturalCollator.compare(a.title ?? "", b.title ?? "");
+  });
+
+
 export function useMusicas() {
   return useQuery<MusicaWithCategoria[]>({
     queryKey: ["musicas"],
@@ -25,7 +37,7 @@ export function useMusicas() {
         offset += limit;
       }
       
-      return allData;
+      return sortTracksNatural(allData);
     },
   });
 }
@@ -47,7 +59,8 @@ export function useMusicasByCategoria(slug: string | undefined) {
         .order("title", { ascending: true });
 
       if (error) throw error;
-      return (data ?? []) as MusicaWithCategoria[];
+      return sortTracksNatural((data ?? []) as MusicaWithCategoria[]);
+
     },
     enabled: !!slug,
   });
