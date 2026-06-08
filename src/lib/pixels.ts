@@ -375,8 +375,20 @@ let kwaiBaseScriptRequested = false;
 export function initKwaiPixel(pixelId: string) {
   if (typeof window === "undefined" || !pixelId) return;
 
+  const globalState = window as any;
   const kwaiq = (window as any).kwaiq;
-  if (kwaiq?.instance || kwaiBaseScriptRequested || document.getElementById("kwai-pixel-base-script")) {
+  const hasExistingKwai = Boolean(kwaiq);
+  const hasRequestedBaseScript = Boolean(
+    kwaiBaseScriptRequested ||
+    globalState.__lovableKwaiBaseScriptRequested ||
+    document.getElementById("kwai-pixel-base-script") ||
+    document.getElementById("kwai-pixel-sdk-script") ||
+    document.getElementById("kwai-pixel-script")
+  );
+
+  if (kwaiq?.instance || hasExistingKwai || hasRequestedBaseScript) {
+    kwaiBaseScriptRequested = true;
+    globalState.__lovableKwaiBaseScriptRequested = true;
     if (kwaiInitPixelId === pixelId) return;
     kwaiInitPixelId = pixelId;
     try {
@@ -389,6 +401,7 @@ export function initKwaiPixel(pixelId: string) {
   }
 
   kwaiBaseScriptRequested = true;
+  globalState.__lovableKwaiBaseScriptRequested = true;
   kwaiInitPixelId = pixelId;
 
   const s = document.createElement("script");
