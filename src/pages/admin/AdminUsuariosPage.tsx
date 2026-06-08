@@ -210,6 +210,32 @@ const AdminUsuariosPage = () => {
               {filtered.length} usuário{filtered.length !== 1 ? "s" : ""}
             </Badge>
           </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {PLAN_FILTERS.map((f) => {
+              const count =
+                f.value === "all"
+                  ? users?.length ?? 0
+                  : planCounts[f.value] ?? 0;
+              const active = planFilter === f.value;
+              return (
+                <Button
+                  key={f.value}
+                  size="sm"
+                  variant={active ? "default" : "outline"}
+                  onClick={() => setPlanFilter(f.value)}
+                  className="h-8 text-xs"
+                >
+                  {f.label}
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 h-5 px-1.5 text-[10px]"
+                  >
+                    {count}
+                  </Badge>
+                </Button>
+              );
+            })}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
