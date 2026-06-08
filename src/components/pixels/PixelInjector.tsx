@@ -68,6 +68,10 @@ interface TikTokState {
   loadedIds: Record<string, boolean>;
 }
 
+function createTikTokTarget(): TikTokTarget {
+  return [] as unknown as TikTokTarget;
+}
+
 function removeById(id: string) {
   document.getElementById(id)?.remove();
 }
@@ -132,7 +136,7 @@ function installTikTokQueue() {
     function (target: TikTokTarget, method: string) {
       if (typeof target[method] === "function") return;
       target[method] = function (...args: unknown[]) {
-        target.push([method].concat(args));
+        target.push([method, ...args]);
       };
     };
 
@@ -140,7 +144,7 @@ function installTikTokQueue() {
 
   if (!("instance" in ttq)) {
     ttq.instance = function (id: string) {
-      const inst = (ttq._i && ttq._i[id]) || [];
+      const inst = (ttq._i && ttq._i[id]) || createTikTokTarget();
       for (let i = 0; i < ttq.methods.length; i += 1) ttq.setAndDefer(inst, ttq.methods[i]);
       return inst;
     };
@@ -150,7 +154,7 @@ function installTikTokQueue() {
     ttq.load = function (id: string, options?: Record<string, unknown>) {
       ttq._i = ttq._i || {};
       if (ttq._i[id] || hasExternalScript(TIKTOK_EVENTS_SRC, `sdkid=${id}`)) return;
-      ttq._i[id] = [];
+      ttq._i[id] = createTikTokTarget();
       ttq._i[id]._u = TIKTOK_EVENTS_SRC;
       ttq._t = ttq._t || {};
       ttq._t[id] = +new Date();
