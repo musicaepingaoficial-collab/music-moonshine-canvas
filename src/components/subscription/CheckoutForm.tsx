@@ -716,7 +716,8 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               type="text"
               value={pixFullName}
               onChange={(e) => setPixFullName(e.target.value)}
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
+              autoComplete="name"
+              className="w-full rounded-md border border-border bg-secondary px-3 py-2.5 text-base sm:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Nome e sobrenome"
             />
           </div>
@@ -725,9 +726,10 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             <input
               type="text"
               inputMode="numeric"
+              autoComplete="off"
               value={pixCpf}
               onChange={(e) => setPixCpf(formatCpf(e.target.value))}
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-md border border-border bg-secondary px-3 py-2.5 text-base sm:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="000.000.000-00"
             />
           </div>
@@ -735,29 +737,35 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             <label className="text-xs font-medium text-muted-foreground">E-mail para receber o comprovante</label>
             <input
               type="email"
+              inputMode="email"
+              autoComplete="email"
               value={pixEmail}
               onChange={(e) => setPixEmail(e.target.value)}
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-md border border-border bg-secondary px-3 py-2.5 text-base sm:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="seu@email.com"
             />
           </div>
           <Button
             type="button"
-            className="w-full gap-2"
+            className="w-full gap-2 h-12 text-base font-bold bg-green-600 hover:bg-green-700 text-white"
             onClick={handleCreatePix}
             disabled={pixProcessing}
           >
             {pixProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <>
-                <QrCode className="h-4 w-4" />
-                Gerar QR Code Pix
+                <Lock className="h-4 w-4" />
+                Garantir Meu Acesso Agora
               </>
             )}
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            🔥 Mais de 14 pessoas estão finalizando a compra agora. Aja rápido!
+          </p>
         </div>
       )}
+
 
       <p className="text-center text-[10px] text-muted-foreground">
         Pagamento seguro processado pelo Mercado Pago
