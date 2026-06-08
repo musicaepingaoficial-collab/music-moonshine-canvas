@@ -78,7 +78,6 @@ export default function PrivacyPage() {
               <li><strong>Google Drive</strong> — armazenamento dos arquivos de áudio.</li>
               <li><strong>Meta (Facebook/Instagram)</strong> — pixels de marketing e CAPI.</li>
               <li><strong>Google (Analytics e Ads)</strong> — análise de uso e remarketing.</li>
-              <li><strong>TikTok</strong> — pixel de marketing.</li>
               <li><strong>Kwai</strong> — pixel de marketing.</li>
               <li>Autoridades públicas, quando exigido por lei.</li>
             </ul>
@@ -89,7 +88,7 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-foreground mt-6 mb-2">6. Cookies e tecnologias de rastreamento</h2>
             <p>
               Utilizamos cookies essenciais (sessão, segurança), de análise (Google Analytics) e de marketing
-              (Meta Pixel, TikTok Pixel, Kwai Pixel, Google Ads). Você pode aceitar, recusar ou personalizar
+              (Meta Pixel, Kwai Pixel, Google Ads). Você pode aceitar, recusar ou personalizar
               suas escolhas a qualquer momento pelo botão <strong>"Gerenciar cookies"</strong> no rodapé ou na
               Central de Privacidade dentro da sua conta.
             </p>

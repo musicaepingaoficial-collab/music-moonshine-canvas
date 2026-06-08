@@ -317,59 +317,6 @@ const AdminPixelsPage = () => {
         </CardContent>
       </Card>
 
-      {/* TikTok Ads */}
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>TikTok Ads</CardTitle>
-            <CardDescription>Pixel ID + Access Token (Events API, opcional)</CardDescription>
-          </div>
-          <Switch
-            checked={!!form.tiktok_enabled}
-            onCheckedChange={(v) => set("tiktok_enabled", v)}
-          />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="tt-id">Pixel ID</Label>
-              <Input
-                id="tt-id"
-                placeholder="C4XXXXXXXXXXXXXXXXXX"
-                value={form.tiktok_pixel_id || ""}
-                onChange={(e) => set("tiktok_pixel_id", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tt-token">Access Token (opcional)</Label>
-              <Input
-                id="tt-token"
-                type="password"
-                placeholder="••••••••••••••••"
-                value={tokens.tiktok_access_token || ""}
-                onChange={(e) => setToken("tiktok_access_token", e.target.value)}
-              />
-            </div>
-          </div>
-          <Button
-            onClick={() =>
-              saveSection(
-                {
-                  tiktok_enabled: form.tiktok_enabled,
-                  tiktok_pixel_id: form.tiktok_pixel_id,
-                },
-                "TikTok",
-                { tiktok_access_token: tokens.tiktok_access_token },
-              )
-            }
-            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Save className="h-4 w-4" />
-            Salvar TikTok
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Kwai Ads */}
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">

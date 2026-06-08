@@ -55,7 +55,7 @@ export function CookiePreferencesDialog() {
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
             <div>
               <p className="font-medium text-sm">Marketing</p>
-              <p className="text-xs text-muted-foreground">Personalização de anúncios (Meta, TikTok, Google Ads, Kwai).</p>
+              <p className="text-xs text-muted-foreground">Personalização de anúncios (Meta, Google Ads, Kwai).</p>
             </div>
             <Switch checked={marketing} onCheckedChange={setMarketing} />
           </div>
