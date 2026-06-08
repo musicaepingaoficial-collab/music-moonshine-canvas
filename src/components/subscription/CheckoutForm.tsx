@@ -624,7 +624,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           type="button"
           variant={paymentMethod === "pix" ? "default" : "outline"}
           onClick={() => handleSelectMethod("pix")}
-          className="gap-2"
+          className="gap-2 h-12 sm:h-10 text-base sm:text-sm"
         >
           <QrCode className="h-4 w-4" />
           Pix
@@ -633,12 +633,13 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           type="button"
           variant={paymentMethod === "card" ? "default" : "outline"}
           onClick={() => handleSelectMethod("card")}
-          className="gap-2"
+          className="gap-2 h-12 sm:h-10 text-base sm:text-sm"
         >
           <CreditCard className="h-4 w-4" />
-          CARTÃO
+          Cartão
         </Button>
       </div>
+
 
       {paymentMethod === "card" ? (
       <form id="mp-checkout-form" className="space-y-3">
