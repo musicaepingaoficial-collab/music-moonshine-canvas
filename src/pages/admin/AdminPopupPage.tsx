@@ -83,6 +83,20 @@ const AdminPopupPage = () => {
     }
   });
 
+  const { data: couponInfo } = useQuery({
+    queryKey: ["admin-popup-coupon", discountCoupon],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cupons")
+        .select("desconto_percentual")
+        .eq("codigo", (discountCoupon || "").toUpperCase())
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!discountCoupon,
+  });
+
   useEffect(() => {
     if (!data) return;
     setActive(data.active);
