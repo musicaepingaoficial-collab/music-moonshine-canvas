@@ -90,8 +90,12 @@ export function WelcomePopup() {
 
     if (eligible.length > 0) {
       eligiblePopupsRef.current = eligible;
-      setActivePopupIndex(0);
-      setOpen(true);
+      const firstDelay = Math.max(0, Number((eligible[0] as any).delay_seconds ?? 0)) * 1000;
+      const t = setTimeout(() => {
+        setActivePopupIndex(0);
+        setOpen(true);
+      }, firstDelay);
+      return () => clearTimeout(t);
     }
   }, [user, popups, profile, assinatura]);
 
