@@ -10,9 +10,9 @@ declare global {
     _fbq?: unknown;
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
-    ttq?: TikTokQueue;
+    ttq?: unknown;
     TiktokAnalyticsObject?: string;
-    __lovableTikTokPixelState?: TikTokState;
+    __lovableTikTokPixelState?: unknown;
     kwaiq?: unknown;
   }
 }
@@ -29,49 +29,6 @@ const SCRIPT_IDS = {
 };
 
 const TIKTOK_EVENTS_SRC = "https://analytics.tiktok.com/i18n/pixel/events.js";
-
-const TIKTOK_METHODS = [
-  "page",
-  "track",
-  "identify",
-  "instances",
-  "debug",
-  "on",
-  "off",
-  "once",
-  "ready",
-  "alias",
-  "group",
-  "enableCookie",
-  "disableCookie",
-  "holdConsent",
-  "revokeConsent",
-  "grantConsent",
-];
-
-type TikTokTarget = unknown[] & Record<string, unknown>;
-
-interface TikTokQueue extends TikTokTarget {
-  methods?: string[];
-  setAndDefer?: (target: TikTokTarget, method: string) => void;
-  instance?: (id: string) => TikTokTarget;
-  load?: (id: string, options?: Record<string, unknown>) => void;
-  page?: () => void;
-  track?: (...args: unknown[]) => void;
-  revokeConsent?: () => void;
-  _i?: Record<string, TikTokTarget & { _u?: string }>;
-  _t?: Record<string, number>;
-  _o?: Record<string, Record<string, unknown>>;
-}
-
-interface TikTokState {
-  installed: boolean;
-  loadedIds: Record<string, boolean>;
-}
-
-function createTikTokTarget(): TikTokTarget {
-  return [] as unknown as TikTokTarget;
-}
 
 function removeById(id: string) {
   document.getElementById(id)?.remove();
@@ -95,84 +52,6 @@ function injectExternalScript(id: string, src: string) {
   document.head.appendChild(s);
 }
 
-function hasExternalScript(...parts: string[]) {
-  return Array.from(document.scripts).some((script) => parts.every((part) => script.src.includes(part)));
-}
-
-function getTikTokState() {
-  const state = (window.__lovableTikTokPixelState = window.__lovableTikTokPixelState || {
-    installed: false,
-    loadedIds: {},
-  });
-  state.loadedIds = state.loadedIds || {};
-  return state;
-}
-
-function dedupeTikTokScripts(pixelId: string) {
-  const scripts = Array.from(document.scripts).filter(
-    (script) => script.src.includes(TIKTOK_EVENTS_SRC) && script.src.includes(`sdkid=${pixelId}`)
-  );
-  scripts.slice(1).forEach((script) => script.remove());
-  return scripts.length > 0;
-}
-
-function installTikTokQueue() {
-  const state = getTikTokState();
-  const existing = window.ttq;
-
-  if (existing && (typeof existing.track === "function" || typeof existing.load === "function")) {
-    state.installed = true;
-    return existing;
-  }
-
-  if (existing && !Array.isArray(existing)) {
-    return existing;
-  }
-
-  window.TiktokAnalyticsObject = "ttq";
-  const ttq = (window.ttq = existing || ([] as unknown as TikTokQueue));
-  ttq.methods = ttq.methods || TIKTOK_METHODS;
-  ttq.setAndDefer =
-    ttq.setAndDefer ||
-    function (target: TikTokTarget, method: string) {
-      if (typeof target[method] === "function") return;
-      target[method] = function (...args: unknown[]) {
-        target.push([method, ...args]);
-      };
-    };
-
-  for (let i = 0; i < ttq.methods.length; i += 1) ttq.setAndDefer(ttq, ttq.methods[i]);
-
-  if (!("instance" in ttq)) {
-    ttq.instance = function (id: string) {
-      const inst = (ttq._i && ttq._i[id]) || createTikTokTarget();
-      for (let i = 0; i < ttq.methods.length; i += 1) ttq.setAndDefer(inst, ttq.methods[i]);
-      return inst;
-    };
-  }
-
-  if (typeof ttq.load !== "function") {
-    ttq.load = function (id: string, options?: Record<string, unknown>) {
-      ttq._i = ttq._i || {};
-      if (ttq._i[id] || hasExternalScript(TIKTOK_EVENTS_SRC, `sdkid=${id}`)) return;
-      ttq._i[id] = createTikTokTarget();
-      ttq._i[id]._u = TIKTOK_EVENTS_SRC;
-      ttq._t = ttq._t || {};
-      ttq._t[id] = +new Date();
-      ttq._o = ttq._o || {};
-      ttq._o[id] = options || {};
-      const script = document.createElement("script");
-      script.type = "text/javascript";
-      script.async = true;
-      script.src = `${TIKTOK_EVENTS_SRC}?sdkid=${encodeURIComponent(id)}&lib=ttq`;
-      const firstScript = document.getElementsByTagName("script")[0];
-      firstScript.parentNode?.insertBefore(script, firstScript);
-    };
-  }
-
-  state.installed = true;
-  return ttq;
-}
 
 function injectGtmNoscript(id: string, containerId: string) {
   removeById(id);
