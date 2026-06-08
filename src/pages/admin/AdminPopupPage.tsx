@@ -57,6 +57,8 @@ const formSchema = z.object({
   show_to_new: z.boolean(),
   show_to_subscribers: z.boolean(),
   new_user_days: z.number().int().min(0).max(365),
+  delay_seconds: z.number().int().min(0).max(3600),
+  priority: z.number().int().min(0).max(999),
   plan_slug: z.string().nullable(),
   discount_coupon: z.string().nullable(),
   cta_label: z.string().nullable(),
