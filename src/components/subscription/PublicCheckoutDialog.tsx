@@ -348,13 +348,14 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{titles[step]}</DialogTitle>
           <DialogDescription>
             Plano {plan.name} — R$ {plan.price.toFixed(2).replace(".", ",")}
           </DialogDescription>
         </DialogHeader>
+
 
         {/* ---------- ETAPA 1 ---------- */}
         {step === "form" && (

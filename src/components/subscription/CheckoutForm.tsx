@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, Copy, ExternalLink, Ticket, Trash2 } from "lucide-react";
+import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, Copy, ExternalLink, Ticket, Trash2, Lock } from "lucide-react";
+import { CheckoutUrgencyBar } from "@/components/subscription/CheckoutUrgencyBar";
+
 import { validateCoupon } from "@/services/couponService";
 import { createPixPayment, getSubscriptionStatus, processTransparentPayment } from "@/services/paymentService";
 import { toast } from "sonner";
@@ -602,24 +604,27 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
 
   return (
     <div className="space-y-4">
+      <CheckoutUrgencyBar planSlug={planSlug} />
+
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 shrink-0">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h3 className="font-bold text-foreground">{planName}</h3>
+        <div className="min-w-0">
+          <h3 className="font-bold text-foreground truncate">{planName}</h3>
           <p className="text-sm text-muted-foreground">
             R$ {planPrice.toFixed(2).replace(".", ",")}
           </p>
         </div>
       </div>
 
+
       <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"
           variant={paymentMethod === "pix" ? "default" : "outline"}
           onClick={() => handleSelectMethod("pix")}
-          className="gap-2"
+          className="gap-2 h-12 sm:h-10 text-base sm:text-sm"
         >
           <QrCode className="h-4 w-4" />
           Pix
@@ -628,12 +633,13 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           type="button"
           variant={paymentMethod === "card" ? "default" : "outline"}
           onClick={() => handleSelectMethod("card")}
-          className="gap-2"
+          className="gap-2 h-12 sm:h-10 text-base sm:text-sm"
         >
           <CreditCard className="h-4 w-4" />
-          CARTÃO
+          Cartão
         </Button>
       </div>
+
 
       {paymentMethod === "card" ? (
       <form id="mp-checkout-form" className="space-y-3">
@@ -689,18 +695,22 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
 
         <Button
           type="submit"
-          className="w-full gap-2"
+          className="w-full gap-2 h-12 text-base font-bold bg-green-600 hover:bg-green-700 text-white"
           disabled={status === "processing"}
         >
           {status === "processing" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
             <>
-              <CreditCard className="h-4 w-4" />
-              Pagar R$ {planPrice.toFixed(2).replace(".", ",")}
+              <Lock className="h-4 w-4" />
+              Garantir Meu Acesso · R$ {planPrice.toFixed(2).replace(".", ",")}
             </>
           )}
         </Button>
+        <p className="text-center text-xs text-muted-foreground">
+          🔥 Mais de 14 pessoas estão finalizando a compra agora. Aja rápido!
+        </p>
+
       </form>
       ) : (
         <div className="space-y-3">
@@ -710,7 +720,8 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               type="text"
               value={pixFullName}
               onChange={(e) => setPixFullName(e.target.value)}
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
+              autoComplete="name"
+              className="w-full rounded-md border border-border bg-secondary px-3 py-2.5 text-base sm:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Nome e sobrenome"
             />
           </div>
@@ -719,9 +730,10 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             <input
               type="text"
               inputMode="numeric"
+              autoComplete="off"
               value={pixCpf}
               onChange={(e) => setPixCpf(formatCpf(e.target.value))}
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-md border border-border bg-secondary px-3 py-2.5 text-base sm:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="000.000.000-00"
             />
           </div>
@@ -729,29 +741,35 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             <label className="text-xs font-medium text-muted-foreground">E-mail para receber o comprovante</label>
             <input
               type="email"
+              inputMode="email"
+              autoComplete="email"
               value={pixEmail}
               onChange={(e) => setPixEmail(e.target.value)}
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-md border border-border bg-secondary px-3 py-2.5 text-base sm:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="seu@email.com"
             />
           </div>
           <Button
             type="button"
-            className="w-full gap-2"
+            className="w-full gap-2 h-12 text-base font-bold bg-green-600 hover:bg-green-700 text-white"
             onClick={handleCreatePix}
             disabled={pixProcessing}
           >
             {pixProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <>
-                <QrCode className="h-4 w-4" />
-                Gerar QR Code Pix
+                <Lock className="h-4 w-4" />
+                Garantir Meu Acesso Agora
               </>
             )}
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            🔥 Mais de 14 pessoas estão finalizando a compra agora. Aja rápido!
+          </p>
         </div>
       )}
+
 
       <p className="text-center text-[10px] text-muted-foreground">
         Pagamento seguro processado pelo Mercado Pago
