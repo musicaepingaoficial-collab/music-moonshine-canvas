@@ -266,6 +266,74 @@ const AdminPopupPage = () => {
         subtitle="Gerencie avisos, promoções e grupos que aparecem ao entrar no sistema."
       />
 
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-base">Popups cadastrados ({popups.length})</CardTitle>
+            <CardDescription>Selecione um popup para editar ou crie um novo.</CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleNew} disabled={createPopup.isPending}>
+              <Plus className="h-4 w-4 mr-1" /> Novo
+            </Button>
+            {data && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir este popup?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. O popup "{data.title}" será removido permanentemente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {popups.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum popup cadastrado. Clique em "Novo" para criar o primeiro.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {popups.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedId(p.id)}
+                  className={`text-left p-3 rounded-lg border transition-all ${
+                    data?.id === p.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold truncate">{p.title || "(sem título)"}</span>
+                    <Badge variant={p.active ? "default" : "outline"} className="shrink-0">
+                      {p.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <span>Delay: {(p as any).delay_seconds ?? 0}s</span>
+                    <span>Prioridade: {p.priority ?? 0}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
       <div className="flex items-center justify-between bg-card p-4 rounded-xl border border-border">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-full ${active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
