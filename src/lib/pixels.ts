@@ -380,7 +380,11 @@ export function _getCachedUserData(): CachedUserData {
 }
 
 export function trackEvent(event: PixelEvent, payload: PixelPayload = {}, debug = false) {
-  dispatchEvent(event, payload, { settings: cachedSettings, debug });
+  try {
+    dispatchEvent(event, payload, { settings: cachedSettings, debug });
+  } catch (err) {
+    console.warn("[pixels] trackEvent failed", err);
+  }
 }
 
 // ───────────────── React hook ─────────────────

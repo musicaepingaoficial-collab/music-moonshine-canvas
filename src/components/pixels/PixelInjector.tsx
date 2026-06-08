@@ -247,7 +247,7 @@ ${configs.join("\n")}`,
         SCRIPT_IDS.kwai,
         `!function(e,t,n,a){if(!e[a]){var c=e[a]=function(){c.callMethod?c.callMethod.apply(c,arguments):c.queue.push(arguments)};c.queue=[];c.t=+new Date;var s=t.createElement(n);s.async=!0;s.src="https://s1.kwai.net/kos/s101/nlav11187/pixel/events.js?"+ +new Date;var r=t.getElementsByTagName(n)[0];r.parentNode.insertBefore(s,r)}}(window,document,"script","kwaiq");
 kwaiq('init', '${s.kwai_pixel_id}');
-kwaiq('track', 'Pageview');`,
+kwaiq('track', 'EVENT_PAGE_VIEW');`,
         false
       );
     } else {
