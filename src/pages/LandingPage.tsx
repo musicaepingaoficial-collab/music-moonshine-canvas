@@ -762,6 +762,9 @@ export default function LandingPage() {
                     <p className="text-xs text-muted-foreground mt-1 mb-5 min-h-[32px]">{p.description}</p>
 
                     <div className="mb-5">
+                      <div className="text-xs text-muted-foreground">
+                        De <span className="line-through">R$ {(Number(p.price) * 1.8).toFixed(2).replace(".", ",")}</span> por
+                      </div>
                       <div className="flex items-baseline gap-1">
                         <span className="text-xs text-muted-foreground">R$</span>
                         <span className="text-4xl font-black">
@@ -770,6 +773,7 @@ export default function LandingPage() {
                       </div>
                       <span className="text-xs text-muted-foreground">{periodLabel}</span>
                     </div>
+
 
                     <ul className="space-y-2.5 text-sm flex-1 mb-6">
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />+100 mil músicas</li>
