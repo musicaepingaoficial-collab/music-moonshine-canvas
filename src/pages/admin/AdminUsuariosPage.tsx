@@ -44,9 +44,21 @@ interface UserWithSub {
   referred_by?: string | null;
 }
 
+type PlanFilter = "all" | "free" | "mensal" | "trimestral" | "anual" | "vitalicio";
+
+const PLAN_FILTERS: { value: PlanFilter; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "free", label: "Free" },
+  { value: "mensal", label: "Mensal" },
+  { value: "trimestral", label: "Trimestral" },
+  { value: "anual", label: "Anual" },
+  { value: "vitalicio", label: "Vitalício" },
+];
+
 const AdminUsuariosPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [planFilter, setPlanFilter] = useState<PlanFilter>("all");
   const [deleteTarget, setDeleteTarget] = useState<UserWithSub | null>(null);
   const [viewTarget, setViewTarget] = useState<UserWithSub | null>(null);
   const [confirmText, setConfirmText] = useState("");
@@ -152,11 +164,23 @@ const AdminUsuariosPage = () => {
     },
   });
 
-  const filtered = (users ?? []).filter(
-    (u) =>
+  const getActivePlan = (u: UserWithSub) =>
+    u.assinaturas.find((s) => s.status === "active")?.plan ?? "free";
+
+  const planCounts = (users ?? []).reduce<Record<string, number>>((acc, u) => {
+    const p = getActivePlan(u);
+    acc[p] = (acc[p] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const filtered = (users ?? []).filter((u) => {
+    const matchesSearch =
       u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
-  );
+      u.email.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (planFilter === "all") return true;
+    return getActivePlan(u) === planFilter;
+  });
 
   console.log("[AdminUsuarios:render]", { total: users?.length, filtered: filtered.length });
 
