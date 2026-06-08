@@ -59,7 +59,8 @@ export function useMusicasByCategoria(slug: string | undefined) {
         .order("title", { ascending: true });
 
       if (error) throw error;
-      return (data ?? []) as MusicaWithCategoria[];
+      return sortTracksNatural((data ?? []) as MusicaWithCategoria[]);
+
     },
     enabled: !!slug,
   });
