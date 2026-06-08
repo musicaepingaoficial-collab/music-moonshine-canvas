@@ -302,13 +302,24 @@ export function dispatchEvent(
       const kwPayload: Record<string, unknown> = {};
       if (payload.value != null) kwPayload.value = payload.value;
       if (payload.value != null || payload.currency) kwPayload.currency = payload.currency || "BRL";
-      if (payload.content_ids?.length) kwPayload.content_id = payload.content_ids[0];
+      if (payload.content_ids?.length) {
+        kwPayload.content_id = payload.content_ids[0];
+        kwPayload.content_ids = payload.content_ids;
+        kwPayload.content_type = payload.content_type || "product";
+        kwPayload.quantity = payload.num_items ?? payload.content_ids.length;
+      }
       if (payload.content_name) kwPayload.content_name = payload.content_name;
+      if (payload.content_category) kwPayload.content_category = payload.content_category;
       if (payload.transaction_id) kwPayload.order_id = payload.transaction_id;
       log("kwaiq track", kwName, kwPayload);
-      (window as any).kwaiq("track", kwName, kwPayload);
+      try {
+        (window as any).kwaiq("track", kwName, kwPayload);
+      } catch (err) {
+        console.warn("[pixels] kwaiq track failed", err);
+      }
     }
   }
+
 
   // ── GTM ──
   if ((analyticsOk || marketingOk) && settings.gtm_enabled && settings.gtm_container_id) {
@@ -348,13 +359,25 @@ export function _getCachedUserData(): CachedUserData {
   return cachedUserData;
 }
 
+function isDebugEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (new URLSearchParams(window.location.search).has("kwai_debug")) return true;
+    if (new URLSearchParams(window.location.search).has("pixel_debug")) return true;
+    if (localStorage.getItem("pixel_debug") === "1") return true;
+    if (localStorage.getItem("kwai_debug") === "1") return true;
+  } catch { /* ignore */ }
+  return false;
+}
+
 export function trackEvent(event: PixelEvent, payload: PixelPayload = {}, debug = false) {
   try {
-    dispatchEvent(event, payload, { settings: cachedSettings, debug });
+    dispatchEvent(event, payload, { settings: cachedSettings, debug: debug || isDebugEnabled() });
   } catch (err) {
     console.warn("[pixels] trackEvent failed", err);
   }
 }
+
 
 // ───────────────── React hook ─────────────────
 
