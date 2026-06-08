@@ -58,6 +58,7 @@ interface TikTokQueue extends TikTokTarget {
   load?: (id: string, options?: Record<string, unknown>) => void;
   page?: () => void;
   track?: (...args: unknown[]) => void;
+  revokeConsent?: () => void;
   _i?: Record<string, TikTokTarget & { _u?: string }>;
   _t?: Record<string, number>;
   _o?: Record<string, Record<string, unknown>>;
@@ -284,8 +285,8 @@ fbq('init', '${s.meta_pixel_id}', ${amJson});`,
       } else if (!s?.meta_enabled) {
         removeById(SCRIPT_IDS.meta);
         removeById(SCRIPT_IDS.metaNoscript);
-        delete (window as any).fbq;
-        delete (window as any)._fbq;
+        delete window.fbq;
+        delete window._fbq;
       }
     }
     init();
@@ -367,7 +368,7 @@ ${configs.join("\n")}`,
       }
     } else {
       removeById(SCRIPT_IDS.tiktok);
-      const ttq = (window as any).ttq;
+      const ttq = window.ttq;
       try { if (typeof ttq?.revokeConsent === "function") ttq.revokeConsent(); } catch { /* ignore */ }
     }
   }, [s?.tiktok_enabled, s?.tiktok_pixel_id, marketingOk]);
@@ -384,7 +385,7 @@ kwaiq('track', 'EVENT_PAGE_VIEW');`,
       );
     } else {
       removeById(SCRIPT_IDS.kwai);
-      delete (window as any).kwaiq;
+      delete window.kwaiq;
     }
   }, [s?.kwai_enabled, s?.kwai_pixel_id, marketingOk]);
 
