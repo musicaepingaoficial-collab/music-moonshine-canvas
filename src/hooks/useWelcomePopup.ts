@@ -25,6 +25,15 @@ export interface WelcomePopup {
   exclude_plan_slugs: string[];
   include_plan_slugs: string[];
   priority: number;
+  delay_seconds: number;
+}
+
+function mapRow(item: any): WelcomePopup {
+  return {
+    ...item,
+    links: Array.isArray(item.links) ? (item.links as PopupLink[]) : [],
+    delay_seconds: item.delay_seconds ?? 0,
+  } as WelcomePopup;
 }
 
 export function useWelcomePopupSettings() {
@@ -36,16 +45,25 @@ export function useWelcomePopupSettings() {
         .eq("active", true)
         .order("priority", { ascending: false })
         .order("updated_at", { ascending: false });
-      
       if (error) throw error;
-      if (!data) return [];
-      
-      return data.map((item: any) => ({
-        ...item,
-        links: Array.isArray(item.links) ? (item.links as PopupLink[]) : [],
-      })) as WelcomePopup[];
+      return (data || []).map(mapRow);
     },
     staleTime: 60_000,
+  });
+}
+
+export function useAllWelcomePopups() {
+  return useQuery<WelcomePopup[]>({
+    queryKey: ["welcome-popup-all"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("welcome_popup" as any) as any)
+        .select("*")
+        .order("priority", { ascending: false })
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return (data || []).map(mapRow);
+    },
+    staleTime: 30_000,
   });
 }
 
@@ -58,6 +76,43 @@ export function useUpdateWelcomePopup() {
         .eq("id", input.id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["welcome-popup"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["welcome-popup"] });
+      qc.invalidateQueries({ queryKey: ["welcome-popup-all"] });
+    },
+  });
+}
+
+export function useCreateWelcomePopup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: Partial<WelcomePopup>) => {
+      const { data, error } = await (supabase.from("welcome_popup" as any) as any)
+        .insert({ version: 1, priority: 0, ...values })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return mapRow(data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["welcome-popup"] });
+      qc.invalidateQueries({ queryKey: ["welcome-popup-all"] });
+    },
+  });
+}
+
+export function useDeleteWelcomePopup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("welcome_popup" as any) as any)
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["welcome-popup"] });
+      qc.invalidateQueries({ queryKey: ["welcome-popup-all"] });
+    },
   });
 }
