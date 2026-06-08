@@ -418,7 +418,9 @@ s.factory=function(e){return function(){var t=Array.prototype.slice.call(argumen
 for(var g=0;g<s.methods.length;g++){var j=s.methods[g];s[j]=s.factory(j)}
 s.load=function(e){
   if(t.getElementById("kwai-pixel-sdk-script")){return;}
-  var r=t.createElement("script");r.id="kwai-pixel-sdk-script";r.type="text/javascript";r.async=!0;r.src="https://r.kwaicdn.com/js/kwaiq.js?v=2.2.4";
+  var r=t.createElement("script");r.id="kwai-pixel-sdk-script";r.type="text/javascript";r.async=!0;r.src="https://s1.kwai.net/kos/s101/nlav11/pixel/kwaiq.js";
+  r.onload=function(){console.log("[pixels] kwai SDK script loaded")};
+  r.onerror=function(ev){console.warn("[pixels] kwai SDK script failed to load",ev)};
   var i=t.getElementsByTagName("script")[0];i.parentNode.insertBefore(r,i)
 };
 s.pageView=function(){s.track("pageView")};
