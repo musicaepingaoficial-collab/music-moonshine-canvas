@@ -125,7 +125,41 @@ export function WelcomePopup() {
   };
 
   const currentPopup = eligiblePopupsRef.current[activePopupIndex];
+
+  const { data: planData } = useQuery({
+    queryKey: ["popup-plan", currentPopup?.plan_slug],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planos")
+        .select("price")
+        .eq("slug", currentPopup!.plan_slug!)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!currentPopup?.plan_slug,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: couponData } = useQuery({
+    queryKey: ["popup-coupon", currentPopup?.discount_coupon],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cupons")
+        .select("desconto_percentual")
+        .eq("codigo", currentPopup!.discount_coupon!.toUpperCase())
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!currentPopup?.discount_coupon,
+    staleTime: 5 * 60 * 1000,
+  });
+
   if (!currentPopup) return null;
+
+  const basePrice = Number(planData?.price ?? 0);
+  const discountPct = Number(couponData?.desconto_percentual ?? 0);
+  const finalPrice = basePrice * (1 - discountPct / 100);
 
   return (
     <Dialog open={open} onOpenChange={(o) => (!o && handleSessionClose())}>
@@ -148,14 +182,16 @@ export function WelcomePopup() {
           </div>
 
           <div className="space-y-3">
-            {currentPopup.plan_slug && (
+            {currentPopup.plan_slug && basePrice > 0 && (
               <div className="space-y-2">
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground line-through">
-                    De R$ {(147).toFixed(2).replace('.', ',')}
-                  </span>
+                  {discountPct > 0 && (
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground line-through">
+                      De R$ {formatBRL(basePrice)}
+                    </span>
+                  )}
                   <span className="text-sm font-bold text-emerald-500">
-                    Por apenas R$ {currentPopup.discount_coupon ? "89,00" : "??,??"}
+                    Por apenas R$ {formatBRL(finalPrice)}
                   </span>
                 </div>
                 <Button 
