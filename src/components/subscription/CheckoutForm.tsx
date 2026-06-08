@@ -695,18 +695,22 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
 
         <Button
           type="submit"
-          className="w-full gap-2"
+          className="w-full gap-2 h-12 text-base font-bold bg-green-600 hover:bg-green-700 text-white"
           disabled={status === "processing"}
         >
           {status === "processing" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
             <>
-              <CreditCard className="h-4 w-4" />
-              Pagar R$ {planPrice.toFixed(2).replace(".", ",")}
+              <Lock className="h-4 w-4" />
+              Garantir Meu Acesso · R$ {planPrice.toFixed(2).replace(".", ",")}
             </>
           )}
         </Button>
+        <p className="text-center text-xs text-muted-foreground">
+          🔥 Mais de 14 pessoas estão finalizando a compra agora. Aja rápido!
+        </p>
+
       </form>
       ) : (
         <div className="space-y-3">
