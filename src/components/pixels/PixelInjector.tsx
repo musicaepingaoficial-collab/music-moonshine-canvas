@@ -6,10 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
-    fbq?: any;
-    _fbq?: any;
-    dataLayer?: any[];
-    gtag?: (...args: any[]) => void;
+    fbq?: (...args: unknown[]) => void;
+    _fbq?: unknown;
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
+    ttq?: TikTokQueue;
+    TiktokAnalyticsObject?: string;
+    __lovableTikTokPixelState?: TikTokState;
+    kwaiq?: unknown;
   }
 }
 
@@ -44,6 +48,25 @@ const TIKTOK_METHODS = [
   "revokeConsent",
   "grantConsent",
 ];
+
+type TikTokTarget = unknown[] & Record<string, unknown>;
+
+interface TikTokQueue extends TikTokTarget {
+  methods?: string[];
+  setAndDefer?: (target: TikTokTarget, method: string) => void;
+  instance?: (id: string) => TikTokTarget;
+  load?: (id: string, options?: Record<string, unknown>) => void;
+  page?: () => void;
+  track?: (...args: unknown[]) => void;
+  _i?: Record<string, TikTokTarget & { _u?: string }>;
+  _t?: Record<string, number>;
+  _o?: Record<string, Record<string, unknown>>;
+}
+
+interface TikTokState {
+  installed: boolean;
+  loadedIds: Record<string, boolean>;
+}
 
 function removeById(id: string) {
   document.getElementById(id)?.remove();
