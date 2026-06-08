@@ -359,13 +359,25 @@ export function _getCachedUserData(): CachedUserData {
   return cachedUserData;
 }
 
+function isDebugEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (new URLSearchParams(window.location.search).has("kwai_debug")) return true;
+    if (new URLSearchParams(window.location.search).has("pixel_debug")) return true;
+    if (localStorage.getItem("pixel_debug") === "1") return true;
+    if (localStorage.getItem("kwai_debug") === "1") return true;
+  } catch { /* ignore */ }
+  return false;
+}
+
 export function trackEvent(event: PixelEvent, payload: PixelPayload = {}, debug = false) {
   try {
-    dispatchEvent(event, payload, { settings: cachedSettings, debug });
+    dispatchEvent(event, payload, { settings: cachedSettings, debug: debug || isDebugEnabled() });
   } catch (err) {
     console.warn("[pixels] trackEvent failed", err);
   }
 }
+
 
 // ───────────────── React hook ─────────────────
 
