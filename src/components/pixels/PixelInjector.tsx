@@ -10,9 +10,6 @@ declare global {
     _fbq?: unknown;
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
-    ttq?: unknown;
-    TiktokAnalyticsObject?: string;
-    __lovableTikTokPixelState?: unknown;
     kwaiq?: unknown;
   }
 }
@@ -24,11 +21,8 @@ const SCRIPT_IDS = {
   gtmNoscript: "lov-pixel-gtm-noscript",
   gtag: "lov-pixel-gtag",
   gtagInit: "lov-pixel-gtag-init",
-  tiktok: "lov-pixel-tiktok",
   kwai: "lov-pixel-kwai",
 };
-
-const TIKTOK_EVENTS_SRC = "https://analytics.tiktok.com/i18n/pixel/events.js";
 
 function removeById(id: string) {
   document.getElementById(id)?.remove();
@@ -140,7 +134,7 @@ export function PixelInjector() {
     async function init() {
       const am = await fetchAdvancedMatching();
       if (cancelled) return;
-      // Cache identity for ALL pixel events (Meta, TikTok, Kwai, CAPI mirror)
+      // Cache identity for ALL pixel events (Meta, Kwai, CAPI mirror)
       _setCachedUserData({
         external_id: am.external_id,
         email: am.em,
@@ -228,18 +222,6 @@ ${configs.join("\n")}`,
       false
     );
   }, [s?.ga4_enabled, s?.ga4_measurement_id, s?.google_ads_enabled, s?.google_ads_conversion_id, analyticsOk, marketingOk]);
-
-  // TikTok pixel support removed — only Meta, Google and Kwai are used.
-  // Ensure any previously injected TikTok script is removed.
-  useEffect(() => {
-    removeById(SCRIPT_IDS.tiktok);
-    Array.from(document.scripts)
-      .filter((script) => script.src.includes(TIKTOK_EVENTS_SRC))
-      .forEach((script) => script.remove());
-    try { delete (window as { ttq?: unknown }).ttq; } catch { /* ignore */ }
-    try { delete (window as { TiktokAnalyticsObject?: unknown }).TiktokAnalyticsObject; } catch { /* ignore */ }
-    try { delete (window as { __lovableTikTokPixelState?: unknown }).__lovableTikTokPixelState; } catch { /* ignore */ }
-  }, []);
 
   // Kwai
   useEffect(() => {
