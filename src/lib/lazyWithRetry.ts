@@ -16,7 +16,10 @@ export function lazyWithRetry<T extends ComponentType<any>>(
 ) {
   return lazy(async () => {
     try {
-      return await factory();
+      const mod = await factory();
+      // Sucesso → limpa a flag para permitir retries futuros
+      try { sessionStorage.removeItem("lovable:chunk-reload-at"); } catch { /* ignore */ }
+      return mod;
     } catch (err: any) {
       const msg = String(err?.message || err);
       const isChunkError =
@@ -25,13 +28,21 @@ export function lazyWithRetry<T extends ComponentType<any>>(
         msg.includes("error loading dynamically imported module");
 
       if (isChunkError) {
-        const key = "lovable:chunk-reload-once";
-        if (!sessionStorage.getItem(key)) {
+        // Permite reload no máximo 1x a cada 30s, evitando loop mas
+        // também evitando travar a navegação após o primeiro retry.
+        const key = "lovable:chunk-reload-at";
+        const last = Number(sessionStorage.getItem(key) || 0);
+        if (Date.now() - last > 30_000) {
           sessionStorage.setItem(key, String(Date.now()));
           window.location.reload();
-          // Stub temporário até o reload acontecer
+          // Stub silencioso enquanto o reload acontece — evita
+          // que o ErrorBoundary pisque o erro para o usuário.
           return { default: (() => null) as unknown as T };
         }
+        // Se acabou de tentar há pouco, ainda assim não joga o erro
+        // visualmente: força nova navegação completa para a URL atual.
+        window.location.reload();
+        return { default: (() => null) as unknown as T };
       }
       throw err;
     }
