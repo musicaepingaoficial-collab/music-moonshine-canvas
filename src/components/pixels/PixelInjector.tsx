@@ -350,28 +350,17 @@ ${configs.join("\n")}`,
     );
   }, [s?.ga4_enabled, s?.ga4_measurement_id, s?.google_ads_enabled, s?.google_ads_conversion_id, analyticsOk, marketingOk]);
 
-  // TikTok
+  // TikTok pixel support removed — only Meta, Google and Kwai are used.
+  // Ensure any previously injected TikTok script is removed.
   useEffect(() => {
-    if (s?.tiktok_enabled && s.tiktok_pixel_id && marketingOk) {
-      const pixelId = s.tiktok_pixel_id;
-      const state = getTikTokState();
-      const ttq = installTikTokQueue();
-      const scriptAlreadyPresent = dedupeTikTokScripts(pixelId);
-      const pixelAlreadyLoaded = Boolean(state.loadedIds[pixelId] || ttq?._i?.[pixelId] || scriptAlreadyPresent);
-
-      try {
-        if (!pixelAlreadyLoaded && typeof ttq?.load === "function") ttq.load(pixelId);
-        state.loadedIds[pixelId] = true;
-        if (typeof ttq?.page === "function") ttq.page();
-      } catch {
-        /* ignore third-party pixel failures */
-      }
-    } else {
-      removeById(SCRIPT_IDS.tiktok);
-      const ttq = window.ttq;
-      try { if (typeof ttq?.revokeConsent === "function") ttq.revokeConsent(); } catch { /* ignore */ }
-    }
-  }, [s?.tiktok_enabled, s?.tiktok_pixel_id, marketingOk]);
+    removeById(SCRIPT_IDS.tiktok);
+    Array.from(document.scripts)
+      .filter((script) => script.src.includes(TIKTOK_EVENTS_SRC))
+      .forEach((script) => script.remove());
+    try { delete (window as { ttq?: unknown }).ttq; } catch { /* ignore */ }
+    try { delete (window as { TiktokAnalyticsObject?: unknown }).TiktokAnalyticsObject; } catch { /* ignore */ }
+    try { delete (window as { __lovableTikTokPixelState?: unknown }).__lovableTikTokPixelState; } catch { /* ignore */ }
+  }, []);
 
   // Kwai
   useEffect(() => {
