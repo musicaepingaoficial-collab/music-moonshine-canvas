@@ -69,14 +69,27 @@ export function useMusicasByCategoria(slug: string | undefined) {
         .eq("slug", slug)
         .maybeSingle();
       if (!cat) return [];
-      const { data, error } = await (supabase.from("musicas" as any) as any)
-        .select("*, categorias(*)")
-        .eq("categoria_id", cat.id)
-        .order("subfolder", { ascending: true, nullsFirst: false })
-        .order("title", { ascending: true });
+      const allData: MusicaWithCategoria[] = [];
+      let offset = 0;
+      const limit = 1000;
 
-      if (error) throw error;
-      return sortTracksNatural((data ?? []) as MusicaWithCategoria[]);
+      while (true) {
+        const { data, error } = await (supabase.from("musicas" as any) as any)
+          .select("*, categorias(*)")
+          .eq("categoria_id", cat.id)
+          .order("subfolder", { ascending: true, nullsFirst: false })
+          .order("title", { ascending: true })
+          .range(offset, offset + limit - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allData.push(...(data as MusicaWithCategoria[]));
+        if (data.length < limit) break;
+        offset += limit;
+      }
+
+      return sortTracksNatural(allData);
 
     },
     enabled: !!slug,
