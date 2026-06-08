@@ -1,0 +1,1 @@
+ALTER TABLE public.welcome_popup ADD COLUMN IF NOT EXISTS delay_seconds integer NOT NULL DEFAULT 0;

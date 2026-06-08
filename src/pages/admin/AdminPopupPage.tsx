@@ -17,9 +17,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useUpdateWelcomePopup,
-  useWelcomePopupSettings,
+  useAllWelcomePopups,
+  useCreateWelcomePopup,
+  useDeleteWelcomePopup,
   type PopupLink,
 } from "@/hooks/useWelcomePopup";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 const ICON_OPTIONS = [
   { value: "whatsapp", label: "WhatsApp", Icon: MessageCircle },
@@ -43,6 +57,8 @@ const formSchema = z.object({
   show_to_new: z.boolean(),
   show_to_subscribers: z.boolean(),
   new_user_days: z.number().int().min(0).max(365),
+  delay_seconds: z.number().int().min(0).max(3600),
+  priority: z.number().int().min(0).max(999),
   plan_slug: z.string().nullable(),
   discount_coupon: z.string().nullable(),
   cta_label: z.string().nullable(),
@@ -51,12 +67,16 @@ const formSchema = z.object({
 });
 
 const AdminPopupPage = () => {
-  const { data: popups = [], isLoading } = useWelcomePopupSettings();
+  const { data: popups = [], isLoading } = useAllWelcomePopups();
   const update = useUpdateWelcomePopup();
+  const createPopup = useCreateWelcomePopup();
+  const deletePopup = useDeleteWelcomePopup();
 
-  // Vamos editar o primeiro popup por padrão para manter compatibilidade simples na UI de admin,
-  // ou criar um sistema de seleção no futuro. Por agora, focamos na regra de exibição múltipla.
-  const data = popups[0] || null;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const data = popups.find((p) => p.id === selectedId) || popups[0] || null;
+
+  const [delaySeconds, setDelaySeconds] = useState(0);
+  const [priority, setPriority] = useState(0);
 
   const [active, setActive] = useState(false);
   const [title, setTitle] = useState("");
@@ -99,6 +119,7 @@ const AdminPopupPage = () => {
 
   useEffect(() => {
     if (!data) return;
+    if (!selectedId) setSelectedId(data.id);
     setActive(data.active);
     setTitle(data.title);
     setDescription(data.description);
@@ -107,12 +128,52 @@ const AdminPopupPage = () => {
     setShowToNew(data.show_to_new);
     setShowToSubs(data.show_to_subscribers);
     setNewDays(data.new_user_days);
+    setDelaySeconds((data as any).delay_seconds ?? 0);
+    setPriority(data.priority ?? 0);
     setPlanSlug(data.plan_slug || null);
     setDiscountCoupon(data.discount_coupon || null);
     setCtaLabel(data.cta_label || null);
     setExcludePlanSlugs(data.exclude_plan_slugs || []);
     setIncludePlanSlugs(data.include_plan_slugs || []);
-  }, [data]);
+  }, [data, selectedId]);
+
+  const handleNew = async () => {
+    try {
+      const created = await createPopup.mutateAsync({
+        title: "Novo popup",
+        description: "",
+        image_url: null,
+        links: [],
+        active: false,
+        show_to_new: true,
+        show_to_subscribers: false,
+        new_user_days: 7,
+        delay_seconds: 0,
+        priority: 0,
+        plan_slug: null,
+        discount_coupon: null,
+        cta_label: null,
+        exclude_plan_slugs: [],
+        include_plan_slugs: [],
+      } as any);
+      setSelectedId(created.id);
+      toast.success("Popup criado");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar popup");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!data) return;
+    try {
+      await deletePopup.mutateAsync(data.id);
+      setSelectedId(null);
+      toast.success("Popup excluído");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir");
+    }
+  };
+
 
   const handleUpload = async (file: File) => {
     setUploading(true);
@@ -160,6 +221,8 @@ const AdminPopupPage = () => {
       show_to_new: showToNew,
       show_to_subscribers: showToSubs,
       new_user_days: newDays,
+      delay_seconds: delaySeconds,
+      priority,
       plan_slug: planSlug,
       discount_coupon: discountCoupon,
       cta_label: ctaLabel,
@@ -173,12 +236,8 @@ const AdminPopupPage = () => {
     }
     try {
       if (isNew) {
-        const { error } = await supabase.from("welcome_popup").insert({
-          ...parsed.data,
-          version: 1,
-          priority: 0
-        });
-        if (error) throw error;
+        const created = await createPopup.mutateAsync({ ...parsed.data } as any);
+        setSelectedId(created.id);
       } else {
         await update.mutateAsync({
           id: data.id,
@@ -206,6 +265,74 @@ const AdminPopupPage = () => {
         title="Popup de Boas-vindas"
         subtitle="Gerencie avisos, promoções e grupos que aparecem ao entrar no sistema."
       />
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-base">Popups cadastrados ({popups.length})</CardTitle>
+            <CardDescription>Selecione um popup para editar ou crie um novo.</CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleNew} disabled={createPopup.isPending}>
+              <Plus className="h-4 w-4 mr-1" /> Novo
+            </Button>
+            {data && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir este popup?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. O popup "{data.title}" será removido permanentemente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {popups.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum popup cadastrado. Clique em "Novo" para criar o primeiro.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {popups.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedId(p.id)}
+                  className={`text-left p-3 rounded-lg border transition-all ${
+                    data?.id === p.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold truncate">{p.title || "(sem título)"}</span>
+                    <Badge variant={p.active ? "default" : "outline"} className="shrink-0">
+                      {p.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <span>Delay: {(p as any).delay_seconds ?? 0}s</span>
+                    <span>Prioridade: {p.priority ?? 0}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
 
       <div className="flex items-center justify-between bg-card p-4 rounded-xl border border-border">
         <div className="flex items-center gap-3">
@@ -397,6 +524,35 @@ const AdminPopupPage = () => {
               <CardDescription>Controle exatamente quem verá este popup.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border border-border">
+                <div className="space-y-2">
+                  <Label>Atraso após login (segundos)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={3600}
+                    value={delaySeconds}
+                    onChange={(e) => setDelaySeconds(Number(e.target.value))}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    0 = aparece imediatamente. Ex: 10 espera 10s após entrar.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Prioridade</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={999}
+                    value={priority}
+                    onChange={(e) => setPriority(Number(e.target.value))}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Valor maior aparece primeiro quando há vários popups elegíveis.
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
                   <div className="space-y-1">
