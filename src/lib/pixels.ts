@@ -296,7 +296,7 @@ export function dispatchEvent(
   }
 
   // ── Kwai ──
-  if (marketingOk && settings.kwai_enabled && typeof (window as any).kwaiq === "function") {
+  if (marketingOk && settings.kwai_enabled && (window as any).kwaiq) {
     const kwName = KWAI_EVENT_MAP[event];
     if (kwName && settings.kwai_pixel_id) {
       const kwPayload: Record<string, unknown> = {};
@@ -313,7 +313,12 @@ export function dispatchEvent(
       if (payload.transaction_id) kwPayload.order_id = payload.transaction_id;
       log("kwaiq track", kwName, kwPayload);
       try {
-        (window as any).kwaiq("track", kwName, kwPayload);
+        const kwaiq = (window as any).kwaiq;
+        if (typeof kwaiq.track === "function") {
+          kwaiq.track(kwName, kwPayload);
+        } else if (typeof kwaiq === "function") {
+          kwaiq("track", kwName, kwPayload);
+        }
       } catch (err) {
         console.warn("[pixels] kwaiq track failed", err);
       }
@@ -361,22 +366,68 @@ export function _getCachedUserData(): CachedUserData {
 
 /**
  * Inject the Kwai base pixel script exactly once and fire the initial PageView.
- * Subsequent calls are no-ops thanks to the guard clause, preventing the
- * "Cannot redefine property: instance" error caused by React re-renders.
+ * Uses an internal SDK guard as well as a module-level lock to prevent the
+ * Kwai SDK from redefining its non-configurable `instance` property.
  */
+let kwaiInitPixelId: string | null = null;
+let kwaiBaseScriptRequested = false;
+
 export function initKwaiPixel(pixelId: string) {
   if (typeof window === "undefined" || !pixelId) return;
-  if ((window as any).kwaiq || document.getElementById("kwai-pixel-script")) return;
+
+  const globalState = window as any;
+  const kwaiq = (window as any).kwaiq;
+  const hasExistingKwai = Boolean(kwaiq);
+  const hasRequestedBaseScript = Boolean(
+    kwaiBaseScriptRequested ||
+    globalState.__lovableKwaiBaseScriptRequested ||
+    document.getElementById("kwai-pixel-base-script") ||
+    document.getElementById("kwai-pixel-sdk-script") ||
+    document.getElementById("kwai-pixel-script")
+  );
+
+  if (kwaiq?.instance || hasExistingKwai || hasRequestedBaseScript) {
+    kwaiBaseScriptRequested = true;
+    globalState.__lovableKwaiBaseScriptRequested = true;
+    if (kwaiInitPixelId === pixelId) return;
+    kwaiInitPixelId = pixelId;
+    try {
+      kwaiq?.load?.(pixelId);
+      kwaiq?.pageView?.();
+    } catch (err) {
+      console.warn("[pixels] kwai existing instance pageView failed", err);
+    }
+    return;
+  }
+
+  kwaiBaseScriptRequested = true;
+  globalState.__lovableKwaiBaseScriptRequested = true;
+  kwaiInitPixelId = pixelId;
 
   const s = document.createElement("script");
-  s.id = "kwai-pixel-script";
+  s.id = "kwai-pixel-base-script";
+  s.type = "text/javascript";
   s.async = true;
-  s.text = `!function(e,t,n,a){if(!e[a]){var c=e[a]=function(){c.callMethod?c.callMethod.apply(c,arguments):c.queue.push(arguments)};c.queue=[];c.t=+new Date;var s=t.createElement(n);s.async=!0;s.src="https://s1.kwai.net/kos/s101/nlav11187/pixel/events.js?"+ +new Date;var r=t.getElementsByTagName(n)[0];r.parentNode.insertBefore(s,r)}}(window,document,"script","kwaiq");`;
+  s.text = `!function(e,t){
+var n="kwaiq";
+if(e[n]&&e[n].instance){return;}
+if(t.getElementById("kwai-pixel-sdk-script")){return;}
+var s=e[n]=e[n]||[];
+s.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];
+s.factory=function(e){return function(){var t=Array.prototype.slice.call(arguments);t.unshift(e);s.push(t);return s}};
+for(var g=0;g<s.methods.length;g++){var j=s.methods[g];s[j]=s.factory(j)}
+s.load=function(e){
+  if(t.getElementById("kwai-pixel-sdk-script")){return;}
+  var r=t.createElement("script");r.id="kwai-pixel-sdk-script";r.type="text/javascript";r.async=!0;r.src="https://r.kwaicdn.com/js/kwaiq.js?v=2.2.4";
+  var i=t.getElementsByTagName("script")[0];i.parentNode.insertBefore(r,i)
+};
+s.pageView=function(){s.track("pageView")};
+s.load("${pixelId}");
+}(window,document);`;
   document.head.appendChild(s);
 
   try {
-    (window as any).kwaiq.load(pixelId);
-    (window as any).kwaiq.page();
+    (window as any).kwaiq?.pageView?.();
   } catch (err) {
     console.warn("[pixels] kwai init failed", err);
   }
@@ -386,7 +437,9 @@ export function initKwaiPixel(pixelId: string) {
 export function trackKwaiPageView() {
   if (typeof window === "undefined") return;
   try {
-    (window as any).kwaiq?.page?.();
+    const kwaiq = (window as any).kwaiq;
+    if (typeof kwaiq?.pageView === "function") kwaiq.pageView();
+    else if (typeof kwaiq?.page === "function") kwaiq.page();
   } catch {
     /* ignore */
   }
