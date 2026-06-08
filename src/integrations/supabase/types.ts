@@ -1267,6 +1267,7 @@ export type Database = {
         Row: {
           active: boolean
           cta_label: string | null
+          delay_seconds: number
           description: string
           discount_coupon: string | null
           discount_percent: number | null
@@ -1288,6 +1289,7 @@ export type Database = {
         Insert: {
           active?: boolean
           cta_label?: string | null
+          delay_seconds?: number
           description?: string
           discount_coupon?: string | null
           discount_percent?: number | null
@@ -1309,6 +1311,7 @@ export type Database = {
         Update: {
           active?: boolean
           cta_label?: string | null
+          delay_seconds?: number
           description?: string
           discount_coupon?: string | null
           discount_percent?: number | null
