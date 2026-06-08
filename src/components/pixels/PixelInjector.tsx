@@ -245,9 +245,9 @@ ${configs.join("\n")}`,
     if (s?.kwai_enabled && s.kwai_pixel_id && marketingOk) {
       injectScript(
         SCRIPT_IDS.kwai,
-        `!function(w,d,s,o){w.kwaiq=w.kwaiq||function(){(w.kwaiq.q=w.kwaiq.q||[]).push(arguments)};var f=d.createElement(s);f.async=!0;f.src='https://s1.kwai.net/kos/s101/nlav11187/pixel/events.js';var g=d.getElementsByTagName(s)[0];g.parentNode.insertBefore(f,g);}(window,document,'script');
-kwaiq.load('${s.kwai_pixel_id}');
-kwaiq.page();`,
+        `!function(e,t,n,a){if(!e[a]){var c=e[a]=function(){c.callMethod?c.callMethod.apply(c,arguments):c.queue.push(arguments)};c.queue=[];c.t=+new Date;var s=t.createElement(n);s.async=!0;s.src="https://s1.kwai.net/kos/s101/nlav11187/pixel/events.js?"+ +new Date;var r=t.getElementsByTagName(n)[0];r.parentNode.insertBefore(s,r)}}(window,document,"script","kwaiq");
+kwaiq('init', '${s.kwai_pixel_id}');
+kwaiq('track', 'Pageview');`,
         false
       );
     } else {
