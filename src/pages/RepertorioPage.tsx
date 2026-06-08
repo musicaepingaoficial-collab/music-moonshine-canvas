@@ -488,11 +488,20 @@ const RepertorioPage = () => {
           </div>
 
           <div className="flex min-w-0 items-center justify-between gap-3 overflow-hidden">
-            <Link to="/repertorios">
-              <Button variant="ghost" size="sm" aria-label="Voltar para repertÃ³rios">
-                <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
-              </Button>
-            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Voltar"
+              onClick={() => {
+                if (navigationPath.length > 0) {
+                  handleBreadcrumbClick(navigationPath.length - 2);
+                } else {
+                  navigate("/repertorios");
+                }
+              }}
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+            </Button>
             <div className="flex min-w-0 flex-1 items-center justify-end gap-2 overflow-hidden">
               {(musicas?.length ?? 0) > 0 && (
                 <div className="flex min-w-0 items-center justify-end gap-2 overflow-hidden">
