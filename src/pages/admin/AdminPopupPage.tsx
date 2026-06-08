@@ -524,6 +524,35 @@ const AdminPopupPage = () => {
               <CardDescription>Controle exatamente quem verá este popup.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border border-border">
+                <div className="space-y-2">
+                  <Label>Atraso após login (segundos)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={3600}
+                    value={delaySeconds}
+                    onChange={(e) => setDelaySeconds(Number(e.target.value))}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    0 = aparece imediatamente. Ex: 10 espera 10s após entrar.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Prioridade</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={999}
+                    value={priority}
+                    onChange={(e) => setPriority(Number(e.target.value))}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Valor maior aparece primeiro quando há vários popups elegíveis.
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
                   <div className="space-y-1">
