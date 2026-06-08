@@ -6,8 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2, ArrowRight, Eye, EyeOff, ArrowLeft,
-  CreditCard, QrCode, Copy, ExternalLink, CheckCircle2, Clock,
+  Loader2, ArrowRight, Eye, EyeOff, ArrowLeft,
+  CreditCard, QrCode, Copy, ExternalLink, CheckCircle2, Clock, Lock,
 } from "lucide-react";
+import { CheckoutUrgencyBar } from "@/components/subscription/CheckoutUrgencyBar";
+// @ts-ignore
+const _unused_close_brace = null;
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
