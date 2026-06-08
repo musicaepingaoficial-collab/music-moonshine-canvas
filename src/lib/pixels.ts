@@ -413,7 +413,7 @@ export function initKwaiPixel(pixelId: string) {
   document.head.appendChild(s);
 
   try {
-    (window as any).kwaiq?.pageView?.();
+    (window as any).kwaiq?.page?.();
   } catch (err) {
     console.warn("[pixels] kwai init failed", err);
   }
