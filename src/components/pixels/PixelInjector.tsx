@@ -95,13 +95,12 @@ function hasExternalScript(...parts: string[]) {
 }
 
 function getTikTokState() {
-  const w = window as any;
-  const state = (w.__lovableTikTokPixelState = w.__lovableTikTokPixelState || {
+  const state = (window.__lovableTikTokPixelState = window.__lovableTikTokPixelState || {
     installed: false,
     loadedIds: {},
   });
   state.loadedIds = state.loadedIds || {};
-  return state as { installed: boolean; loadedIds: Record<string, boolean> };
+  return state;
 }
 
 function dedupeTikTokScripts(pixelId: string) {
@@ -113,9 +112,8 @@ function dedupeTikTokScripts(pixelId: string) {
 }
 
 function installTikTokQueue() {
-  const w = window as any;
   const state = getTikTokState();
-  const existing = w.ttq;
+  const existing = window.ttq;
 
   if (existing && (typeof existing.track === "function" || typeof existing.load === "function")) {
     state.installed = true;
@@ -126,15 +124,15 @@ function installTikTokQueue() {
     return existing;
   }
 
-  w.TiktokAnalyticsObject = "ttq";
-  const ttq = (w.ttq = existing || []);
+  window.TiktokAnalyticsObject = "ttq";
+  const ttq = (window.ttq = existing || ([] as unknown as TikTokQueue));
   ttq.methods = ttq.methods || TIKTOK_METHODS;
   ttq.setAndDefer =
     ttq.setAndDefer ||
-    function (target: any, method: string) {
+    function (target: TikTokTarget, method: string) {
       if (typeof target[method] === "function") return;
-      target[method] = function () {
-        target.push([method].concat(Array.prototype.slice.call(arguments, 0)));
+      target[method] = function (...args: unknown[]) {
+        target.push([method].concat(args));
       };
     };
 
