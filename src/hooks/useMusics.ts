@@ -43,7 +43,9 @@ export function useMusicasByCategoria(slug: string | undefined) {
       const { data, error } = await (supabase.from("musicas" as any) as any)
         .select("*, categorias(*)")
         .eq("categoria_id", cat.id)
-        .order("created_at", { ascending: false });
+        .order("subfolder", { ascending: true, nullsFirst: false })
+        .order("title", { ascending: true });
+
       if (error) throw error;
       return (data ?? []) as MusicaWithCategoria[];
     },
