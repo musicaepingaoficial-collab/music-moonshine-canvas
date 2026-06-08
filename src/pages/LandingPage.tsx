@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -38,7 +38,11 @@ import { useAuth } from "@/hooks/useUser";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.webp";
 import heroMockup from "@/assets/hero-mockup.webp";
-import { PublicCheckoutDialog } from "@/components/subscription/PublicCheckoutDialog";
+const PublicCheckoutDialog = lazy(() =>
+  import("@/components/subscription/PublicCheckoutDialog").then((m) => ({
+    default: m.PublicCheckoutDialog,
+  }))
+);
 
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { trackEvent } from "@/lib/pixels";
@@ -961,11 +965,15 @@ export default function LandingPage() {
         </a>
       )}
 
-      <PublicCheckoutDialog
-        open={!!checkoutPlan}
-        onOpenChange={(o) => !o && setCheckoutPlan(null)}
-        plan={checkoutPlan}
-      />
+      {checkoutPlan && (
+        <Suspense fallback={null}>
+          <PublicCheckoutDialog
+            open={!!checkoutPlan}
+            onOpenChange={(o) => !o && setCheckoutPlan(null)}
+            plan={checkoutPlan}
+          />
+        </Suspense>
+      )}
       
     </div>
   );
