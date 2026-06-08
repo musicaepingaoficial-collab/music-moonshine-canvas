@@ -604,17 +604,20 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
 
   return (
     <div className="space-y-4">
+      <CheckoutUrgencyBar planSlug={planSlug} />
+
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 shrink-0">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h3 className="font-bold text-foreground">{planName}</h3>
+        <div className="min-w-0">
+          <h3 className="font-bold text-foreground truncate">{planName}</h3>
           <p className="text-sm text-muted-foreground">
             R$ {planPrice.toFixed(2).replace(".", ",")}
           </p>
         </div>
       </div>
+
 
       <div className="grid grid-cols-2 gap-2">
         <Button
