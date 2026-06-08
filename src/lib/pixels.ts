@@ -359,6 +359,39 @@ export function _getCachedUserData(): CachedUserData {
   return cachedUserData;
 }
 
+/**
+ * Inject the Kwai base pixel script exactly once and fire the initial PageView.
+ * Subsequent calls are no-ops thanks to the guard clause, preventing the
+ * "Cannot redefine property: instance" error caused by React re-renders.
+ */
+export function initKwaiPixel(pixelId: string) {
+  if (typeof window === "undefined" || !pixelId) return;
+  if ((window as any).kwaiq || document.getElementById("kwai-pixel-script")) return;
+
+  const s = document.createElement("script");
+  s.id = "kwai-pixel-script";
+  s.async = true;
+  s.text = `!function(e,t,n,a){if(!e[a]){var c=e[a]=function(){c.callMethod?c.callMethod.apply(c,arguments):c.queue.push(arguments)};c.queue=[];c.t=+new Date;var s=t.createElement(n);s.async=!0;s.src="https://s1.kwai.net/kos/s101/nlav11187/pixel/events.js?"+ +new Date;var r=t.getElementsByTagName(n)[0];r.parentNode.insertBefore(s,r)}}(window,document,"script","kwaiq");`;
+  document.head.appendChild(s);
+
+  try {
+    (window as any).kwaiq.load(pixelId);
+    (window as any).kwaiq.page();
+  } catch (err) {
+    console.warn("[pixels] kwai init failed", err);
+  }
+}
+
+/** Fire a Kwai PageView on SPA route changes without re-injecting the script. */
+export function trackKwaiPageView() {
+  if (typeof window === "undefined") return;
+  try {
+    (window as any).kwaiq?.page?.();
+  } catch {
+    /* ignore */
+  }
+}
+
 function isDebugEnabled(): boolean {
   if (typeof window === "undefined") return false;
   try {

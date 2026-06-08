@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { usePixelSettings } from "@/hooks/useSiteSettings";
-import { _setCachedPixelSettings, _setCachedUserData } from "@/lib/pixels";
+import { _setCachedPixelSettings, _setCachedUserData, initKwaiPixel } from "@/lib/pixels";
 import { useCookieConsent } from "@/hooks/useCookieConsent";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,7 +10,7 @@ declare global {
     _fbq?: unknown;
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
-    kwaiq?: unknown;
+    kwaiq?: any;
   }
 }
 
@@ -223,19 +223,10 @@ ${configs.join("\n")}`,
     );
   }, [s?.ga4_enabled, s?.ga4_measurement_id, s?.google_ads_enabled, s?.google_ads_conversion_id, analyticsOk, marketingOk]);
 
-  // Kwai
+  // Kwai — inject base script ONCE (guarded), PageView on route change handled by RouteTracker
   useEffect(() => {
     if (s?.kwai_enabled && s.kwai_pixel_id && marketingOk) {
-      injectScript(
-        SCRIPT_IDS.kwai,
-        `!function(e,t,n,a){if(!e[a]){var c=e[a]=function(){c.callMethod?c.callMethod.apply(c,arguments):c.queue.push(arguments)};c.queue=[];c.t=+new Date;var s=t.createElement(n);s.async=!0;s.src="https://s1.kwai.net/kos/s101/nlav11187/pixel/events.js?"+ +new Date;var r=t.getElementsByTagName(n)[0];r.parentNode.insertBefore(s,r)}}(window,document,"script","kwaiq");
-kwaiq('init', '${s.kwai_pixel_id}');
-kwaiq('track', 'EVENT_PAGE_VIEW');`,
-        false
-      );
-    } else {
-      removeById(SCRIPT_IDS.kwai);
-      delete window.kwaiq;
+      initKwaiPixel(s.kwai_pixel_id);
     }
   }, [s?.kwai_enabled, s?.kwai_pixel_id, marketingOk]);
 
