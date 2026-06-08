@@ -20,7 +20,11 @@ function isStalePixelError(error: Error): boolean {
 }
 
 function canAttemptRecovery(error: Error): boolean {
-  return isStalePixelError(error) && !sessionStorage.getItem(RECOVERY_KEY);
+  try {
+    return isStalePixelError(error) && !sessionStorage.getItem(RECOVERY_KEY);
+  } catch {
+    return false;
+  }
 }
 
 async function clearBrowserAppCaches() {
@@ -52,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.log("[ErrorBoundary:details]", { error: error.message, stack: info.componentStack });
     if (canAttemptRecovery(error)) {
-      sessionStorage.setItem(RECOVERY_KEY, "1");
+      try { sessionStorage.setItem(RECOVERY_KEY, "1"); } catch { /* ignore */ }
       void clearBrowserAppCaches().finally(() => window.location.reload());
     }
   }
