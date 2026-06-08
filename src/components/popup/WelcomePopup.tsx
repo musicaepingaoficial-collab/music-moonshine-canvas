@@ -1,10 +1,16 @@
 import { useEffect, useState, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Send, Instagram, Link as LinkIcon, Crown, Megaphone } from "lucide-react";
 import { useAuth, useProfile, useAssinatura } from "@/hooks/useUser";
 import { useWelcomePopupSettings, type PopupLink, type WelcomePopup as WelcomePopupType } from "@/hooks/useWelcomePopup";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+function formatBRL(value: number) {
+  return value.toFixed(2).replace(".", ",");
+}
 
 const ICON_MAP = {
   whatsapp: MessageCircle,
