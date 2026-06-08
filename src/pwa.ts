@@ -1,6 +1,14 @@
 const RECOVERY_FLAG = "pwa-recovery-attempted";
 const RELOAD_FLAG = "pwa-reloaded-once";
 
+function isRecoverableRuntimeError(message: string): boolean {
+  return (
+    message.includes("Failed to fetch dynamically imported module") ||
+    message.includes("Importing a module script failed") ||
+    message.includes("Cannot redefine property: instance")
+  );
+}
+
 function isInIframe(): boolean {
   try {
     return window.self !== window.top;
@@ -111,12 +119,17 @@ export function registerPwa() {
   window.addEventListener("error", (e) => {
     const msg = String(e?.message || "");
     const src = (e?.target as HTMLScriptElement | HTMLLinkElement | null)?.getAttribute?.("src") || "";
-    if (
-      msg.includes("Failed to fetch dynamically imported module") ||
-      msg.includes("Importing a module script failed") ||
-      src.includes("/assets/")
-    ) {
+    if (isRecoverableRuntimeError(msg) || src.includes("/assets/")) {
       void recoverAndReload("script-error:" + (msg || src));
+    }
+  });
+
+  window.addEventListener("unhandledrejection", (e) => {
+    const reason = e.reason;
+    const msg = String(reason?.message || reason || "");
+    if (isRecoverableRuntimeError(msg)) {
+      e.preventDefault?.();
+      void recoverAndReload("promise-error:" + msg);
     }
   });
 
