@@ -19,6 +19,10 @@ function isStalePixelError(error: Error): boolean {
   return error.message.includes("Cannot redefine property: instance");
 }
 
+function canAttemptRecovery(error: Error): boolean {
+  return isStalePixelError(error) && !sessionStorage.getItem(RECOVERY_KEY);
+}
+
 async function clearBrowserAppCaches() {
   const tasks: Promise<unknown>[] = [];
   if ("serviceWorker" in navigator) {
@@ -42,12 +46,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     console.log("[ErrorBoundary:caught]", error.message);
-    return { hasError: true, error, recovering: isStalePixelError(error) };
+    return { hasError: true, error, recovering: canAttemptRecovery(error) };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.log("[ErrorBoundary:details]", { error: error.message, stack: info.componentStack });
-    if (isStalePixelError(error) && !sessionStorage.getItem(RECOVERY_KEY)) {
+    if (canAttemptRecovery(error)) {
       sessionStorage.setItem(RECOVERY_KEY, "1");
       void clearBrowserAppCaches().finally(() => window.location.reload());
     }
