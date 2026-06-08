@@ -328,49 +328,18 @@ ${configs.join("\n")}`,
   useEffect(() => {
     if (s?.tiktok_enabled && s.tiktok_pixel_id && marketingOk) {
       const pixelId = s.tiktok_pixel_id;
-      const w = window as any;
-      const loadedPixels = (w.__lovableTikTokPixelIds = w.__lovableTikTokPixelIds || {});
-      const ttq = w.ttq;
-      const pixelAlreadyLoaded = Boolean(
-        loadedPixels[pixelId] || ttq?._i?.[pixelId] || hasExternalScript("analytics.tiktok.com/i18n/pixel/events.js", `sdkid=${pixelId}`)
-      );
+      const state = getTikTokState();
+      const ttq = installTikTokQueue();
+      const scriptAlreadyPresent = dedupeTikTokScripts(pixelId);
+      const pixelAlreadyLoaded = Boolean(state.loadedIds[pixelId] || ttq?._i?.[pixelId] || scriptAlreadyPresent);
 
-      if (pixelAlreadyLoaded) {
-        loadedPixels[pixelId] = true;
-        try { if (typeof ttq?.page === "function") ttq.page(); } catch { /* ignore */ }
-        return;
+      try {
+        if (!pixelAlreadyLoaded && typeof ttq?.load === "function") ttq.load(pixelId);
+        state.loadedIds[pixelId] = true;
+        if (typeof ttq?.page === "function") ttq.page();
+      } catch {
+        /* ignore third-party pixel failures */
       }
-
-      if (ttq && typeof ttq.load === "function") {
-        try {
-          ttq.load(pixelId);
-          loadedPixels[pixelId] = true;
-          if (typeof ttq.page === "function") ttq.page();
-        } catch { /* ignore */ }
-        return;
-      }
-
-      if (ttq) {
-        // Do not overwrite an existing SDK/helper object; that is what triggers
-        // "Cannot redefine property: instance" in preview/HMR and extensions.
-        try { if (typeof ttq.page === "function") ttq.page(); } catch { /* ignore */ }
-        return;
-      }
-
-      const pixelIdJson = JSON.stringify(pixelId);
-      injectScript(
-        SCRIPT_IDS.tiktok,
-        `!function (w, d, t, p) {
-  w.__lovableTikTokPixelIds = w.__lovableTikTokPixelIds || {};
-  if (w.__lovableTikTokPixelIds[p] || (w[t] && w[t]._i && w[t]._i[p])) { try { w[t] && w[t].page && w[t].page(); } catch(e){} return; }
-  if (w[t]) { try { w[t].load && w[t].load(p); w.__lovableTikTokPixelIds[p]=true; w[t].page && w[t].page(); } catch(e){} return; }
-  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=r;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-  ttq.load(p);
-  w.__lovableTikTokPixelIds[p]=true;
-  ttq.page();
-}(window, document, 'ttq', ${pixelIdJson});`,
-        false
-      );
     } else {
       removeById(SCRIPT_IDS.tiktok);
       const ttq = (window as any).ttq;
