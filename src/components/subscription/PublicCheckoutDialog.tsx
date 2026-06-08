@@ -398,12 +398,16 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
               </label>
             </div>
 
-            <Button type="submit" disabled={submitting || !acceptedTerms} className="w-full gap-2 mt-2">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (<>Continuar para pagamento <ArrowRight className="h-4 w-4" /></>)}
+            <Button type="submit" disabled={submitting || !acceptedTerms} className="w-full gap-2 mt-2 h-12 text-base font-bold bg-green-600 hover:bg-green-700 text-white">
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (<><Lock className="h-4 w-4" /> Garantir Meu Acesso Agora</>)}
             </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              🔥 Mais de 14 pessoas estão finalizando a compra agora. Aja rápido!
+            </p>
             <p className="text-center text-[11px] text-muted-foreground">
               A senha será criada após o pagamento ser confirmado.
             </p>
+
           </form>
         )}
 
