@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2, ArrowRight, Eye, EyeOff, ArrowLeft,
-  CreditCard, QrCode, Copy, ExternalLink, CheckCircle2, Clock,
+  CreditCard, QrCode, Copy, ExternalLink, CheckCircle2, Clock, Lock,
 } from "lucide-react";
+import { CheckoutUrgencyBar } from "@/components/subscription/CheckoutUrgencyBar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
@@ -349,12 +350,14 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
+        <CheckoutUrgencyBar planSlug={plan.slug} />
         <DialogHeader>
           <DialogTitle>{titles[step]}</DialogTitle>
           <DialogDescription>
             Plano {plan.name} — R$ {plan.price.toFixed(2).replace(".", ",")}
           </DialogDescription>
         </DialogHeader>
+
 
 
         {/* ---------- ETAPA 1 ---------- */}
@@ -395,12 +398,16 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
               </label>
             </div>
 
-            <Button type="submit" disabled={submitting || !acceptedTerms} className="w-full gap-2 mt-2">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (<>Continuar para pagamento <ArrowRight className="h-4 w-4" /></>)}
+            <Button type="submit" disabled={submitting || !acceptedTerms} className="w-full gap-2 mt-2 h-12 text-base font-bold bg-green-600 hover:bg-green-700 text-white">
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (<><Lock className="h-4 w-4" /> Garantir Meu Acesso Agora</>)}
             </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              🔥 Mais de 14 pessoas estão finalizando a compra agora. Aja rápido!
+            </p>
             <p className="text-center text-[11px] text-muted-foreground">
               A senha será criada após o pagamento ser confirmado.
             </p>
+
           </form>
         )}
 
