@@ -221,6 +221,8 @@ const AdminPopupPage = () => {
       show_to_new: showToNew,
       show_to_subscribers: showToSubs,
       new_user_days: newDays,
+      delay_seconds: delaySeconds,
+      priority,
       plan_slug: planSlug,
       discount_coupon: discountCoupon,
       cta_label: ctaLabel,
@@ -234,12 +236,8 @@ const AdminPopupPage = () => {
     }
     try {
       if (isNew) {
-        const { error } = await supabase.from("welcome_popup").insert({
-          ...parsed.data,
-          version: 1,
-          priority: 0
-        });
-        if (error) throw error;
+        const created = await createPopup.mutateAsync({ ...parsed.data } as any);
+        setSelectedId(created.id);
       } else {
         await update.mutateAsync({
           id: data.id,
