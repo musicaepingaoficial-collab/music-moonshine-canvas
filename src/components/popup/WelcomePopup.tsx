@@ -102,13 +102,14 @@ export function WelcomePopup() {
   const showNextPopup = () => {
     setOpen(false);
     const nextIndex = activePopupIndex + 1;
-    
+
     if (nextIndex < eligiblePopupsRef.current.length) {
-      // Aguardar 5 segundos antes de mostrar o próximo
+      const next = eligiblePopupsRef.current[nextIndex] as any;
+      const delay = Math.max(5, Number(next?.delay_seconds ?? 5)) * 1000;
       setTimeout(() => {
         setActivePopupIndex(nextIndex);
         setOpen(true);
-      }, 5000);
+      }, delay);
     }
   };
 
