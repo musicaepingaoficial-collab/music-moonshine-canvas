@@ -408,23 +408,7 @@ export function initKwaiPixel(pixelId: string) {
   s.id = "kwai-pixel-base-script";
   s.type = "text/javascript";
   s.async = true;
-  s.text = `!function(e,t){
-var n="kwaiq";
-if(e[n]&&e[n].instance){return;}
-if(t.getElementById("kwai-pixel-sdk-script")){return;}
-var s=e[n]=e[n]||[];
-s.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];
-s.factory=function(e){return function(){var t=Array.prototype.slice.call(arguments);t.unshift(e);s.push(t);return s}};
-for(var g=0;g<s.methods.length;g++){var j=s.methods[g];s[j]=s.factory(j)}
-s.load=function(e){
-  if(t.getElementById("kwai-pixel-sdk-script")){return;}
-  var r=t.createElement("script");r.id="kwai-pixel-sdk-script";r.type="text/javascript";r.async=!0;r.src="https://r.kwaicdn.com/js/kwaiq.js?v=2.2.4";
-  r.onload=function(){console.log("[pixels] kwai SDK script loaded")};
-  r.onerror=function(ev){console.warn("[pixels] kwai SDK script failed to load",ev)};
-  var i=t.getElementsByTagName("script")[0];i.parentNode.insertBefore(r,i)
-};
-s.pageView=function(){s.track("pageView")};
-s.load("${pixelId}");
+  s.text = `!function(e,t){var n="kwaiq";var s=e[n]=e[n]||[];s.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];s.factory=function(e){return function(){var t=Array.prototype.slice.call(arguments);t.unshift(e);s.push(t);return s}};for(var g=0;g<s.methods.length;g++){var j=s.methods[g];s[j]=s.factory(j)}s.load=function(e){var t=document.createElement("script");t.type="text/javascript";t.async=!0;t.src="https://r.kwaicdn.com/js/kwaiq.js?v=2.2.4";var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(t,n)};s.load('${pixelId}');console.log("[pixels] kwai base script injected for",'${pixelId}');
 }(window,document);`;
   document.head.appendChild(s);
 
