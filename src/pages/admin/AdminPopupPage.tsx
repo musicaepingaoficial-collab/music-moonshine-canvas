@@ -83,6 +83,20 @@ const AdminPopupPage = () => {
     }
   });
 
+  const { data: couponInfo } = useQuery({
+    queryKey: ["admin-popup-coupon", discountCoupon],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cupons")
+        .select("desconto_percentual")
+        .eq("codigo", (discountCoupon || "").toUpperCase())
+        .eq("ativo", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!discountCoupon,
+  });
+
   useEffect(() => {
     if (!data) return;
     setActive(data.active);
@@ -546,25 +560,32 @@ const AdminPopupPage = () => {
             </div>
             
             <div className="space-y-3">
-              {planSlug && (
-                <div className="space-y-2">
-                  <div className="flex flex-col items-center">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground line-through">
-                      De R$ {(plans?.find((p: any) => p.slug === planSlug)?.price || 0 * 1.6).toFixed(2).replace('.', ',')}
-                    </span>
-                    <span className="text-sm font-bold text-emerald-500">
-                      Por apenas R$ {plans?.find((p: any) => p.slug === planSlug)?.price?.toFixed(2).replace('.', ',')}
-                    </span>
+              {planSlug && (() => {
+                const basePrice = Number(plans?.find((p: any) => p.slug === planSlug)?.price ?? 0);
+                const pct = Number(couponInfo?.desconto_percentual ?? 0);
+                const finalPrice = basePrice * (1 - pct / 100);
+                return (
+                  <div className="space-y-2">
+                    <div className="flex flex-col items-center">
+                      {pct > 0 && (
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground line-through">
+                          De R$ {basePrice.toFixed(2).replace('.', ',')}
+                        </span>
+                      )}
+                      <span className="text-sm font-bold text-emerald-500">
+                        Por apenas R$ {finalPrice.toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                    <Button 
+                      className="w-full h-14 gap-3 text-lg font-black shadow-lg shadow-primary/30 uppercase tracking-tighter"
+                      onClick={() => setPreview(false)}
+                    >
+                      <Megaphone className="h-6 w-6" />
+                      {ctaLabel || "Aproveitar Oferta Agora"}
+                    </Button>
                   </div>
-                  <Button 
-                    className="w-full h-14 gap-3 text-lg font-black shadow-lg shadow-primary/30 uppercase tracking-tighter"
-                    onClick={() => setPreview(false)}
-                  >
-                    <Megaphone className="h-6 w-6" />
-                    {ctaLabel || "Aproveitar Oferta Agora"}
-                  </Button>
-                </div>
-              )}
+                );
+              })()}
               
               {links.map((l, i) => {
                 const opt = ICON_OPTIONS.find((o) => o.value === (l.icon ?? "link"))!;
