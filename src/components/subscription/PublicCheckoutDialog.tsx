@@ -350,12 +350,14 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
+        <CheckoutUrgencyBar planSlug={plan.slug} />
         <DialogHeader>
           <DialogTitle>{titles[step]}</DialogTitle>
           <DialogDescription>
             Plano {plan.name} — R$ {plan.price.toFixed(2).replace(".", ",")}
           </DialogDescription>
         </DialogHeader>
+
 
 
         {/* ---------- ETAPA 1 ---------- */}
