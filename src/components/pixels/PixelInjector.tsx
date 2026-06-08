@@ -24,6 +24,27 @@ const SCRIPT_IDS = {
   kwai: "lov-pixel-kwai",
 };
 
+const TIKTOK_EVENTS_SRC = "https://analytics.tiktok.com/i18n/pixel/events.js";
+
+const TIKTOK_METHODS = [
+  "page",
+  "track",
+  "identify",
+  "instances",
+  "debug",
+  "on",
+  "off",
+  "once",
+  "ready",
+  "alias",
+  "group",
+  "enableCookie",
+  "disableCookie",
+  "holdConsent",
+  "revokeConsent",
+  "grantConsent",
+];
+
 function removeById(id: string) {
   document.getElementById(id)?.remove();
 }
@@ -48,6 +69,83 @@ function injectExternalScript(id: string, src: string) {
 
 function hasExternalScript(...parts: string[]) {
   return Array.from(document.scripts).some((script) => parts.every((part) => script.src.includes(part)));
+}
+
+function getTikTokState() {
+  const w = window as any;
+  const state = (w.__lovableTikTokPixelState = w.__lovableTikTokPixelState || {
+    installed: false,
+    loadedIds: {},
+  });
+  state.loadedIds = state.loadedIds || {};
+  return state as { installed: boolean; loadedIds: Record<string, boolean> };
+}
+
+function dedupeTikTokScripts(pixelId: string) {
+  const scripts = Array.from(document.scripts).filter(
+    (script) => script.src.includes(TIKTOK_EVENTS_SRC) && script.src.includes(`sdkid=${pixelId}`)
+  );
+  scripts.slice(1).forEach((script) => script.remove());
+  return scripts.length > 0;
+}
+
+function installTikTokQueue() {
+  const w = window as any;
+  const state = getTikTokState();
+  const existing = w.ttq;
+
+  if (existing && (typeof existing.track === "function" || typeof existing.load === "function")) {
+    state.installed = true;
+    return existing;
+  }
+
+  if (existing && !Array.isArray(existing)) {
+    return existing;
+  }
+
+  w.TiktokAnalyticsObject = "ttq";
+  const ttq = (w.ttq = existing || []);
+  ttq.methods = ttq.methods || TIKTOK_METHODS;
+  ttq.setAndDefer =
+    ttq.setAndDefer ||
+    function (target: any, method: string) {
+      if (typeof target[method] === "function") return;
+      target[method] = function () {
+        target.push([method].concat(Array.prototype.slice.call(arguments, 0)));
+      };
+    };
+
+  for (let i = 0; i < ttq.methods.length; i += 1) ttq.setAndDefer(ttq, ttq.methods[i]);
+
+  if (!("instance" in ttq)) {
+    ttq.instance = function (id: string) {
+      const inst = (ttq._i && ttq._i[id]) || [];
+      for (let i = 0; i < ttq.methods.length; i += 1) ttq.setAndDefer(inst, ttq.methods[i]);
+      return inst;
+    };
+  }
+
+  if (typeof ttq.load !== "function") {
+    ttq.load = function (id: string, options?: Record<string, unknown>) {
+      ttq._i = ttq._i || {};
+      if (ttq._i[id] || hasExternalScript(TIKTOK_EVENTS_SRC, `sdkid=${id}`)) return;
+      ttq._i[id] = [];
+      ttq._i[id]._u = TIKTOK_EVENTS_SRC;
+      ttq._t = ttq._t || {};
+      ttq._t[id] = +new Date();
+      ttq._o = ttq._o || {};
+      ttq._o[id] = options || {};
+      const script = document.createElement("script");
+      script.type = "text/javascript";
+      script.async = true;
+      script.src = `${TIKTOK_EVENTS_SRC}?sdkid=${encodeURIComponent(id)}&lib=ttq`;
+      const firstScript = document.getElementsByTagName("script")[0];
+      firstScript.parentNode?.insertBefore(script, firstScript);
+    };
+  }
+
+  state.installed = true;
+  return ttq;
 }
 
 function injectGtmNoscript(id: string, containerId: string) {
