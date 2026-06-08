@@ -117,6 +117,7 @@ const AdminPopupPage = () => {
 
   useEffect(() => {
     if (!data) return;
+    if (!selectedId) setSelectedId(data.id);
     setActive(data.active);
     setTitle(data.title);
     setDescription(data.description);
@@ -125,12 +126,52 @@ const AdminPopupPage = () => {
     setShowToNew(data.show_to_new);
     setShowToSubs(data.show_to_subscribers);
     setNewDays(data.new_user_days);
+    setDelaySeconds((data as any).delay_seconds ?? 0);
+    setPriority(data.priority ?? 0);
     setPlanSlug(data.plan_slug || null);
     setDiscountCoupon(data.discount_coupon || null);
     setCtaLabel(data.cta_label || null);
     setExcludePlanSlugs(data.exclude_plan_slugs || []);
     setIncludePlanSlugs(data.include_plan_slugs || []);
-  }, [data]);
+  }, [data, selectedId]);
+
+  const handleNew = async () => {
+    try {
+      const created = await createPopup.mutateAsync({
+        title: "Novo popup",
+        description: "",
+        image_url: null,
+        links: [],
+        active: false,
+        show_to_new: true,
+        show_to_subscribers: false,
+        new_user_days: 7,
+        delay_seconds: 0,
+        priority: 0,
+        plan_slug: null,
+        discount_coupon: null,
+        cta_label: null,
+        exclude_plan_slugs: [],
+        include_plan_slugs: [],
+      } as any);
+      setSelectedId(created.id);
+      toast.success("Popup criado");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar popup");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!data) return;
+    try {
+      await deletePopup.mutateAsync(data.id);
+      setSelectedId(null);
+      toast.success("Popup excluído");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir");
+    }
+  };
+
 
   const handleUpload = async (file: File) => {
     setUploading(true);
