@@ -6,10 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
-    fbq?: any;
-    _fbq?: any;
-    dataLayer?: any[];
-    gtag?: (...args: any[]) => void;
+    fbq?: (...args: unknown[]) => void;
+    _fbq?: unknown;
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
+    ttq?: TikTokQueue;
+    TiktokAnalyticsObject?: string;
+    __lovableTikTokPixelState?: TikTokState;
+    kwaiq?: unknown;
   }
 }
 
@@ -23,6 +27,51 @@ const SCRIPT_IDS = {
   tiktok: "lov-pixel-tiktok",
   kwai: "lov-pixel-kwai",
 };
+
+const TIKTOK_EVENTS_SRC = "https://analytics.tiktok.com/i18n/pixel/events.js";
+
+const TIKTOK_METHODS = [
+  "page",
+  "track",
+  "identify",
+  "instances",
+  "debug",
+  "on",
+  "off",
+  "once",
+  "ready",
+  "alias",
+  "group",
+  "enableCookie",
+  "disableCookie",
+  "holdConsent",
+  "revokeConsent",
+  "grantConsent",
+];
+
+type TikTokTarget = unknown[] & Record<string, unknown>;
+
+interface TikTokQueue extends TikTokTarget {
+  methods?: string[];
+  setAndDefer?: (target: TikTokTarget, method: string) => void;
+  instance?: (id: string) => TikTokTarget;
+  load?: (id: string, options?: Record<string, unknown>) => void;
+  page?: () => void;
+  track?: (...args: unknown[]) => void;
+  revokeConsent?: () => void;
+  _i?: Record<string, TikTokTarget & { _u?: string }>;
+  _t?: Record<string, number>;
+  _o?: Record<string, Record<string, unknown>>;
+}
+
+interface TikTokState {
+  installed: boolean;
+  loadedIds: Record<string, boolean>;
+}
+
+function createTikTokTarget(): TikTokTarget {
+  return [] as unknown as TikTokTarget;
+}
 
 function removeById(id: string) {
   document.getElementById(id)?.remove();
@@ -48,6 +97,81 @@ function injectExternalScript(id: string, src: string) {
 
 function hasExternalScript(...parts: string[]) {
   return Array.from(document.scripts).some((script) => parts.every((part) => script.src.includes(part)));
+}
+
+function getTikTokState() {
+  const state = (window.__lovableTikTokPixelState = window.__lovableTikTokPixelState || {
+    installed: false,
+    loadedIds: {},
+  });
+  state.loadedIds = state.loadedIds || {};
+  return state;
+}
+
+function dedupeTikTokScripts(pixelId: string) {
+  const scripts = Array.from(document.scripts).filter(
+    (script) => script.src.includes(TIKTOK_EVENTS_SRC) && script.src.includes(`sdkid=${pixelId}`)
+  );
+  scripts.slice(1).forEach((script) => script.remove());
+  return scripts.length > 0;
+}
+
+function installTikTokQueue() {
+  const state = getTikTokState();
+  const existing = window.ttq;
+
+  if (existing && (typeof existing.track === "function" || typeof existing.load === "function")) {
+    state.installed = true;
+    return existing;
+  }
+
+  if (existing && !Array.isArray(existing)) {
+    return existing;
+  }
+
+  window.TiktokAnalyticsObject = "ttq";
+  const ttq = (window.ttq = existing || ([] as unknown as TikTokQueue));
+  ttq.methods = ttq.methods || TIKTOK_METHODS;
+  ttq.setAndDefer =
+    ttq.setAndDefer ||
+    function (target: TikTokTarget, method: string) {
+      if (typeof target[method] === "function") return;
+      target[method] = function (...args: unknown[]) {
+        target.push([method, ...args]);
+      };
+    };
+
+  for (let i = 0; i < ttq.methods.length; i += 1) ttq.setAndDefer(ttq, ttq.methods[i]);
+
+  if (!("instance" in ttq)) {
+    ttq.instance = function (id: string) {
+      const inst = (ttq._i && ttq._i[id]) || createTikTokTarget();
+      for (let i = 0; i < ttq.methods.length; i += 1) ttq.setAndDefer(inst, ttq.methods[i]);
+      return inst;
+    };
+  }
+
+  if (typeof ttq.load !== "function") {
+    ttq.load = function (id: string, options?: Record<string, unknown>) {
+      ttq._i = ttq._i || {};
+      if (ttq._i[id] || hasExternalScript(TIKTOK_EVENTS_SRC, `sdkid=${id}`)) return;
+      ttq._i[id] = createTikTokTarget();
+      ttq._i[id]._u = TIKTOK_EVENTS_SRC;
+      ttq._t = ttq._t || {};
+      ttq._t[id] = +new Date();
+      ttq._o = ttq._o || {};
+      ttq._o[id] = options || {};
+      const script = document.createElement("script");
+      script.type = "text/javascript";
+      script.async = true;
+      script.src = `${TIKTOK_EVENTS_SRC}?sdkid=${encodeURIComponent(id)}&lib=ttq`;
+      const firstScript = document.getElementsByTagName("script")[0];
+      firstScript.parentNode?.insertBefore(script, firstScript);
+    };
+  }
+
+  state.installed = true;
+  return ttq;
 }
 
 function injectGtmNoscript(id: string, containerId: string) {
@@ -161,8 +285,8 @@ fbq('init', '${s.meta_pixel_id}', ${amJson});`,
       } else if (!s?.meta_enabled) {
         removeById(SCRIPT_IDS.meta);
         removeById(SCRIPT_IDS.metaNoscript);
-        delete (window as any).fbq;
-        delete (window as any)._fbq;
+        delete window.fbq;
+        delete window._fbq;
       }
     }
     init();
@@ -230,52 +354,21 @@ ${configs.join("\n")}`,
   useEffect(() => {
     if (s?.tiktok_enabled && s.tiktok_pixel_id && marketingOk) {
       const pixelId = s.tiktok_pixel_id;
-      const w = window as any;
-      const loadedPixels = (w.__lovableTikTokPixelIds = w.__lovableTikTokPixelIds || {});
-      const ttq = w.ttq;
-      const pixelAlreadyLoaded = Boolean(
-        loadedPixels[pixelId] || ttq?._i?.[pixelId] || hasExternalScript("analytics.tiktok.com/i18n/pixel/events.js", `sdkid=${pixelId}`)
-      );
+      const state = getTikTokState();
+      const ttq = installTikTokQueue();
+      const scriptAlreadyPresent = dedupeTikTokScripts(pixelId);
+      const pixelAlreadyLoaded = Boolean(state.loadedIds[pixelId] || ttq?._i?.[pixelId] || scriptAlreadyPresent);
 
-      if (pixelAlreadyLoaded) {
-        loadedPixels[pixelId] = true;
-        try { if (typeof ttq?.page === "function") ttq.page(); } catch { /* ignore */ }
-        return;
+      try {
+        if (!pixelAlreadyLoaded && typeof ttq?.load === "function") ttq.load(pixelId);
+        state.loadedIds[pixelId] = true;
+        if (typeof ttq?.page === "function") ttq.page();
+      } catch {
+        /* ignore third-party pixel failures */
       }
-
-      if (ttq && typeof ttq.load === "function") {
-        try {
-          ttq.load(pixelId);
-          loadedPixels[pixelId] = true;
-          if (typeof ttq.page === "function") ttq.page();
-        } catch { /* ignore */ }
-        return;
-      }
-
-      if (ttq) {
-        // Do not overwrite an existing SDK/helper object; that is what triggers
-        // "Cannot redefine property: instance" in preview/HMR and extensions.
-        try { if (typeof ttq.page === "function") ttq.page(); } catch { /* ignore */ }
-        return;
-      }
-
-      const pixelIdJson = JSON.stringify(pixelId);
-      injectScript(
-        SCRIPT_IDS.tiktok,
-        `!function (w, d, t, p) {
-  w.__lovableTikTokPixelIds = w.__lovableTikTokPixelIds || {};
-  if (w.__lovableTikTokPixelIds[p] || (w[t] && w[t]._i && w[t]._i[p])) { try { w[t] && w[t].page && w[t].page(); } catch(e){} return; }
-  if (w[t]) { try { w[t].load && w[t].load(p); w.__lovableTikTokPixelIds[p]=true; w[t].page && w[t].page(); } catch(e){} return; }
-  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=r;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-  ttq.load(p);
-  w.__lovableTikTokPixelIds[p]=true;
-  ttq.page();
-}(window, document, 'ttq', ${pixelIdJson});`,
-        false
-      );
     } else {
       removeById(SCRIPT_IDS.tiktok);
-      const ttq = (window as any).ttq;
+      const ttq = window.ttq;
       try { if (typeof ttq?.revokeConsent === "function") ttq.revokeConsent(); } catch { /* ignore */ }
     }
   }, [s?.tiktok_enabled, s?.tiktok_pixel_id, marketingOk]);
@@ -292,7 +385,7 @@ kwaiq('track', 'EVENT_PAGE_VIEW');`,
       );
     } else {
       removeById(SCRIPT_IDS.kwai);
-      delete (window as any).kwaiq;
+      delete window.kwaiq;
     }
   }, [s?.kwai_enabled, s?.kwai_pixel_id, marketingOk]);
 
