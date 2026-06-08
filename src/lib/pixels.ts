@@ -99,19 +99,6 @@ const ADS_LABEL_KEY_MAP: Partial<Record<PixelEvent, string>> = {
   sign_up: "sign_up",
 };
 
-const TIKTOK_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
-  page_view: "Pageview",
-  view_content: "ViewContent",
-  add_to_cart: "AddToCart",
-  initiate_checkout: "InitiateCheckout",
-  begin_checkout: "InitiateCheckout",
-  add_payment_info: "AddPaymentInfo",
-  purchase: "PlaceAnOrder",
-  lead: "SubmitForm",
-  complete_registration: "CompleteRegistration",
-  sign_up: "CompleteRegistration",
-};
-
 const KWAI_EVENT_MAP: Partial<Record<PixelEvent, string>> = {
   page_view: "EVENT_PAGE_VIEW",
   view_content: "EVENT_CONTENT_VIEW",
@@ -305,24 +292,6 @@ export function dispatchEvent(
       const adsPayload = buildAdsConversionPayload(settings.google_ads_conversion_id, label, payload);
       log("gtag Ads conversion", adsPayload);
       window.gtag("event", "conversion", adsPayload);
-    }
-  }
-
-  // ── TikTok ──
-  if (marketingOk && settings.tiktok_enabled && typeof (window as any).ttq?.track === "function") {
-    const ttName = TIKTOK_EVENT_MAP[event];
-    if (ttName) {
-      const ttPayload: Record<string, unknown> = {};
-      if (payload.value != null) ttPayload.value = payload.value;
-      if (payload.value != null || payload.currency) ttPayload.currency = payload.currency || "BRL";
-      if (payload.content_ids?.length) {
-        ttPayload.contents = payload.content_ids.map((id) => ({ content_id: id, quantity: 1 }));
-        ttPayload.content_type = payload.content_type || "product";
-      }
-      if (payload.content_name) ttPayload.content_name = payload.content_name;
-      if (payload.transaction_id) ttPayload.event_id = payload.transaction_id;
-      log("ttq track", ttName, ttPayload);
-      (window as any).ttq.track(ttName, ttPayload);
     }
   }
 
