@@ -53,18 +53,32 @@ self.addEventListener("push", (event: PushEvent) => {
   } = {};
 
   try {
+    // Tenta extrair JSON do payload
     payload = event.data?.json() ?? {};
-  } catch {
-    payload = { title: "Notificação", body: event.data?.text() || "" };
+  } catch (err) {
+    // Fallback para texto puro se não for JSON
+    const text = event.data?.text() || "";
+    payload = { title: "Nova notificação", body: text };
   }
 
-  const title = payload.title || "Repertório • Notificação";
+  // Garantir que temos título e corpo, senão mostramos fallback
+  const title = payload.title || "Música e Pinga";
+  const body = payload.body || "Toque para ver os detalhes.";
+
   const options: NotificationOptions = {
-    body: payload.body || "",
+    body: body,
     icon: payload.icon || "/pwa-icon-192.png",
     badge: payload.badge || "/pwa-icon-192.png",
-    tag: payload.tag,
-    data: { url: payload.url || "/admin/notificacoes", ...(payload.data || {}) },
+    tag: payload.tag || "general",
+    data: { 
+      url: payload.url || "/admin/notificacoes", 
+      ...(payload.data || {}) 
+    },
+    // Vibrate patterns: [vibrate, pause, vibrate]
+    vibrate: [100, 50, 100],
+    actions: [
+      { action: "open", title: "Ver agora" }
+    ]
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
