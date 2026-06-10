@@ -451,8 +451,13 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
                   <select id="mp-identification-type" className="h-10 rounded-md border border-border bg-secondary px-3 text-sm" />
                   <input id="mp-identification-number" className="h-10 rounded-md border border-border bg-secondary px-3 text-sm" placeholder="CPF" />
                 </div>
-                <select id="mp-issuer" className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm" />
-                <select id="mp-installments" className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm" />
+                <select id="mp-issuer" className="hidden" />
+                <div className="space-y-1">
+                  <select id="mp-installments" className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm" />
+                  <p className="text-[10px] text-amber-500 font-medium px-1">
+                    * Parcelamento em até 12x com juros para o cliente.
+                  </p>
+                </div>
                 <Button type="submit" disabled={submitting} className="w-full gap-2">
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Pagar R$ {plan.price.toFixed(2).replace(".", ",")}</>}
                 </Button>
