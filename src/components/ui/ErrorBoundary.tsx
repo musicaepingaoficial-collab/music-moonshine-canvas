@@ -20,11 +20,8 @@ function isStalePixelError(error: Error): boolean {
 }
 
 function canAttemptRecovery(error: Error): boolean {
-  try {
-    return isStalePixelError(error) && !sessionStorage.getItem(RECOVERY_KEY);
-  } catch {
-    return false;
-  }
+  // Desativamos auto-recovery agressivo para evitar loops de reload
+  return false;
 }
 
 async function clearBrowserAppCaches() {
