@@ -25,8 +25,7 @@ export function lazyWithRetry<T extends ComponentType<any>>(
       const isChunkError =
         msg.includes("Failed to fetch dynamically imported module") ||
         msg.includes("Importing a module script failed") ||
-        msg.includes("error loading dynamically imported module") ||
-        msg.includes("Cannot redefine property");
+        msg.includes("error loading dynamically imported module");
 
       if (isChunkError) {
         const key = "lovable:chunk-reload-at";

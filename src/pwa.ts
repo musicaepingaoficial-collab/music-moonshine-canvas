@@ -5,7 +5,7 @@ function isRecoverableRuntimeError(message: string): boolean {
   return (
     message.includes("Failed to fetch dynamically imported module") ||
     message.includes("Importing a module script failed") ||
-    message.includes("Cannot redefine property: instance")
+    message.includes("error loading dynamically imported module")
   );
 }
 
@@ -86,11 +86,8 @@ function startVersionPoll(getRegistration: () => ServiceWorkerRegistration | nul
           /* noop */
         }
       } else {
-        // Sem SW: força reload direto (o .htaccess garante HTML fresco)
-        if (!sessionStorage.getItem(RELOAD_FLAG)) {
-          sessionStorage.setItem(RELOAD_FLAG, "1");
-          window.location.reload();
-        }
+        // Sem SW: não forçamos reload automático para evitar loops e perda de estado
+        console.info("[pwa] nova versão detectada, reload recomendado");
       }
     }
   };
@@ -118,8 +115,20 @@ export function registerPwa() {
 
   window.addEventListener("error", (e) => {
     const msg = String(e?.message || "");
-    const src = (e?.target as HTMLScriptElement | HTMLLinkElement | null)?.getAttribute?.("src") || "";
-    if (isRecoverableRuntimeError(msg) || src.includes("/assets/")) {
+    const target = e?.target as any;
+    const src = target?.src || target?.href || "";
+    
+    // Ignorar erros de scripts de terceiros (pixels, checkout, etc)
+    const isExternal = 
+      src.includes("kwai") || 
+      src.includes("facebook") || 
+      src.includes("googletagmanager") || 
+      src.includes("mercadopago") ||
+      !src.includes(window.location.hostname);
+
+    if (isExternal) return;
+
+    if (isRecoverableRuntimeError(msg) || (src && src.includes("/assets/"))) {
       void recoverAndReload("script-error:" + (msg || src));
     }
   });
