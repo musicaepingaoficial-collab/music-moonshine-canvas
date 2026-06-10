@@ -53,19 +53,16 @@ self.addEventListener("push", (event: PushEvent) => {
   } = {};
 
   try {
-    // Tenta extrair JSON do payload
     payload = event.data?.json() ?? {};
   } catch (err) {
-    // Fallback para texto puro se não for JSON
     const text = event.data?.text() || "";
     payload = { title: "Nova notificação", body: text };
   }
 
-  // Garantir que temos título e corpo, senão mostramos fallback
   const title = payload.title || "Música e Pinga";
   const body = payload.body || "Toque para ver os detalhes.";
 
-  const options: NotificationOptions = {
+  const options: any = {
     body: body,
     icon: payload.icon || "/pwa-icon-192.png",
     badge: payload.badge || "/pwa-icon-192.png",
@@ -74,7 +71,6 @@ self.addEventListener("push", (event: PushEvent) => {
       url: payload.url || "/admin/notificacoes", 
       ...(payload.data || {}) 
     },
-    // Vibrate patterns: [vibrate, pause, vibrate]
     vibrate: [100, 50, 100],
     actions: [
       { action: "open", title: "Ver agora" }
