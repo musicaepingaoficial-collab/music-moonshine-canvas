@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Music2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useUser";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import { useQueryClient } from "@tanstack/react-query";
 
 function formatWhatsApp(value: string) {
@@ -22,7 +23,14 @@ const CompleteProfilePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isDemo, deactivateDemo } = useDemoMode();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (user && isDemo) {
+      deactivateDemo().then(() => navigate("/login"));
+    }
+  }, [user, isDemo, deactivateDemo, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

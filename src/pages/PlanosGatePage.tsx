@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useAssinatura, useProfile } from "@/hooks/useUser";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import { SubscriptionDialog } from "@/components/subscription/SubscriptionDialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, LogOut } from "lucide-react";
@@ -13,14 +14,23 @@ const PlanosGatePage = () => {
   const [searchParams] = useSearchParams();
   const initialPlanSlug = searchParams.get("plano");
   const { user, loading } = useAuth();
+  const { isDemo, deactivateDemo } = useDemoMode();
   const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
   const { data: assinatura, isLoading: subLoading } = useAssinatura(user?.id);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/login", { replace: true });
+    if (!loading) {
+      if (!user) {
+        navigate("/login", { replace: true });
+      } else if (isDemo) {
+        // Se for usuário demo tentando assinar, desconectamos para forçar fluxo de checkout público (Guest)
+        // que pede e-mail e senha novos.
+        deactivateDemo().then(() => {
+          navigate("/#planos", { replace: true });
+        });
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, isDemo, navigate, deactivateDemo]);
 
   useEffect(() => {
     if (!subLoading && assinatura) {

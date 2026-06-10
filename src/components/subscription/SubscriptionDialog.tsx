@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Loader2 } from "lucide-react";
+import { Check, Crown, Loader2, AlertCircle } from "lucide-react";
 import { CheckoutForm } from "./CheckoutForm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 
 interface Plano {
   id: string;
@@ -25,6 +26,7 @@ interface SubscriptionDialogProps {
 
 export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, prefill }: SubscriptionDialogProps) {
   const [selectedPlan, setSelectedPlan] = useState<Plano | null>(null);
+  const { isDemo, deactivateDemo } = useDemoMode();
   const queryClient = useQueryClient();
 
   const { data: planos, isLoading } = useQuery<Plano[]>({
@@ -75,6 +77,17 @@ export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, pref
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground animate-pulse">Carregando planos...</p>
+          </div>
+        ) : isDemo ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+            <AlertCircle className="h-12 w-12 text-amber-500" />
+            <h2 className="text-xl font-bold">Modo demonstração</h2>
+            <p className="text-muted-foreground max-w-sm">
+              Você está em uma conta temporária. Para assinar, precisamos criar seu acesso definitivo.
+            </p>
+            <Button onClick={() => deactivateDemo().then(() => window.location.href = "/#planos")}>
+              Ir para checkout completo
+            </Button>
           </div>
         ) : selectedPlan ? (
           <CheckoutForm
