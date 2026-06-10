@@ -104,14 +104,11 @@ async function fetchAdvancedMatching(): Promise<AdvancedMatching> {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("name, whatsapp, city, state, zip_code")
+      .select("name, whatsapp")
       .eq("id", user.id)
       .maybeSingle();
     
     if (profile?.whatsapp) am.ph = profile.whatsapp.replace(/\D/g, "");
-    if (profile?.city) am.ct = profile.city.toLowerCase().trim();
-    if (profile?.state) am.st = profile.state.toLowerCase().trim();
-    if (profile?.zip_code) am.zp = profile.zip_code.replace(/\D/g, "");
     
     if (profile?.name) {
       const parts = String(profile.name).trim().split(/\s+/);
