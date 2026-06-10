@@ -87,6 +87,11 @@ interface AdvancedMatching {
   external_id?: string;
   fn?: string;
   ln?: string;
+  ct?: string;
+  st?: string;
+  zp?: string;
+  country?: string;
+  db?: string;
 }
 
 async function fetchAdvancedMatching(): Promise<AdvancedMatching> {
@@ -102,7 +107,9 @@ async function fetchAdvancedMatching(): Promise<AdvancedMatching> {
       .select("name, whatsapp")
       .eq("id", user.id)
       .maybeSingle();
+    
     if (profile?.whatsapp) am.ph = profile.whatsapp.replace(/\D/g, "");
+    
     if (profile?.name) {
       const parts = String(profile.name).trim().split(/\s+/);
       if (parts[0]) am.fn = parts[0].toLowerCase();
@@ -141,6 +148,11 @@ export function PixelInjector() {
         phone: am.ph,
         first_name: am.fn,
         last_name: am.ln,
+        city: am.ct,
+        state: am.st,
+        zip: am.zp,
+        country: am.country,
+        date_of_birth: am.db,
       });
 
       if (s?.meta_enabled && s.meta_pixel_id && marketingOk) {
