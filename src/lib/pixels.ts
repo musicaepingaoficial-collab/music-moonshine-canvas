@@ -216,6 +216,11 @@ export function dispatchEvent(
     phone: payload.phone ?? u.phone,
     first_name: payload.first_name ?? u.first_name,
     last_name: payload.last_name ?? u.last_name,
+    city: payload.city ?? u.city,
+    state: payload.state ?? u.state,
+    zip: payload.zip ?? u.zip,
+    country: payload.country ?? u.country,
+    date_of_birth: payload.date_of_birth ?? u.date_of_birth,
     ...payload,
   };
 
@@ -353,11 +358,25 @@ export interface CachedUserData {
   external_id?: string;
   first_name?: string;
   last_name?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  date_of_birth?: string;
 }
 let cachedUserData: CachedUserData = {};
 
+// Load persisted data on start
+try {
+  const saved = localStorage.getItem("lovable:pixel-user-data");
+  if (saved) cachedUserData = JSON.parse(saved);
+} catch { /* ignore */ }
+
 export function _setCachedUserData(u: CachedUserData) {
   cachedUserData = u || {};
+  try {
+    localStorage.setItem("lovable:pixel-user-data", JSON.stringify(cachedUserData));
+  } catch { /* ignore */ }
 }
 
 export function _getCachedUserData(): CachedUserData {
