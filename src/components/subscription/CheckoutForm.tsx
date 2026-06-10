@@ -685,9 +685,15 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Parcelas</label>
+          <label className="text-xs font-medium text-muted-foreground flex justify-between items-center">
+            <span>Parcelas</span>
+            <span className="text-[10px] text-amber-500 font-semibold uppercase">com juros</span>
+          </label>
           <select id="mp-installments"
             className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+          <p className="text-[10px] text-muted-foreground italic">
+            * Pagamento parcelado em até 12 vezes com juros para o cliente.
+          </p>
         </div>
 
         {/* Hidden fields required by cardForm */}
