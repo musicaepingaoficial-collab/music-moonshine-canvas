@@ -51,6 +51,7 @@ export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, pref
 
   const handlePaymentSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["assinatura"] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
     onTrialStarted();
   };
 

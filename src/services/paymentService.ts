@@ -89,15 +89,29 @@ export async function getSubscriptionStatus() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Não autenticado");
 
-  const { data, error } = await supabase
-    .from("assinaturas")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
+  const [subRes, profileRes] = await Promise.all([
+    supabase
+      .from("assinaturas")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("has_discografias")
+      .eq("id", user.id)
+      .maybeSingle()
+  ]);
 
-  if (error) throw error;
-  return data;
+  if (subRes.error) throw subRes.error;
+  if (profileRes.error) throw profileRes.error;
+
+  return {
+    assinatura: subRes.data,
+    profile: profileRes.data,
+    // Helper to check if any access was granted
+    hasAccess: !!subRes.data || !!profileRes.data?.has_discografias
+  };
 }
 
 // Verifica se um pending_subscription foi aprovado (sem auth)

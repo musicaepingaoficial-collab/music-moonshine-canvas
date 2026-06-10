@@ -148,8 +148,8 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     if (status === "pending" && paymentMethod === "pix" && pixData?.paymentId) {
       interval = window.setInterval(async () => {
         try {
-          const sub = await getSubscriptionStatus();
-          if (sub) {
+          const status = await getSubscriptionStatus();
+          if (status.hasAccess) {
             toast.success("Pagamento confirmado automaticamente! Acesso liberado.");
             onSuccess();
           }
@@ -417,8 +417,8 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
   const handleCheckPixPayment = async () => {
     setStatus("processing");
     try {
-      const sub = await getSubscriptionStatus();
-      if (sub) {
+      const status = await getSubscriptionStatus();
+      if (status.hasAccess) {
         const txId = pixData?.paymentId ? String(pixData.paymentId) : undefined;
         trackEvent("purchase", {
           event_id: txId,
