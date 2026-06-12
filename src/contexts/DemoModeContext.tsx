@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useUser";
+import { useAuth, useAssinatura } from "@/hooks/useUser";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEMO_LIMIT = 5;
@@ -30,6 +30,7 @@ const DemoModeContext = createContext<DemoModeContextValue | null>(null);
 
 export function DemoModeProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const { data: assinatura, isLoading: isLoadingAssinatura } = useAssinatura(user?.id);
   const queryClient = useQueryClient();
   const location = useLocation();
   const [gate, setGate] = useState<GateState>({ open: false, reason: null });
@@ -39,7 +40,9 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const isDemoUser =
     !!(user as any)?.is_anonymous ||
     (user as any)?.app_metadata?.demo_user === true ||
-    (user as any)?.user_metadata?.demo_user === true;
+    (user as any)?.user_metadata?.demo_user === true ||
+    (!isLoadingAssinatura && !assinatura);
+
   const isDemo = !loading && isDemoUser;
   const wantsDemo =
     typeof window !== "undefined" &&
