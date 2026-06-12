@@ -681,6 +681,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             <label className="text-xs font-medium text-muted-foreground">Número</label>
             <input id="mp-identification-number" type="text"
               className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary" />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              O CPF é necessário para a emissão da nota fiscal e segurança do seu pagamento.
+            </p>
           </div>
         </div>
 
@@ -742,6 +745,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               className="w-full rounded-md border border-border bg-secondary px-3 py-2.5 text-base sm:text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="000.000.000-00"
             />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              O CPF é necessário para a emissão da nota fiscal e segurança do seu pagamento.
+            </p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">E-mail para receber o comprovante</label>
