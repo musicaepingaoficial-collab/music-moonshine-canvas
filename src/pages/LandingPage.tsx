@@ -343,7 +343,7 @@ export default function LandingPage() {
                   <Play className="mr-2 h-5 w-5 fill-current" />
                   QUERO ACESSAR AGORA
                 </Button>
-                <Link to="/dashboard?demo=1" className="sm:self-center">
+                <Link to="/login?intent=trial" className="sm:self-center">
                   <Button size="lg" variant="outline" className="text-base h-14 px-6 w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
                     <Sparkles className="mr-2 h-5 w-5" />
                     Experimentar grátis
