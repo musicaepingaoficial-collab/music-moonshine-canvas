@@ -38,8 +38,14 @@ const LoginPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
+    const intent = params.get("intent");
+    
     if (ref) {
       localStorage.setItem("referral_code", ref);
+      setIsSignUp(true);
+    }
+
+    if (intent === "trial") {
       setIsSignUp(true);
     }
   }, []);
