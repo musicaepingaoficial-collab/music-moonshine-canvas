@@ -88,9 +88,12 @@ export function DemoOrProtectedRoute() {
     return <Navigate to="/completar-perfil" replace />;
   }
 
-  if (!isAdmin && !assinatura && location.pathname !== "/planos" && location.pathname !== "/completar-perfil") {
-    return <Navigate to="/planos" replace />;
+  // Remove immediate redirect to /planos for logged-in users without subscription
+  // This allows them to use the 5 free plays before being prompted to subscribe
+  if (!isAdmin && !assinatura && location.pathname === "/planos") {
+    return <Outlet />;
   }
+
 
   return <Outlet />;
 }
