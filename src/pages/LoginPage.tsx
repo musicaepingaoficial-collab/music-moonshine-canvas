@@ -94,7 +94,13 @@ const LoginPage = () => {
         });
         if (data.session) {
           await registerPendingReferral();
-          navigate("/planos");
+          const params = new URLSearchParams(window.location.search);
+          const intent = params.get("intent");
+          if (intent === "trial") {
+            navigate("/dashboard?activate_trial=1");
+          } else {
+            navigate("/planos");
+          }
         } else {
           toast({
             title: "Conta criada!",
@@ -110,7 +116,13 @@ const LoginPage = () => {
         await registerPendingReferral();
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get("redirect");
-        navigate(redirect || "/dashboard", { replace: true });
+        const intent = params.get("intent");
+        
+        if (intent === "trial") {
+          navigate("/dashboard?activate_trial=1", { replace: true });
+        } else {
+          navigate(redirect || "/dashboard", { replace: true });
+        }
       }
     } catch (error: any) {
       toast({

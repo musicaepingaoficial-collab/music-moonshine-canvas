@@ -6,8 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { PdfsHighlight } from "@/components/pdfs/PdfsHighlight";
 import { ReferralBanner } from "@/components/referrals/ReferralBanner";
 import { HeroCarousel } from "@/components/promotions/HeroCarousel";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useUser";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { useRepertorios } from "@/hooks/useRepertorios";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,6 +139,43 @@ const AllRepertorios = () => {
 
 const DashboardPage = () => {
   const { isLoading: isLoadingReps } = useRepertorios();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isActivatingTrial, setIsActivatingTrial] = useState(false);
+
+  useEffect(() => {
+    async function activateTrial() {
+      const shouldActivate = searchParams.get("activate_trial") === "1";
+      if (!shouldActivate || !user || isActivatingTrial) return;
+
+      setIsActivatingTrial(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-trial");
+        if (error) {
+          const errorMsg = typeof error === 'object' && error !== null && 'message' in error 
+            ? (error as any).message 
+            : String(error);
+          
+          if (errorMsg.includes("já utilizado")) {
+            toast.error("Você já utilizou seu teste grátis.");
+          } else {
+            toast.error("Erro ao ativar teste grátis. Tente novamente.");
+          }
+        } else if (data?.success) {
+          toast.success("Teste grátis ativado com sucesso! Aproveite.");
+        }
+      } catch (err) {
+        console.error("Erro ao ativar trial:", err);
+      } finally {
+        setIsActivatingTrial(false);
+        // Remove o parâmetro da URL sem recarregar
+        navigate("/dashboard", { replace: true });
+      }
+    }
+
+    activateTrial();
+  }, [searchParams, user, navigate]);
 
   useEffect(() => {
     async function flushPendingReferral() {
@@ -162,6 +203,15 @@ const DashboardPage = () => {
     }
     flushPendingReferral();
   }, []);
+
+  if (isActivatingTrial) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Ativando seu teste grátis...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
