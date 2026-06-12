@@ -349,11 +349,6 @@ export default function LandingPage() {
                     Experimentar grátis
                   </Button>
                 </Link>
-                <Link to="/login" className="sm:self-center">
-                  <Button size="lg" variant="ghost" className="text-base h-14 px-6 w-full sm:w-auto text-foreground/80 hover:text-primary">
-                    Já sou cliente →
-                  </Button>
-                </Link>
               </div>
 
               <div className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs sm:text-sm text-muted-foreground">
