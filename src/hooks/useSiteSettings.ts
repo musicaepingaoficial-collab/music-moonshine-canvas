@@ -26,6 +26,7 @@ export interface PixelSettings {
   ga4_measurement_id: string | null;
   kwai_enabled: boolean;
   kwai_pixel_id: string | null;
+  utmify_enabled: boolean;
   tiktok_enabled: boolean;
   tiktok_pixel_id: string | null;
   meta_test_event_code: string | null;
@@ -37,6 +38,7 @@ export interface PixelSecrets {
   meta_access_token: string | null;
   tiktok_access_token: string | null;
   kwai_access_token: string | null;
+  utmify_token: string | null;
 }
 
 export function useSiteSettings() {

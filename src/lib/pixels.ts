@@ -300,6 +300,17 @@ export function dispatchEvent(
     }
   }
 
+  // ── UTMfy Script ──
+  if (marketingOk && settings.utmify_enabled) {
+    if (typeof window !== "undefined" && !document.getElementById("utmify-script")) {
+      const s = document.createElement("script");
+      s.id = "utmify-script";
+      s.async = true;
+      s.src = "https://cdn.utmify.com.br/scripts/utms/latest.js";
+      document.head.appendChild(s);
+    }
+  }
+
   // ── Kwai ──
   if (marketingOk && settings.kwai_enabled && (window as any).kwaiq) {
     const kwName = KWAI_EVENT_MAP[event];
