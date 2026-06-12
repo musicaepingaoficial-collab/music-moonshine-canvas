@@ -84,14 +84,27 @@ serve(async (req) => {
       });
     }
 
+    // Check if user has an active paid subscription
+    const { data: activeSub } = await supabase
+      .from("assinaturas")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    const isPaidUser = !!activeSub;
     const isAnonymousUser =
       (user as any).is_anonymous === true ||
       (user as any).app_metadata?.demo_user === true ||
       (user as any).user_metadata?.demo_user === true;
+    
+    // Limits apply to anyone without a paid plan (anon or loged in)
+    const isLimitedUser = isAnonymousUser || !isPaidUser;
+    
     const DEMO_LIMIT = 5;
 
-    // Server-side play limit for anonymous (demo) users
-    if (action === "stream" && isAnonymousUser) {
+    // Server-side play limit for non-paid users
+    if (action === "stream" && isLimitedUser) {
       const { fileId } = body;
       if (!fileId) {
         return new Response(JSON.stringify({ error: "fileId obrigatório" }), {
@@ -130,8 +143,8 @@ serve(async (req) => {
       }
     }
 
-    // Anonymous users may only stream. All other actions are blocked.
-    if (isAnonymousUser && action !== "stream") {
+    // Limited users may only stream. All other actions are blocked.
+    if (isLimitedUser && action !== "stream") {
       return new Response(JSON.stringify({ error: "Acesso negado" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
