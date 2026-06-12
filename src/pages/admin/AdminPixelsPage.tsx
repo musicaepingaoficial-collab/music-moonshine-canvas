@@ -369,6 +369,49 @@ const AdminPixelsPage = () => {
           </Button>
         </CardContent>
       </Card>
+      {/* UTMfy Integration */}
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>UTMfy</CardTitle>
+            <CardDescription>Rastreamento avançado via API (Postback)</CardDescription>
+          </div>
+          <Switch
+            checked={!!form.utmify_enabled}
+            onCheckedChange={(v) => set("utmify_enabled", v)}
+          />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="utmify-token">Bearer Token (API)</Label>
+            <Input
+              id="utmify-token"
+              type="password"
+              placeholder="••••••••••••••••"
+              value={tokens.utmify_token || ""}
+              onChange={(e) => setToken("utmify_token", e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Gere seu token em Integrações {">"} Webhook {">"} Credenciais API no painel da UTMfy.
+            </p>
+          </div>
+          <Button
+            onClick={() =>
+              saveSection(
+                {
+                  utmify_enabled: form.utmify_enabled,
+                },
+                "UTMfy",
+                { utmify_token: tokens.utmify_token },
+              )
+            }
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Save className="h-4 w-4" />
+            Salvar UTMfy
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -317,8 +317,46 @@ serve(async (req) => {
       }
     }
 
-    if (payment.status === "approved") {
+    if (payment.status === "approved" || payment.status === "pending" || payment.status === "rejected" || payment.status === "refunded") {
       const ref = String(payment.external_reference || "");
+      
+      // Trigger UTMfy postback in background
+      (async () => {
+        try {
+          const buyer = await resolveBuyer(ref);
+          const statusMap: Record<string, string> = {
+            approved: "approved",
+            pending: "pending",
+            rejected: "rejected",
+            refunded: "refunded",
+            charged_back: "refunded"
+          };
+          
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/utmify-postback`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              email: buyer.email,
+              phone: buyer.whatsapp,
+              first_name: buyer.name?.split(" ")[0],
+              last_name: buyer.name?.split(" ").slice(1).join(" "),
+              cpf: buyer.cpf,
+              order_id: payment.id.toString(),
+              total_price: Number(payment.transaction_amount),
+              product_name: buyer.product_title || "Assinatura",
+              status: statusMap[payment.status] || "pending",
+              payment_method: fmtMethod(payment)
+            })
+          });
+        } catch (e) {
+          console.error("[utmify postback trigger] err:", e);
+        }
+      })();
+
+      if (payment.status === "approved") {
 
       // ==== Pagamento anônimo (pré-cadastro) ====
       if (ref.startsWith("pending:")) {

@@ -872,6 +872,7 @@ export type Database = {
           tiktok_pixel_id: string | null
           updated_at: string
           updated_by: string | null
+          utmify_enabled: boolean | null
         }
         Insert: {
           ga4_enabled?: boolean
@@ -892,6 +893,7 @@ export type Database = {
           tiktok_pixel_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          utmify_enabled?: boolean | null
         }
         Update: {
           ga4_enabled?: boolean
@@ -912,6 +914,7 @@ export type Database = {
           tiktok_pixel_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          utmify_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -923,6 +926,7 @@ export type Database = {
           tiktok_access_token: string | null
           updated_at: string
           updated_by: string | null
+          utmify_token: string | null
         }
         Insert: {
           id?: string
@@ -931,6 +935,7 @@ export type Database = {
           tiktok_access_token?: string | null
           updated_at?: string
           updated_by?: string | null
+          utmify_token?: string | null
         }
         Update: {
           id?: string
@@ -939,6 +944,7 @@ export type Database = {
           tiktok_access_token?: string | null
           updated_at?: string
           updated_by?: string | null
+          utmify_token?: string | null
         }
         Relationships: []
       }
