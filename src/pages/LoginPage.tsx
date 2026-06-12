@@ -103,7 +103,7 @@ const LoginPage = () => {
           const params = new URLSearchParams(window.location.search);
           const intent = params.get("intent");
           if (intent === "trial") {
-            navigate("/dashboard?activate_trial=1");
+            navigate("/dashboard");
           } else {
             navigate("/planos");
           }
@@ -125,7 +125,7 @@ const LoginPage = () => {
         const intent = params.get("intent");
         
         if (intent === "trial") {
-          navigate("/dashboard?activate_trial=1", { replace: true });
+          navigate("/dashboard", { replace: true });
         } else {
           navigate(redirect || "/dashboard", { replace: true });
         }
