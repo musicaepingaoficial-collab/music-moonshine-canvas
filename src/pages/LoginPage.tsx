@@ -105,7 +105,8 @@ const LoginPage = () => {
           if (intent === "trial") {
             navigate("/dashboard");
           } else {
-            navigate("/planos");
+            // Redirect to dashboard by default instead of plans to allow the free plays
+            navigate("/dashboard");
           }
         } else {
           toast({

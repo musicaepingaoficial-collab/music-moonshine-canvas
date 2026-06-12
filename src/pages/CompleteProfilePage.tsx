@@ -58,7 +58,8 @@ const CompleteProfilePage = () => {
       if (activeSub) {
         navigate("/dashboard");
       } else {
-        navigate("/planos");
+        // Redirect to dashboard instead of plans to allow the free plays
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast({
