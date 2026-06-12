@@ -373,6 +373,9 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
               <Input id="pc-cpf" inputMode="numeric" value={cpf}
                 onChange={(e) => setCpf(formatCpf(e.target.value))}
                 placeholder="000.000.000-00" required />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                O CPF é necessário para a emissão da nota fiscal e segurança do seu pagamento.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="pc-wa">WhatsApp</Label>
