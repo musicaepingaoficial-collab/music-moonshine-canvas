@@ -54,10 +54,11 @@ export default function AdminAfiliadosPage() {
   const [editValue, setEditValue] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  const { data: stats, isLoading } = useQuery<AfiliadoStat[]>({
+  const { data: stats, isLoading, error: statsError } = useQuery<AfiliadoStat[]>({
     queryKey: ["admin", "afiliados", "stats"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("admin_afiliados_stats");
+      console.log("[AdminAfiliados:rpc]", { rows: data?.length, error });
       if (error) throw error;
       return (data || []).map((r: any) => ({
         ...r,
@@ -69,7 +70,11 @@ export default function AdminAfiliadosPage() {
         commission_due: Number(r.commission_due),
       }));
     },
+    retry: false,
   });
+
+  const errMsg = (statsError as any)?.message || "";
+  const isForbidden = /forbidden/i.test(errMsg);
 
   const { data: detail } = useQuery<IndicacaoDetail[]>({
     queryKey: ["admin", "afiliado", "detail", detailId],
@@ -158,7 +163,17 @@ export default function AdminAfiliadosPage() {
           />
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          {isLoading ? (
+          {statsError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              <p className="font-medium">Erro ao carregar afiliados</p>
+              <p className="mt-1 text-xs opacity-80">{errMsg}</p>
+              {isForbidden && (
+                <p className="mt-2 text-xs">
+                  Esta página é restrita a administradores. Verifique se você está logado com uma conta que tem o papel <code>admin</code> em <code>user_roles</code>.
+                </p>
+              )}
+            </div>
+          ) : isLoading ? (
             <p className="text-muted-foreground p-4 text-sm">Carregando...</p>
           ) : filtered.length === 0 ? (
             <p className="text-muted-foreground p-4 text-sm">Nenhum afiliado encontrado.</p>
