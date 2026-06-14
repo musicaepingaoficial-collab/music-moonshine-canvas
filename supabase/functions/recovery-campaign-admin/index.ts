@@ -202,7 +202,10 @@ serve(async (req) => {
           if (elapsed >= step3Delay) rows.push({ ...p, next_step: 3, reason: `Recebeu step 2 há ${elapsed.toFixed(1)} dias` });
         }
       }
-      return json({ rows: rows.slice(0, 200), total: rows.length });
+      const filterStep = body.step ? Number(body.step) : null;
+      const filtered = filterStep ? rows.filter(r => r.next_step === filterStep) : rows;
+      const limit = Math.min(1000, Math.max(10, Number(body.limit ?? 500)));
+      return json({ rows: filtered.slice(0, limit), total: filtered.length, totalAll: rows.length });
     }
 
     if (action === "run_now") {
