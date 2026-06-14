@@ -1,103 +1,148 @@
-# Plano para impedir o aviso em usuários Vitalício
+# Plano: Campanha de recuperação por email para usuários free
 
-## Do I know what the issue is?
+## Objetivo
 
-Sim. O problema não está mais nas duplicatas de assinatura nem no carrossel principal corrigido antes. O aviso da imagem é o componente `AdBanner` exibido no topo do dashboard, antes do `HeroCarousel`.
+Enviar uma sequência de 3 emails, em dias diferentes, para todos os usuários cadastrados que **nunca assinaram nenhum plano** (sem registro em `assinaturas` com `status = 'active'`), oferecendo descontos progressivos para incentivar a assinatura.
 
-Esse componente busca o primeiro registro ativo de `anuncios` e mostra direto, sem consultar a assinatura do usuário e sem aplicar `include_plan_slugs` / `exclude_plan_slugs`. Por isso o banner “Super Promoção !” continua aparecendo mesmo quando o usuário está como `Vitalício`.
+---
 
-## Problema exato
+## 1. Identificar o público
 
-No banco, o anúncio está configurado corretamente:
+Usuários elegíveis = usuários em `profiles` que:
 
-- Mostrar somente para: `mensal`, `trimestral`, `anual`
-- Ocultar para: `vitalicio`
+- Não possuem nenhuma linha em `assinaturas` com `status IN ('active','superseded','expired')` (ou seja, nunca assinaram nada).
+- Têm email válido em `profiles.email`.
+- Não estão em `suppressed_emails` (bounce/complaint/unsubscribe).
+- Não são admin (`user_roles` sem role `admin`).
 
-Mas o componente do topo do dashboard ignora esses campos:
+Query de referência:
 
-```text
-DashboardPage
-  AdBanner position="top"     <- aviso pequeno da imagem, sem filtro de plano
-  HeroCarousel                <- carrossel grande, já com filtro de plano
+```sql
+SELECT p.id, p.email, p.name, p.created_at
+FROM profiles p
+WHERE NOT EXISTS (SELECT 1 FROM assinaturas a WHERE a.user_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = p.id AND r.role = 'admin')
+  AND p.email IS NOT NULL;
 ```
 
-O `HeroCarousel` já usa `useAssinatura` e aplica os filtros. O `AdBanner` ainda não.
+---
 
-## Mudanças planejadas
+## 2. Estratégia da sequência (3 emails)
 
-### 1. Corrigir `src/components/ads/AdBanner.tsx`
+| # | Quando enviar | Assunto | Conteúdo | Oferta |
+|---|---|---|---|---|
+| 1 | Dia 0 | "Sentimos sua falta no Música e Pinga 🎵" | Lembrete do que ele perde sem assinar (acervo, downloads, repertórios). CTA "Ver planos". | Sem cupom — só apresentação |
+| 2 | Dia 3 | "Liberamos 20% OFF só pra você voltar" | Reforça benefícios + prova social. CTA com cupom aplicado no link. | Cupom `VOLTA20` (20% OFF, 7 dias) |
+| 3 | Dia 7 | "Última chance: 40% OFF expira em 24h" | Urgência + escassez. CTA cupom + contador. | Cupom `ULTIMA40` (40% OFF, 24h) |
 
-Adicionar a mesma lógica de assinatura usada nos outros banners:
+Cada email respeita a regra: 1 trigger = 1 destinatário, com `idempotencyKey` único (`recovery-{step}-{user_id}`).
 
-- Carregar usuário com `useAuth()`.
-- Carregar assinatura com `useAssinatura(user?.id)`.
-- Identificar o plano atual apenas se a assinatura estiver ativa e não expirada.
-- Aplicar `exclude_plan_slugs`:
-  - se o plano atual estiver na lista de exclusão, o anúncio não aparece.
-- Aplicar `include_plan_slugs`:
-  - se a lista tiver planos e o usuário não estiver em um deles, o anúncio não aparece.
-- Enquanto a assinatura estiver carregando, não renderizar o aviso, para evitar aparecer por alguns segundos antes do filtro ser calculado.
+---
 
-### 2. Ajustar a busca de anúncios do topo
+## 3. Infraestrutura técnica
 
-Hoje o `AdBanner` pega apenas o primeiro anúncio ativo com `.limit(1)`. Isso pode esconder todos os anúncios se o primeiro for excluído para o plano atual.
+### 3.1 Pré-requisitos
+- Lovable Cloud já habilitado ✅
+- Domínio de email configurado (verificar com `check_email_domain_status`).
+- `setup_email_infra` + `scaffold_transactional_email` rodados.
 
-Alterar para:
+### 3.2 Templates React Email
+Criar em `supabase/functions/_shared/transactional-email-templates/`:
 
-- Buscar os anúncios ativos ordenados por `position` e `created_at`.
-- Filtrar no frontend conforme o plano do usuário.
-- Mostrar o primeiro anúncio elegível.
+- `recovery-step-1.tsx` — apresentação
+- `recovery-step-2.tsx` — 20% OFF
+- `recovery-step-3.tsx` — 40% OFF última chance
 
-Assim, se existir um banner específico para Vitalício no futuro, ele poderá aparecer; o banner de promoção de Vitalício continuará bloqueado para quem já é Vitalício.
+Registrar todos em `registry.ts`. Visual seguindo a identidade (verde/escuro do app).
 
-### 3. Reutilizar a regra para evitar novo erro
+### 3.3 Cupons no banco
+Inserir em `cupons` dois cupons reutilizáveis (`VOLTA20`, `ULTIMA40`) com `data_expiracao` futura e `uso_limite` adequado. Reaproveita o `couponService` que já existe.
 
-Criar uma função pequena no próprio `AdBanner.tsx` ou em um utilitário compartilhado, se fizer sentido, para padronizar:
+### 3.4 Tabela de controle de envios
+Nova tabela `recovery_campaign_log` para evitar duplicidade e permitir auditoria:
 
-```text
-anúncio visível quando:
-  plano atual NÃO está em exclude_plan_slugs
-  E, se include_plan_slugs tiver itens, plano atual está em include_plan_slugs
+- `user_id`, `step` (1/2/3), `sent_at`, `status`, `email`
+- UNIQUE (`user_id`, `step`)
+
+Assim, mesmo se o cron rodar duas vezes, cada usuário recebe cada etapa apenas uma vez.
+
+### 3.5 Edge Function `send-recovery-emails`
+Função agendada que:
+
+1. Para cada step (1, 2, 3) busca usuários elegíveis cuja "idade na campanha" bate com a regra:
+   - Step 1: usuários nunca processados (entram na campanha hoje).
+   - Step 2: usuários que receberam step 1 há 3 dias.
+   - Step 3: usuários que receberam step 2 há 4 dias.
+2. Filtra contra `suppressed_emails` e contra quem virou assinante no meio do caminho.
+3. Invoca `send-transactional-email` por usuário com o template correto e `idempotencyKey`.
+4. Registra resultado em `recovery_campaign_log`.
+5. Processa em lotes (ex: 100 por execução) para respeitar throughput de ~120 emails/min.
+
+### 3.6 Agendamento
+`pg_cron` chamando a função diariamente (ex: 10:00 BRT):
+
+```sql
+select cron.schedule(
+  'recovery-emails-daily',
+  '0 13 * * *',
+  $$ select net.http_post(
+       url:='https://zsquzchwxnsuysfrlngt.supabase.co/functions/v1/send-recovery-emails',
+       headers:='{"Content-Type":"application/json","apikey":"<ANON_KEY>"}'::jsonb
+     ); $$
+);
 ```
 
-Manter a mudança pequena e focada para não alterar outras áreas sem necessidade.
+---
 
-### 4. Não mexer no banco agora
+## 4. Conformidade e boas práticas
 
-Não é necessário alterar dados nem criar nova migration para resolver este caso, porque:
+- Footer de unsubscribe é adicionado automaticamente pelo sistema de emails da Lovable.
+- Respeitar `suppressed_emails` (já é feito pelo `send-transactional-email`).
+- Não reenviar para quem já assinou: checar `assinaturas` no momento do envio de cada step.
+- Não enviar para admins ou usuários de teste (allowlist).
+- Cada email com `Preview` claro e assunto honesto (não clickbait) pra proteger reputação do domínio.
 
-- O anúncio já está configurado corretamente.
-- As assinaturas Vitalício já aparecem corretamente no banco.
-- O erro está no componente que renderiza o aviso no dashboard.
+---
 
-## Arquivos que serão alterados
+## 5. Painel admin (opcional, recomendado)
 
-- `src/components/ads/AdBanner.tsx`
+Página `/admin/recuperacao` simples:
 
-## Validação após aplicar
+- Total elegível, enviados por step, taxa de conversão (quantos viraram assinantes após receber).
+- Botão "Disparar manualmente agora" (chama a edge function).
+- Lista dos últimos envios via `recovery_campaign_log` + `email_send_log`.
 
-1. Usuário `Vitalício`:
-   - O aviso “Super Promoção !” do topo do dashboard não aparece.
-   - O selo `Vitalício` continua aparecendo no topo da tela.
+---
 
-2. Usuário `mensal`, `trimestral` ou `anual`:
-   - O aviso pode aparecer normalmente, porque está incluído para esses planos.
+## 6. Validação antes de ligar em produção
 
-3. Usuário sem assinatura ativa:
-   - O aviso não aparece se o anúncio tiver `include_plan_slugs` preenchido.
+1. Rodar a query do público alvo e conferir o volume.
+2. Enviar os 3 templates para um email de teste (admin) usando `previewData`.
+3. Disparar a edge function com `LIMIT 1` para um usuário de teste real.
+4. Conferir `email_send_log` (status `sent`) e o email recebido.
+5. Só então ativar o `pg_cron`.
 
-4. Banco:
-   - Nenhuma alteração de dados é necessária.
-   - A configuração atual do anúncio continua sendo respeitada.
+---
+
+## Arquivos / mudanças previstas
+
+**Banco (migration):**
+- `cupons`: insert dos 2 cupons.
+- Nova tabela `recovery_campaign_log` com GRANTs e RLS (apenas admin lê; service_role escreve).
+- Cron job `recovery-emails-daily`.
+
+**Edge Functions:**
+- `supabase/functions/send-recovery-emails/index.ts` (nova).
+- 3 templates em `_shared/transactional-email-templates/`.
+- Update em `registry.ts`.
+
+**Frontend (opcional):**
+- `src/pages/admin/AdminRecuperacaoPage.tsx` + rota.
+
+---
 
 ## Resultado esperado
 
-Depois da implementação, o banner/aviso da imagem deixará de aparecer para todos os usuários com plano `vitalicio`, inclusive no topo do dashboard.
+Usuários free recebem 3 emails ao longo de ~7 dias com ofertas progressivas (apresentação → 20% → 40%), aumentando a chance de conversão sem afetar quem já é assinante e respeitando unsubscribe/bounces.
 
-<presentation-actions>
-  <presentation-open-history>View History</presentation-open-history>
-</presentation-actions>
-
-<presentation-actions>
-<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
-</presentation-actions>
+Quer que eu siga em frente e implemente tudo? Posso começar pela migration + templates, ou prefere revisar/ajustar alguma etapa (descontos, dias, copy) antes?
