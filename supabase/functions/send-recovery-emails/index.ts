@@ -112,10 +112,7 @@ serve(async (req) => {
   const results = { step1: 0, step2: 0, step3: 0, failed: 0 };
 
   try {
-    // STEP 1: usuários que nunca assinaram e nunca receberam nada
-    const { data: step1Users, error: e1 } = await supabase.rpc as any;
-    // RPC não existe — usamos query direta com SQL via .from + filtros.
-    // Como Postgrest não tem NOT EXISTS direto, usamos uma abordagem em duas etapas.
+    // Estratégia: carregar perfis + tabelas auxiliares e filtrar em memória.
 
     // 1) carregar usuários elegíveis (até 1000) sem assinatura e não-admin
     const { data: profiles, error: pErr } = await supabase
