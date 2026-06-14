@@ -352,7 +352,7 @@ serve(async (req) => {
 
     if (isPix && transactionData.qr_code) {
       try {
-        const amount = Number(selectedPlan.price).toFixed(2).replace(".", ",");
+        const amount = finalPrice.toFixed(2).replace(".", ",");
         const buyerName = `${firstName} ${lastName}`.trim();
         const who = buyerName || payerEmail || "Cliente";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
