@@ -364,30 +364,91 @@ function RecipientsTable() {
   );
 }
 
-function EligibleTable() {
-  const dataQ = useQuery({ queryKey: ["rc-eligible"], queryFn: () => call("eligible") });
+function EligibleTable({ embedded = false }: { embedded?: boolean }) {
+  const qc = useQueryClient();
+  const [stepFilter, setStepFilter] = useState<string>("");
+  const dataQ = useQuery({
+    queryKey: ["rc-eligible", stepFilter],
+    queryFn: () => call("eligible", { step: stepFilter ? Number(stepFilter) : undefined, limit: 500 }),
+  });
+
+  const runNow = useMutation({
+    mutationFn: () => call("run_now"),
+    onSuccess: (d: any) => {
+      toast({ title: "Campanha disparada", description: `HTTP ${d.status}` });
+      qc.invalidateQueries({ queryKey: ["rc-eligible"] });
+      qc.invalidateQueries({ queryKey: ["rc-recipients"] });
+      qc.invalidateQueries({ queryKey: ["rc-stats"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: String(e?.message ?? e), variant: "destructive" }),
+  });
+
+  const rows = dataQ.data?.rows ?? [];
+  const total = dataQ.data?.total ?? 0;
+  const totalAll = dataQ.data?.totalAll ?? total;
+
+  const exportCsv = () => {
+    const csv = toCSV(rows, ["name", "email", "next_step", "reason"]);
+    downloadCSV(`destinatarios-proximo-envio-${new Date().toISOString().slice(0,10)}.csv`, csv);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Próxima execução</CardTitle>
-        <p className="text-sm text-muted-foreground">{dataQ.data?.total ?? 0} usuários serão processados</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <CardTitle>{embedded ? "Próximos a receber" : "Próxima execução"}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              <strong>{total}</strong> usuários serão processados
+              {stepFilter && totalAll !== total && <span className="text-muted-foreground"> (de {totalAll} no total)</span>}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            <select
+              value={stepFilter}
+              onChange={(e) => setStepFilter(e.target.value)}
+              className="border rounded px-2 py-1 bg-background text-sm"
+            >
+              <option value="">Todos os steps</option>
+              <option value="1">Step 1 (primeiro contato)</option>
+              <option value="2">Step 2 (cupom VOLTA20)</option>
+              <option value="3">Step 3 (cupom ULTIMA40)</option>
+            </select>
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length}>
+              <Download className="h-4 w-4 mr-2" /> CSV
+            </Button>
+            <Button size="sm" onClick={() => runNow.mutate()} disabled={runNow.isPending || !rows.length}>
+              {runNow.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Disparar agora
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Próximo step</TableHead><TableHead>Motivo</TableHead></TableRow>
-          </TableHeader>
-          <TableBody>
-            {(dataQ.data?.rows ?? []).map((r: any) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.name ?? "—"}</TableCell>
-                <TableCell className="font-mono text-xs">{r.email}</TableCell>
-                <TableCell><Badge>Step {r.next_step}</Badge></TableCell>
-                <TableCell className="text-xs">{r.reason}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {dataQ.isLoading && <Skeleton className="h-40 w-full" />}
+        {dataQ.isError && <ErrorBox error={dataQ.error} />}
+        {!dataQ.isLoading && !dataQ.isError && rows.length === 0 && (
+          <div className="text-sm text-muted-foreground py-8 text-center">
+            Nenhum usuário elegível no momento.
+          </div>
+        )}
+        {rows.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Próximo step</TableHead><TableHead>Motivo</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r: any) => (
+                <TableRow key={r.id}>
+                  <TableCell>{r.name ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{r.email}</TableCell>
+                  <TableCell><Badge>Step {r.next_step}</Badge></TableCell>
+                  <TableCell className="text-xs">{r.reason}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
