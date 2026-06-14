@@ -395,7 +395,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Download em</div>
-                  <div className="text-sm font-bold">1 clique • 320kbps</div>
+                  <div className="text-sm font-bold">1 clique • MP3</div>
                 </div>
               </div>
             </motion.div>
