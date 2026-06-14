@@ -1,61 +1,90 @@
-# Popup de Renovação Próxima do Vencimento
+# Painel Admin de Afiliados
 
-Mantém pagamento avulso e adiciona aviso visual conforme o plano se aproxima do fim, com botão "Renovar agora" que abre o checkout.
+Página `/admin/afiliados` para o super admin acompanhar todos os afiliados: cliques, cadastros, conversões e receita gerada.
 
-## Como vai funcionar (visão do usuário)
+## O que o admin verá
 
-Quando o usuário logado tem uma assinatura ativa prestes a vencer, um popup aparece no app:
+**Cards no topo (totais gerais):**
+- Total de afiliados ativos
+- Total de cliques (todos os links)
+- Total de cadastros via indicação
+- Total de conversões pagas
+- Receita total gerada por afiliados (R$)
+- Comissão total devida (R$)
 
-- **7 dias antes** — Popup amarelo: "Seu plano vence em 7 dias"
-- **5 dias antes** — Popup laranja: "Faltam 5 dias para seu plano vencer"
-- **3 dias antes** — Popup laranja forte: "Apenas 3 dias restantes"
-- **1 dia antes** — Popup vermelho: "Seu plano vence amanhã!"
+**Tabela de afiliados** com colunas:
+- Nome / e-mail do afiliado
+- Código do link
+- Cliques
+- Cadastros (indicações criadas)
+- Conversões (indicados que viraram assinantes pagos)
+- Taxa de conversão (%)
+- Receita gerada (soma dos pagamentos dos indicados)
+- Comissão (%) e valor devido (R$)
+- Ações: editar comissão, ver detalhes, copiar link
 
-Cada popup tem:
-- Mensagem clara com dias restantes
-- Botão grande **"Renovar agora"** → abre o dialog de checkout (mesmo fluxo do `SubscriptionDialog`)
-- Botão secundário **"Lembrar depois"** → fecha por 24h
+**Drawer/Dialog de detalhes** ao clicar em um afiliado:
+- Lista dos indicados (nome, data, status, plano, valor)
+- Histórico de cliques por dia (gráfico simples)
 
-Regra: o popup de cada marco aparece **uma vez por dia** (não fica perturbando a cada navegação). Se o usuário já clicou em "Lembrar depois" hoje, só volta amanhã.
+## Mudanças necessárias
 
-## Implementação técnica
+### 1. Tabela nova: `afiliado_clicks`
+Hoje não existe rastreamento de cliques. Criar tabela:
+- `afiliado_id` (fk)
+- `referrer` (texto, opcional)
+- `user_agent` (texto)
+- `ip_hash` (texto — hash, não IP cru)
+- `created_at`
 
-### 1. Hook `useRenewalReminder`
-Novo arquivo `src/hooks/useRenewalReminder.ts`:
-- Lê assinatura ativa do usuário (já existe via `getSubscriptionStatus`)
-- Ignora plano `vitalicio` (sem `expires_at`)
-- Calcula `daysLeft = ceil((expires_at - now) / 86400000)`
-- Define `milestone` se `daysLeft ∈ {7,5,3,1}`
-- Verifica `localStorage` chave `renewal_reminder_dismissed_{milestone}_{YYYY-MM-DD}` para não repetir no mesmo dia
-- Retorna `{ show, daysLeft, milestone, dismiss(), openCheckout() }`
+RLS: insert público (qualquer visitante), select só admin.
 
-### 2. Componente `RenewalReminderDialog`
-Novo `src/components/subscription/RenewalReminderDialog.tsx`:
-- Usa `Dialog` do shadcn
-- Variantes de cor por `milestone` (7=amarelo, 5=laranja, 3=laranja-forte, 1=vermelho via tokens semânticos do `index.css`)
-- Ícone `Clock` / `AlertTriangle` (lucide-react)
-- Texto dinâmico por marco
-- Botão primário "Renovar agora" → fecha e abre `SubscriptionDialog` já existente
-- Botão "Lembrar depois" → grava dismissal no localStorage
+### 2. Edge function pública `track-affiliate-click`
+Chamada por `ReferralTracker.tsx` quando detecta `?ref=CODIGO` na URL. Resolve o código → `afiliado_id` e insere uma linha em `afiliado_clicks`. Sem auth necessária.
 
-### 3. Integração no `AppLayout`
-Em `src/components/layout/AppLayout.tsx`:
-- Adicionar `<RenewalReminderDialog />` no final
-- O componente se auto-controla via hook (sem props)
+### 3. Coluna nova em `indicacoes`
+Adicionar `converted_at timestamptz` e `assinatura_id uuid` para marcar quando o indicado virou pagante (preenchido pelo webhook do MP em `payment-webhook` quando a primeira assinatura ativa for criada).
 
-### 4. Reaproveitamento
-Reusa o `SubscriptionDialog` existente para o checkout — zero código novo de pagamento.
+### 4. View/RPC `admin_afiliados_stats`
+Função security definer que retorna, para todos os afiliados, os agregados (cliques, indicações, conversões, receita). Acessível só a admin via `has_role`.
+
+### 5. Página `src/pages/admin/AdminAfiliadosPage.tsx`
+- Cards de totais
+- Tabela com sort/filtro por nome
+- Botão "Editar comissão" → dialog que atualiza `commission_percent`
+- Botão "Detalhes" → drawer com lista de indicados + cliques por dia
+- Reusa `ResponsiveTable`
+
+### 6. Rota + menu no admin
+- Adicionar rota `/admin/afiliados` em `App.tsx`
+- Adicionar item no `AdminSidebar.tsx`
+
+### 7. Atualizar `ReferralTracker.tsx`
+Já registra `?ref=`. Adicionar chamada à edge function `track-affiliate-click` na primeira detecção do código (uma vez por sessão, via sessionStorage).
+
+### 8. Atualizar `payment-webhook`
+Quando uma assinatura é aprovada, se o usuário tem entrada em `indicacoes` com `status='pending'`, marcar `converted_at = now()` e `assinatura_id`.
 
 ## Arquivos afetados
 
-- **Novo:** `src/hooks/useRenewalReminder.ts`
-- **Novo:** `src/components/subscription/RenewalReminderDialog.tsx`
-- **Editado:** `src/components/layout/AppLayout.tsx` (1 import + 1 linha JSX)
+**Novos:**
+- `supabase/functions/track-affiliate-click/index.ts`
+- `src/pages/admin/AdminAfiliadosPage.tsx`
+- `src/components/admin/AfiliadoDetailsDrawer.tsx`
+
+**Editados:**
+- `supabase/functions/payment-webhook/index.ts` (marcar conversão)
+- `src/components/referrals/ReferralTracker.tsx` (tracking de clique)
+- `src/components/layout/AdminSidebar.tsx` (item de menu)
+- `src/App.tsx` (rota)
+
+**Migrações SQL:**
+- Criar `afiliado_clicks` + grants + RLS
+- Adicionar `converted_at`, `assinatura_id` em `indicacoes`
+- Criar função `admin_afiliados_stats()`
 
 ## Fora do escopo
-
-- Nenhuma mudança em edge function, banco ou Mercado Pago
-- Sem e-mail/push (já existe campanha de recuperação separada)
-- Sem cobrança automática (continua avulso)
+- Pagamento automático de comissões (só calcula o devido)
+- Saque/financeiro do afiliado (apenas visão admin)
 
 Posso implementar?
