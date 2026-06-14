@@ -26,8 +26,8 @@ interface Anuncio {
 
 export function HeroCarousel() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { data: assinatura } = useAssinatura(user?.id);
+  const { user, loading: authLoading } = useAuth();
+  const { data: assinatura, isLoading: subLoading, isFetching: subFetching } = useAssinatura(user?.id);
   const currentPlan = useMemo(() => {
     const a: any = assinatura;
     if (!a || a.status !== "active") return null;
@@ -48,6 +48,7 @@ export function HeroCarousel() {
     },
     staleTime: 5 * 60 * 1000,
   });
+
 
   const filtered = useMemo(() => {
     if (!anuncios) return [];
