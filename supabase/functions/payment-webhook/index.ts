@@ -630,14 +630,14 @@ serve(async (req) => {
         .eq("user_id", userId)
         .eq("status", "active");
 
-      const { error: insertError } = await supabase.from("assinaturas").insert({
+      const { data: newSub, error: insertError } = await supabase.from("assinaturas").insert({
         user_id: userId,
         plan: planSlug,
         status: "active",
         price: Number(plan.price),
         starts_at: new Date().toISOString(),
         expires_at: expiresAt.toISOString(),
-      });
+      }).select("id").maybeSingle();
 
       if (insertError) {
         console.error("Insert subscription error:", insertError);
@@ -656,10 +656,14 @@ serve(async (req) => {
         const afiliadoId = referral.afiliado_id;
         const indicadorId = (referral as any).afiliados?.user_id;
 
-        // marca a indicação como recompensada
+        // marca a indicação como recompensada + registra conversão
         await supabase
           .from("indicacoes")
-          .update({ status: "rewarded" })
+          .update({
+            status: "rewarded",
+            converted_at: new Date().toISOString(),
+            assinatura_id: newSub?.id || null,
+          })
           .eq("id", referral.id);
 
         // recontagem
