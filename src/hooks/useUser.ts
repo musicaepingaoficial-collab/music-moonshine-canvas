@@ -90,6 +90,13 @@ export function useIsAdmin(userId?: string | null) {
   });
 }
 
+const PLAN_PRIORITY: Record<string, number> = {
+  vitalicio: 4,
+  anual: 3,
+  trimestral: 2,
+  mensal: 1,
+};
+
 export function useAssinatura(userId?: string | null) {
   return useQuery<Assinatura | null>({
     queryKey: ["assinatura", userId],
@@ -98,14 +105,26 @@ export function useAssinatura(userId?: string | null) {
       const { data, error } = await (supabase.from("assinaturas" as any) as any)
         .select("*")
         .eq("user_id", userId)
-        .eq("status", "active")
-        .maybeSingle();
+        .eq("status", "active");
       if (error) throw error;
-      return data as Assinatura | null;
+      const rows = ((data ?? []) as Assinatura[]).filter(
+        (a) => !a.expires_at || new Date(a.expires_at) > new Date()
+      );
+      if (rows.length === 0) return null;
+      rows.sort((a, b) => {
+        const pa = PLAN_PRIORITY[a.plan as string] ?? 0;
+        const pb = PLAN_PRIORITY[b.plan as string] ?? 0;
+        if (pa !== pb) return pb - pa;
+        const ea = a.expires_at ? new Date(a.expires_at).getTime() : Infinity;
+        const eb = b.expires_at ? new Date(b.expires_at).getTime() : Infinity;
+        return eb - ea;
+      });
+      return rows[0];
     },
     enabled: !!userId,
   });
 }
+
 
 /**
  * Returns true when the user has an active, non-expired subscription

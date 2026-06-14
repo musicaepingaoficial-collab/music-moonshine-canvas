@@ -26,8 +26,8 @@ interface Anuncio {
 
 export function HeroCarousel() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { data: assinatura } = useAssinatura(user?.id);
+  const { user, loading: authLoading } = useAuth();
+  const { data: assinatura, isLoading: subLoading, isFetching: subFetching } = useAssinatura(user?.id);
   const currentPlan = useMemo(() => {
     const a: any = assinatura;
     if (!a || a.status !== "active") return null;
@@ -48,6 +48,7 @@ export function HeroCarousel() {
     },
     staleTime: 5 * 60 * 1000,
   });
+
 
   const filtered = useMemo(() => {
     if (!anuncios) return [];
@@ -83,9 +84,10 @@ export function HeroCarousel() {
     });
   }, [emblaApi, filtered.length]);
 
-  if (isLoading) {
+  if (isLoading || authLoading || (user && (subLoading || subFetching))) {
     return <div className="h-40 sm:h-56 md:h-64 w-full animate-pulse rounded-2xl bg-muted/50" />;
   }
+
   if (filtered.length === 0) return null;
 
   return (
