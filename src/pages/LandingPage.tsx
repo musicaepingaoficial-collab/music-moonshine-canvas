@@ -887,7 +887,7 @@ export default function LandingPage() {
               <span className="text-gradient-brand">ter agora o melhor Repertório no Seu Pendrive ?</span>
             </h2>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Mais de 100 mil músicas em 320kbps, atualizações mensais e download em 1 clique
+              Mais de 100 mil músicas, atualizações mensais e download em 1 clique
               esperando por você. Junte-se aos +43 mil profissionais que já garantiram o acesso.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
