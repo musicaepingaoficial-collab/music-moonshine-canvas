@@ -192,7 +192,8 @@ serve(async (req) => {
           cpf: payerCpf,
           whatsapp: payerPhone,
           plan: selectedPlan.slug,
-          price: Number(selectedPlan.price),
+          price: finalPrice,
+
           payment_method: isPix ? "pix" : "card",
           status: "pending",
         })
