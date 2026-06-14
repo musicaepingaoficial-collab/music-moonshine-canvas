@@ -247,12 +247,14 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               installments: formData.installments,
               plan: planSlug,
               device_id: deviceId,
+              coupon_code: appliedCoupon?.codigo,
               payer: {
                 email: formData.payer.email,
                 identification: formData.payer.identification,
                 phone: pixWhatsapp || (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
               },
             });
+
 
             if (result.status === "approved") {
               setStatus("approved");
