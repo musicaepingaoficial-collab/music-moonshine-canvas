@@ -66,7 +66,7 @@ export function HeroCarousel() {
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "start" },
-    [Autoplay({ delay: 5000, stopOnInteraction: false })]
+    [Autoplay({ delay: 5000, stopOnInteraction: true, stopOnMouseEnter: true })]
   );
   const [selected, setSelected] = useState(0);
   const [snaps, setSnaps] = useState<number[]>([]);
