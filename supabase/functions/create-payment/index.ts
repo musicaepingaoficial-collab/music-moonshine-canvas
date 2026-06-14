@@ -118,6 +118,31 @@ serve(async (req) => {
       });
     }
 
+    // ---- Validar cupom no servidor (fonte da verdade) ----
+    let finalPrice = Number(selectedPlan.price);
+    let appliedCoupon: any = null;
+    const couponCodeNorm = String(coupon_code || "").trim().toUpperCase();
+    if (couponCodeNorm) {
+      const { data: cupom } = await supabase
+        .from("cupons")
+        .select("*")
+        .eq("codigo", couponCodeNorm)
+        .eq("ativo", true)
+        .maybeSingle();
+
+      const valid =
+        cupom &&
+        (!cupom.data_expiracao || new Date(cupom.data_expiracao) > new Date()) &&
+        (!cupom.uso_limite || (cupom.uso_atual ?? 0) < cupom.uso_limite);
+
+      if (valid) {
+        appliedCoupon = cupom;
+        const pct = Number(cupom.desconto_percentual) || 0;
+        finalPrice = Math.max(0.5, Number((finalPrice * (1 - pct / 100)).toFixed(2)));
+      }
+    }
+
+
     const fullName = String(payer?.full_name || `${payer?.first_name || ""} ${payer?.last_name || ""}`.trim()).trim();
     const namePartsFromFull = splitFullName(fullName);
     const firstName = String(payer?.first_name || namePartsFromFull?.firstName || "").trim();
