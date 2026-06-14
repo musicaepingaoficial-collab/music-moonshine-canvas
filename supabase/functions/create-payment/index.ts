@@ -250,7 +250,7 @@ serve(async (req) => {
       : `${user.id}:${selectedPlan.slug}`;
 
     const paymentPayload: Record<string, unknown> = {
-      transaction_amount: Number(selectedPlan.price),
+      transaction_amount: finalPrice,
       description: `${selectedPlan.name} - MusicaePinga`,
       payment_method_id: paymentMethodId,
       payer: payerPayload,
