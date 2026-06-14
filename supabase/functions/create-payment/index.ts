@@ -264,7 +264,7 @@ serve(async (req) => {
           description: `Assinatura ${selectedPlan.name}`,
           category_id: "services",
           quantity: 1,
-          unit_price: Number(selectedPlan.price),
+          unit_price: finalPrice,
         }],
         payer: {
           first_name: firstName || undefined,
