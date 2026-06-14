@@ -141,7 +141,10 @@ const AdminAnunciosPage = () => {
         active: form.active,
         plan_slug: form.plan_slug.trim() || null,
         coupon_code: form.coupon_code.trim().toUpperCase() || null,
+        include_plan_slugs: parseSlugs(form.include_plan_slugs),
+        exclude_plan_slugs: parseSlugs(form.exclude_plan_slugs),
       };
+
 
       if (editing) {
         const { error } = await (supabase.from("anuncios" as any) as any)
