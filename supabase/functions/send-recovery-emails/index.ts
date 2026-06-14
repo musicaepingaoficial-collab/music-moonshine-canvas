@@ -65,8 +65,6 @@ serve(async (req) => {
     if (!cfg.enabled) return json({ ok: true, skipped: "campanha desativada" });
 
     // Atualiza conversões: assinaturas criadas após o envio do email
-    await supabase.rpc("update_updated_at_column").catch(() => {});
-    // Usamos um update direto via raw SQL não é possível pela lib; fazemos em duas etapas.
     const { data: pendingConv } = await supabase
       .from("recovery_campaign_log")
       .select("id, user_id, sent_at")
