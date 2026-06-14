@@ -56,8 +56,10 @@ serve(async (req) => {
       plan,
       payer,
       device_id,
-      anonymous, // novo: indica fluxo sem conta
+      anonymous,
+      coupon_code,
     } = body;
+
 
     // ---- Resolver autenticação OU modo anônimo ----
     let user: any = null;
