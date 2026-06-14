@@ -163,7 +163,17 @@ export default function AdminAfiliadosPage() {
           />
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          {isLoading ? (
+          {statsError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              <p className="font-medium">Erro ao carregar afiliados</p>
+              <p className="mt-1 text-xs opacity-80">{errMsg}</p>
+              {isForbidden && (
+                <p className="mt-2 text-xs">
+                  Esta página é restrita a administradores. Verifique se você está logado com uma conta que tem o papel <code>admin</code> em <code>user_roles</code>.
+                </p>
+              )}
+            </div>
+          ) : isLoading ? (
             <p className="text-muted-foreground p-4 text-sm">Carregando...</p>
           ) : filtered.length === 0 ? (
             <p className="text-muted-foreground p-4 text-sm">Nenhum afiliado encontrado.</p>
