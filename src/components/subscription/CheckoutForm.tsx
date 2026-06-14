@@ -422,8 +422,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
   const handleCheckPixPayment = async () => {
     setStatus("processing");
     try {
-      const status = await getSubscriptionStatus();
-      if (status.hasAccess) {
+      const res = pixData?.paymentId ? await getPaymentStatusById(pixData.paymentId) : null;
+      if (res?.status === "approved") {
+
         const txId = pixData?.paymentId ? String(pixData.paymentId) : undefined;
         trackEvent("purchase", {
           event_id: txId,
