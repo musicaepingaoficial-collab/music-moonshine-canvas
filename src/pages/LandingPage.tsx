@@ -354,7 +354,7 @@ export default function LandingPage() {
               <div className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />Acesso imediato</div>
                 <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />7 dias de garantia</div>
-                <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />320 KBPS</div>
+                <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />Alta qualidade</div>
                 <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />Download 1 clique</div>
               </div>
             </motion.div>
