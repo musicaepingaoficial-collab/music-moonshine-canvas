@@ -361,6 +361,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
       const result = await createPixPayment({
         plan: planSlug,
         device_id: deviceId,
+        coupon_code: appliedCoupon?.codigo,
         payer: {
           email,
           first_name: nameParts.firstName,
@@ -372,6 +373,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           },
         },
       });
+
 
       if (result.status === "approved") {
         setStatus("approved");
