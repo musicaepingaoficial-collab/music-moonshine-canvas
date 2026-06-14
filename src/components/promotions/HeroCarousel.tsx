@@ -22,6 +22,8 @@ interface Anuncio {
 
 
 export function HeroCarousel() {
+  const navigate = useNavigate();
+
   const { data: anuncios, isLoading } = useQuery<Anuncio[]>({
     queryKey: ["anuncios", "carousel"],
     queryFn: async () => {
