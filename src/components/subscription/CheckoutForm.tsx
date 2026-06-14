@@ -247,12 +247,14 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
               installments: formData.installments,
               plan: planSlug,
               device_id: deviceId,
+              coupon_code: appliedCoupon?.codigo,
               payer: {
                 email: formData.payer.email,
                 identification: formData.payer.identification,
                 phone: pixWhatsapp || (user?.user_metadata?.whatsapp as string) || (user?.user_metadata?.phone as string),
               },
             });
+
 
             if (result.status === "approved") {
               setStatus("approved");
@@ -359,6 +361,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
       const result = await createPixPayment({
         plan: planSlug,
         device_id: deviceId,
+        coupon_code: appliedCoupon?.codigo,
         payer: {
           email,
           first_name: nameParts.firstName,
@@ -370,6 +373,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           },
         },
       });
+
 
       if (result.status === "approved") {
         setStatus("approved");
@@ -612,11 +616,26 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         </Button>
         <div className="min-w-0">
           <h3 className="font-bold text-foreground truncate">{planName}</h3>
-          <p className="text-sm text-muted-foreground">
-            R$ {planPrice.toFixed(2).replace(".", ",")}
-          </p>
+          {appliedCoupon ? (
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-muted-foreground line-through">
+                R$ {planPrice.toFixed(2).replace(".", ",")}
+              </span>
+              <span className="text-base font-bold text-primary">
+                R$ {finalPrice.toFixed(2).replace(".", ",")}
+              </span>
+              <span className="text-[10px] font-semibold text-emerald-600">
+                -{appliedCoupon.desconto_percentual}%
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              R$ {planPrice.toFixed(2).replace(".", ",")}
+            </p>
+          )}
         </div>
       </div>
+
 
 
       <div className="grid grid-cols-2 gap-2">
@@ -712,7 +731,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           ) : (
             <>
               <Lock className="h-4 w-4" />
-              Garantir Meu Acesso · R$ {planPrice.toFixed(2).replace(".", ",")}
+              Garantir Meu Acesso · R$ {finalPrice.toFixed(2).replace(".", ",")}
             </>
           )}
         </Button>
@@ -772,8 +791,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
             ) : (
               <>
                 <Lock className="h-4 w-4" />
-                Garantir Meu Acesso Agora
+                Garantir Meu Acesso · R$ {finalPrice.toFixed(2).replace(".", ",")}
               </>
+
             )}
           </Button>
           <p className="text-center text-xs text-muted-foreground">

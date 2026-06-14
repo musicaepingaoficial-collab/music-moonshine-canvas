@@ -56,8 +56,10 @@ serve(async (req) => {
       plan,
       payer,
       device_id,
-      anonymous, // novo: indica fluxo sem conta
+      anonymous,
+      coupon_code,
     } = body;
+
 
     // ---- Resolver autenticação OU modo anônimo ----
     let user: any = null;
@@ -116,6 +118,31 @@ serve(async (req) => {
       });
     }
 
+    // ---- Validar cupom no servidor (fonte da verdade) ----
+    let finalPrice = Number(selectedPlan.price);
+    let appliedCoupon: any = null;
+    const couponCodeNorm = String(coupon_code || "").trim().toUpperCase();
+    if (couponCodeNorm) {
+      const { data: cupom } = await supabase
+        .from("cupons")
+        .select("*")
+        .eq("codigo", couponCodeNorm)
+        .eq("ativo", true)
+        .maybeSingle();
+
+      const valid =
+        cupom &&
+        (!cupom.data_expiracao || new Date(cupom.data_expiracao) > new Date()) &&
+        (!cupom.uso_limite || (cupom.uso_atual ?? 0) < cupom.uso_limite);
+
+      if (valid) {
+        appliedCoupon = cupom;
+        const pct = Number(cupom.desconto_percentual) || 0;
+        finalPrice = Math.max(0.5, Number((finalPrice * (1 - pct / 100)).toFixed(2)));
+      }
+    }
+
+
     const fullName = String(payer?.full_name || `${payer?.first_name || ""} ${payer?.last_name || ""}`.trim()).trim();
     const namePartsFromFull = splitFullName(fullName);
     const firstName = String(payer?.first_name || namePartsFromFull?.firstName || "").trim();
@@ -165,7 +192,8 @@ serve(async (req) => {
           cpf: payerCpf,
           whatsapp: payerPhone,
           plan: selectedPlan.slug,
-          price: Number(selectedPlan.price),
+          price: finalPrice,
+
           payment_method: isPix ? "pix" : "card",
           status: "pending",
         })
@@ -222,7 +250,7 @@ serve(async (req) => {
       : `${user.id}:${selectedPlan.slug}`;
 
     const paymentPayload: Record<string, unknown> = {
-      transaction_amount: Number(selectedPlan.price),
+      transaction_amount: finalPrice,
       description: `${selectedPlan.name} - MusicaePinga`,
       payment_method_id: paymentMethodId,
       payer: payerPayload,
@@ -236,7 +264,7 @@ serve(async (req) => {
           description: `Assinatura ${selectedPlan.name}`,
           category_id: "services",
           quantity: 1,
-          unit_price: Number(selectedPlan.price),
+          unit_price: finalPrice,
         }],
         payer: {
           first_name: firstName || undefined,
@@ -306,7 +334,7 @@ serve(async (req) => {
         user_id: user.id,
         plan: selectedPlan.slug,
         status: "active",
-        price: selectedPlan.price,
+        price: finalPrice,
         starts_at: new Date().toISOString(),
         expires_at: expiresAt,
       });
@@ -324,7 +352,7 @@ serve(async (req) => {
 
     if (isPix && transactionData.qr_code) {
       try {
-        const amount = Number(selectedPlan.price).toFixed(2).replace(".", ",");
+        const amount = finalPrice.toFixed(2).replace(".", ",");
         const buyerName = `${firstName} ${lastName}`.trim();
         const who = buyerName || payerEmail || "Cliente";
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-admin-push`, {
@@ -344,7 +372,7 @@ serve(async (req) => {
               plan_slug: selectedPlan.slug,
               plan_name: selectedPlan.name,
               payment_method: "PIX",
-              amount: Number(selectedPlan.price),
+              amount: finalPrice,
               buyer_name: buyerName,
               buyer_email: payerEmail,
               buyer_whatsapp: payerPhone,

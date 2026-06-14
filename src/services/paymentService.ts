@@ -11,6 +11,7 @@ export interface TransparentPaymentData {
   installments: number;
   plan: string;
   device_id?: string;
+  coupon_code?: string;
   payer: {
     email: string;
     first_name?: string;
@@ -19,6 +20,7 @@ export interface TransparentPaymentData {
     identification: { type: string; number: string };
   };
 }
+
 
 export interface PaymentResponse {
   status: string;
@@ -68,6 +70,7 @@ export async function processAnonymousCardPayment(data: TransparentPaymentData):
 
 export interface PixPaymentData {
   plan: string;
+  coupon_code?: string;
   payer: {
     email: string;
     first_name: string;
@@ -76,6 +79,7 @@ export interface PixPaymentData {
     identification: { type: "CPF"; number: string };
   };
 }
+
 
 export async function createPixPayment(data: PixPaymentData & { device_id?: string }): Promise<PaymentResponse> {
   return postPayment({ ...data, payment_method_id: "pix" }, false);
