@@ -118,6 +118,25 @@ export async function getSubscriptionStatus() {
   };
 }
 
+export async function getPaymentStatusById(paymentId: number | string): Promise<{ status: string; status_detail?: string } | null> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ANON_KEY}`,
+        "Content-Type": "application/json",
+        apikey: ANON_KEY,
+      },
+      body: JSON.stringify({ payment_id: paymentId }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+
 // Verifica se um pending_subscription foi aprovado (sem auth)
 export async function getPendingStatus(pendingId: string): Promise<{ status: string } | null> {
   const { data, error } = await supabase
