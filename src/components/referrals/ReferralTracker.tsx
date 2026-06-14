@@ -10,6 +10,21 @@ export const ReferralTracker = () => {
     if (ref) {
       console.log("[referral] Código capturado da URL:", ref);
       localStorage.setItem("referral_code", ref);
+
+      // Rastreia clique (uma vez por sessão por código)
+      const trackKey = `ref_click_tracked_${ref}`;
+      if (!sessionStorage.getItem(trackKey)) {
+        sessionStorage.setItem(trackKey, "1");
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-affiliate-click`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ code: ref, referrer: document.referrer || null }),
+        }).catch((e) => console.warn("[referral] track click err:", e));
+      }
     }
 
     // 2. Escuta mudanças na autenticação para registrar indicações
