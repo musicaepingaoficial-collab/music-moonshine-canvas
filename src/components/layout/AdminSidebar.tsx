@@ -1,4 +1,4 @@
-import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay, Truck, Video, Disc, MessageSquare, MailWarning } from "lucide-react";
+import { Users, CreditCard, Library, HardDrive, DollarSign, LayoutDashboard, FolderOpen, BadgeDollarSign, Settings, Target, Bell, FileText, ImagePlay, Truck, Video, Disc, MessageSquare, MailWarning, Share2 } from "lucide-react";
 import logo from "@/assets/logo.webp";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -33,6 +33,7 @@ const adminItems = [
   { title: "Discografias", url: "/admin/discografias", icon: Disc },
   { title: "Popup", url: "/admin/popup", icon: MessageSquare },
   { title: "Recuperação", url: "/admin/recuperacao", icon: MailWarning },
+  { title: "Afiliados", url: "/admin/afiliados", icon: Share2 },
 ];
 
 export function AdminSidebar() {

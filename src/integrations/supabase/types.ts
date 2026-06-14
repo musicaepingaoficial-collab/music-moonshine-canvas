@@ -173,6 +173,41 @@ export type Database = {
         }
         Relationships: []
       }
+      afiliado_clicks: {
+        Row: {
+          afiliado_id: string
+          created_at: string
+          id: string
+          ip_hash: string | null
+          referrer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          afiliado_id: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          afiliado_id?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "afiliado_clicks_afiliado_id_fkey"
+            columns: ["afiliado_id"]
+            isOneToOne: false
+            referencedRelation: "afiliados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       afiliados: {
         Row: {
           code: string
@@ -548,6 +583,8 @@ export type Database = {
       indicacoes: {
         Row: {
           afiliado_id: string
+          assinatura_id: string | null
+          converted_at: string | null
           created_at: string
           id: string
           referred_user_id: string | null
@@ -555,6 +592,8 @@ export type Database = {
         }
         Insert: {
           afiliado_id: string
+          assinatura_id?: string | null
+          converted_at?: string | null
           created_at?: string
           id?: string
           referred_user_id?: string | null
@@ -562,6 +601,8 @@ export type Database = {
         }
         Update: {
           afiliado_id?: string
+          assinatura_id?: string | null
+          converted_at?: string | null
           created_at?: string
           id?: string
           referred_user_id?: string | null
@@ -573,6 +614,13 @@ export type Database = {
             columns: ["afiliado_id"]
             isOneToOne: false
             referencedRelation: "afiliados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicacoes_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "assinaturas"
             referencedColumns: ["id"]
           },
         ]
@@ -1486,6 +1534,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_afiliado_detail: {
+        Args: { _afiliado_id: string }
+        Returns: {
+          converted_at: string
+          created_at: string
+          indicacao_id: string
+          plan: string
+          price: number
+          referred_email: string
+          referred_name: string
+          referred_user_id: string
+          status: string
+        }[]
+      }
+      admin_afiliados_stats: {
+        Args: never
+        Returns: {
+          afiliado_id: string
+          clicks: number
+          code: string
+          commission_due: number
+          commission_percent: number
+          conversions: number
+          created_at: string
+          email: string
+          name: string
+          revenue: number
+          signups: number
+          user_id: string
+        }[]
+      }
       cleanup_online_users: { Args: never; Returns: undefined }
       has_pdf_access: {
         Args: { _pdf_id: string; _user_id: string }
