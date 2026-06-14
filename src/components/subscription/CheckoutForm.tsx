@@ -6,7 +6,7 @@ import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, C
 import { CheckoutUrgencyBar } from "@/components/subscription/CheckoutUrgencyBar";
 
 import { validateCoupon } from "@/services/couponService";
-import { createPixPayment, getSubscriptionStatus, processTransparentPayment } from "@/services/paymentService";
+import { createPixPayment, getPaymentStatusById, processTransparentPayment } from "@/services/paymentService";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
