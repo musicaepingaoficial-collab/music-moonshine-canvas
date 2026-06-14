@@ -433,7 +433,35 @@ const AdminAnunciosPage = () => {
               </div>
             </div>
 
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="incl">Mostrar apenas para planos</Label>
+                <Input
+                  id="incl"
+                  value={form.include_plan_slugs}
+                  onChange={(e) => setForm({ ...form, include_plan_slugs: e.target.value })}
+                  placeholder="ex.: mensal, anual"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Vazio = todos. Use slugs separados por vírgula. Usuários sem plano contam como vazio.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="excl">Ocultar para planos</Label>
+                <Input
+                  id="excl"
+                  value={form.exclude_plan_slugs}
+                  onChange={(e) => setForm({ ...form, exclude_plan_slugs: e.target.value })}
+                  placeholder="ex.: vitalicio"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Slugs separados por vírgula.
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between rounded-lg border p-3">
+
               <div>
 
                 <Label className="cursor-pointer">Ativo</Label>
