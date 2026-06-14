@@ -121,29 +121,30 @@ const AdminAnunciosPage = () => {
       if (!form.title.trim()) throw new Error("Informe o título");
       if (!form.image_url) throw new Error("Envie uma imagem");
 
+      const payload = {
+        title: form.title.trim(),
+        subtitle: form.subtitle.trim() || null,
+        link: form.link.trim() || null,
+        image_url: form.image_url,
+        active: form.active,
+        plan_slug: form.plan_slug.trim() || null,
+        coupon_code: form.coupon_code.trim().toUpperCase() || null,
+      };
+
       if (editing) {
         const { error } = await (supabase.from("anuncios" as any) as any)
-          .update({
-            title: form.title.trim(),
-            subtitle: form.subtitle.trim() || null,
-            link: form.link.trim() || null,
-            image_url: form.image_url,
-            active: form.active,
-          })
+          .update(payload)
           .eq("id", editing.id);
         if (error) throw error;
       } else {
         const nextPos = (anuncios?.length ?? 0) + 1;
         const { error } = await (supabase.from("anuncios" as any) as any).insert({
-          title: form.title.trim(),
-          subtitle: form.subtitle.trim() || null,
-          link: form.link.trim() || null,
-          image_url: form.image_url,
-          active: form.active,
+          ...payload,
           position: nextPos,
         });
         if (error) throw error;
       }
+
     },
     onSuccess: () => {
       toast.success(editing ? "Banner atualizado" : "Banner criado");
