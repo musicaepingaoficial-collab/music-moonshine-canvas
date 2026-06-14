@@ -1050,6 +1050,39 @@ export type Database = {
         }
         Relationships: []
       }
+      recovery_campaign_log: {
+        Row: {
+          created_at: string
+          email: string
+          error: string | null
+          id: string
+          sent_at: string
+          status: string
+          step: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          error?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          step: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          error?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          step?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       repertorio_musicas: {
         Row: {
           created_at: string
