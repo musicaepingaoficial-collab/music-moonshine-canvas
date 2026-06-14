@@ -200,30 +200,36 @@ export type Database = {
       anuncios: {
         Row: {
           active: boolean
+          coupon_code: string | null
           created_at: string
           id: string
           image_url: string | null
           link: string | null
+          plan_slug: string | null
           position: number
           subtitle: string | null
           title: string
         }
         Insert: {
           active?: boolean
+          coupon_code?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
           link?: string | null
+          plan_slug?: string | null
           position?: number
           subtitle?: string | null
           title: string
         }
         Update: {
           active?: boolean
+          coupon_code?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
           link?: string | null
+          plan_slug?: string | null
           position?: number
           subtitle?: string | null
           title?: string
