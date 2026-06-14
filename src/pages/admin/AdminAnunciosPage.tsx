@@ -90,9 +90,12 @@ const AdminAnunciosPage = () => {
       link: a.link ?? "",
       image_url: a.image_url ?? "",
       active: a.active,
+      plan_slug: a.plan_slug ?? "",
+      coupon_code: a.coupon_code ?? "",
     });
     setOpen(true);
   };
+
 
   const handleUpload = async (file: File) => {
     setUploading(true);
