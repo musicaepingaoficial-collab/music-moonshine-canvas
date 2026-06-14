@@ -8,6 +8,8 @@ import { FolderOpen, Star } from "lucide-react";
 import type { RepertorioWithCount } from "@/hooks/useRepertorios";
 import { Badge } from "@/components/ui/badge";
 import { RepertorioBadge } from "@/components/repertorios/RepertorioBadge";
+import { HeroCarousel } from "@/components/promotions/HeroCarousel";
+
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -22,6 +24,9 @@ const MeusRepertoriosPage = () => {
   return (
     <div className="space-y-8">
       <Banner title="Meus Repertórios" subtitle="Explore coleções de músicas organizadas." />
+
+      <HeroCarousel />
+
 
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
