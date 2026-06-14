@@ -1,26 +1,52 @@
 import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Anuncio } from "@/types/database";
+import { useAuth, useAssinatura } from "@/hooks/useUser";
 
 export function AdBanner({ position = "top" }: { position?: "top" | "inline" }) {
   const [dismissed, setDismissed] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const { data: assinatura, isLoading: subLoading, isFetching: subFetching } = useAssinatura(user?.id);
+
+  const currentPlan = useMemo(() => {
+    const a: any = assinatura;
+    if (!a || a.status !== "active") return null;
+    if (a.expires_at && new Date(a.expires_at) < new Date()) return null;
+    return (a.plan as string) ?? null;
+  }, [assinatura]);
 
   const { data: anuncios } = useQuery<Anuncio[]>({
-    queryKey: ["anuncios", position],
+    queryKey: ["anuncios", position, "list"],
     queryFn: async () => {
       const { data, error } = await (supabase.from("anuncios" as any) as any)
         .select("*")
         .eq("active", true)
-        .limit(1);
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Anuncio[];
     },
     staleTime: 5 * 60 * 1000,
   });
 
-  const ad = anuncios?.[0];
+  const ad = useMemo(() => {
+    if (!anuncios) return undefined;
+    return anuncios.find((a) => {
+      const incl = (a as any).include_plan_slugs ?? [];
+      const excl = (a as any).exclude_plan_slugs ?? [];
+      if (currentPlan && excl.includes(currentPlan)) return false;
+      if (incl.length > 0) {
+        if (!currentPlan || !incl.includes(currentPlan)) return false;
+      }
+      return true;
+    });
+  }, [anuncios, currentPlan]);
+
+  // Wait for auth/subscription before deciding, so we never flash an ad
+  // that should be hidden for the user's current plan.
+  if (authLoading || (user && (subLoading || subFetching))) return null;
   if (!ad || dismissed) return null;
 
   const isTop = position === "top";

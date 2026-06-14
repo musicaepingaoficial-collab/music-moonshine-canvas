@@ -1,59 +1,103 @@
-# Corrigir filtro de plano do banner (Vitalício recebendo "Super Promoção")
+# Plano para impedir o aviso em usuários Vitalício
 
-## Diagnóstico
+## Do I know what the issue is?
 
-O banner está configurado corretamente no admin:
+Sim. O problema não está mais nas duplicatas de assinatura nem no carrossel principal corrigido antes. O aviso da imagem é o componente `AdBanner` exibido no topo do dashboard, antes do `HeroCarousel`.
 
-- `include_plan_slugs = [mensal, trimestral, anual]`
-- `exclude_plan_slugs = [vitalicio]`
+Esse componente busca o primeiro registro ativo de `anuncios` e mostra direto, sem consultar a assinatura do usuário e sem aplicar `include_plan_slugs` / `exclude_plan_slugs`. Por isso o banner “Super Promoção !” continua aparecendo mesmo quando o usuário está como `Vitalício`.
 
-A regra em `HeroCarousel.tsx` depende de `currentPlan`, vindo de `useAssinatura(user.id)` em `src/hooks/useUser.ts`. Esse hook faz:
+## Problema exato
 
-```ts
-.from("assinaturas").select("*").eq("user_id", userId).eq("status","active").maybeSingle()
+No banco, o anúncio está configurado corretamente:
+
+- Mostrar somente para: `mensal`, `trimestral`, `anual`
+- Ocultar para: `vitalicio`
+
+Mas o componente do topo do dashboard ignora esses campos:
+
+```text
+DashboardPage
+  AdBanner position="top"     <- aviso pequeno da imagem, sem filtro de plano
+  HeroCarousel                <- carrossel grande, já com filtro de plano
 ```
 
-Consultando o banco, vários usuários têm **mais de uma assinatura ativa simultânea** (ex.: usuário `7f011c1e…` tem `mensal` E `vitalicio` ativos — admin/allowlist insere `vitalicio` mesmo quando já existia um plano pago). Com múltiplas linhas, `.maybeSingle()` retorna erro/`null`, então:
+O `HeroCarousel` já usa `useAssinatura` e aplica os filtros. O `AdBanner` ainda não.
 
-- `currentPlan` vira `null`
-- a regra `excl.includes(currentPlan)` não bloqueia
-- a regra de include também não bloqueia porque `HeroCarousel` só esconde quando há `include` e plano atual não bate — mas com `currentPlan = null` cai no `return false` do include… **exceto** que muitos usuários vitalícios entram como admin e o `currentPlan` continua `null`, e mesmo assim aparece porque o filtro falha silenciosamente quando `assinatura` vem como `undefined` (loading) — o React Query devolve `undefined` enquanto a query falha, e o componente já renderiza.
+## Mudanças planejadas
 
-Resumo: o problema raiz é `useAssinatura` quebrar/retornar o plano errado quando o usuário tem várias linhas em `assinaturas`.
+### 1. Corrigir `src/components/ads/AdBanner.tsx`
 
-## Mudanças
+Adicionar a mesma lógica de assinatura usada nos outros banners:
 
-### 1. `src/hooks/useUser.ts` — pegar a melhor assinatura ativa
+- Carregar usuário com `useAuth()`.
+- Carregar assinatura com `useAssinatura(user?.id)`.
+- Identificar o plano atual apenas se a assinatura estiver ativa e não expirada.
+- Aplicar `exclude_plan_slugs`:
+  - se o plano atual estiver na lista de exclusão, o anúncio não aparece.
+- Aplicar `include_plan_slugs`:
+  - se a lista tiver planos e o usuário não estiver em um deles, o anúncio não aparece.
+- Enquanto a assinatura estiver carregando, não renderizar o aviso, para evitar aparecer por alguns segundos antes do filtro ser calculado.
 
-Substituir `.maybeSingle()` por busca de lista e seleção determinística:
+### 2. Ajustar a busca de anúncios do topo
 
-- `select("*").eq("user_id", userId).eq("status","active")`
-- Em JS, filtrar `expires_at` no futuro ou `null`.
-- Ordenar com prioridade: `vitalicio` > `anual` > `trimestral` > `mensal`.
-- Como desempate, `expires_at` mais distante (NULL = infinito).
-- Retornar a primeira; se nenhuma, `null`.
+Hoje o `AdBanner` pega apenas o primeiro anúncio ativo com `.limit(1)`. Isso pode esconder todos os anúncios se o primeiro for excluído para o plano atual.
 
-Aplicar a mesma lógica em `useHasActiveSubscription` se necessário (já usa o mesmo hook, então herda a correção).
+Alterar para:
 
-### 2. `src/components/promotions/HeroCarousel.tsx` — endurecer filtro
+- Buscar os anúncios ativos ordenados por `position` e `created_at`.
+- Filtrar no frontend conforme o plano do usuário.
+- Mostrar o primeiro anúncio elegível.
 
-- Enquanto `isLoading` ou `assinatura === undefined` (query ainda carregando), **não renderizar** o carrossel para evitar flash que ignora regras de plano.
-- Quando `include_plan_slugs` está definido e o usuário não tem plano ativo, esconder (já faz).
-- Quando `exclude_plan_slugs` inclui o plano atual, esconder (já faz, mas agora `currentPlan` virá correto).
+Assim, se existir um banner específico para Vitalício no futuro, ele poderá aparecer; o banner de promoção de Vitalício continuará bloqueado para quem já é Vitalício.
 
-### 3. (Opcional, não obrigatório agora) — limpar duplicatas em `assinaturas`
+### 3. Reutilizar a regra para evitar novo erro
 
-Não vamos alterar dados; só corrigir o frontend para lidar com múltiplas linhas. O trigger `assign_admin_for_allowlisted_email` continua criando `vitalicio` para admins; o hook passa a respeitar a melhor opção.
+Criar uma função pequena no próprio `AdBanner.tsx` ou em um utilitário compartilhado, se fizer sentido, para padronizar:
 
-## Arquivos alterados
+```text
+anúncio visível quando:
+  plano atual NÃO está em exclude_plan_slugs
+  E, se include_plan_slugs tiver itens, plano atual está em include_plan_slugs
+```
 
-- `src/hooks/useUser.ts`
-- `src/components/promotions/HeroCarousel.tsx`
+Manter a mudança pequena e focada para não alterar outras áreas sem necessidade.
 
-Sem migrations, sem mudanças de RLS.
+### 4. Não mexer no banco agora
 
-## Validação
+Não é necessário alterar dados nem criar nova migration para resolver este caso, porque:
 
-- Logar como usuário vitalício → banner "Super Promoção" **não aparece** no dashboard.
-- Logar como mensal/trimestral/anual → banner aparece e clica para `/ofertas`.
-- Logar como visitante sem plano ativo → banner não aparece (include exige plano pago).
+- O anúncio já está configurado corretamente.
+- As assinaturas Vitalício já aparecem corretamente no banco.
+- O erro está no componente que renderiza o aviso no dashboard.
+
+## Arquivos que serão alterados
+
+- `src/components/ads/AdBanner.tsx`
+
+## Validação após aplicar
+
+1. Usuário `Vitalício`:
+   - O aviso “Super Promoção !” do topo do dashboard não aparece.
+   - O selo `Vitalício` continua aparecendo no topo da tela.
+
+2. Usuário `mensal`, `trimestral` ou `anual`:
+   - O aviso pode aparecer normalmente, porque está incluído para esses planos.
+
+3. Usuário sem assinatura ativa:
+   - O aviso não aparece se o anúncio tiver `include_plan_slugs` preenchido.
+
+4. Banco:
+   - Nenhuma alteração de dados é necessária.
+   - A configuração atual do anúncio continua sendo respeitada.
+
+## Resultado esperado
+
+Depois da implementação, o banner/aviso da imagem deixará de aparecer para todos os usuários com plano `vitalicio`, inclusive no topo do dashboard.
+
+<presentation-actions>
+  <presentation-open-history>View History</presentation-open-history>
+</presentation-actions>
+
+<presentation-actions>
+<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
+</presentation-actions>
