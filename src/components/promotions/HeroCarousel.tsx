@@ -81,18 +81,19 @@ export function HeroCarousel() {
       setSnaps(emblaApi.scrollSnapList());
       onSelect();
     });
-  }, [emblaApi, anuncios?.length]);
+  }, [emblaApi, filtered.length]);
 
   if (isLoading) {
     return <div className="h-40 sm:h-56 md:h-64 w-full animate-pulse rounded-2xl bg-muted/50" />;
   }
-  if (!anuncios || anuncios.length === 0) return null;
+  if (filtered.length === 0) return null;
 
   return (
     <div className="relative">
       <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
         <div className="flex">
-          {anuncios.map((ad) => {
+          {filtered.map((ad) => {
+
             const inner = (
               <div className="relative h-40 sm:h-56 md:h-64 lg:h-72 w-full overflow-hidden">
                 <img
