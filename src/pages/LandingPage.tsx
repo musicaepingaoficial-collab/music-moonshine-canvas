@@ -329,7 +329,7 @@ export default function LandingPage() {
               </h1>
 
               <p className="mt-5 sm:mt-6 text-base sm:text-lg text-muted-foreground max-w-xl lg:max-w-[560px] mx-auto lg:mx-0 leading-relaxed">
-                Mais de <span className="text-foreground font-semibold">100 mil músicas em 320kbps</span>,
+                Mais de <span className="text-foreground font-semibold">100 mil músicas</span>,
                 organizadas, atualizadas e prontas para download. Pare de perder tempo procurando
                 música em sites quebrados.
               </p>
