@@ -37,6 +37,8 @@ interface Anuncio {
   active: boolean;
   position: number;
   created_at: string;
+  plan_slug: string | null;
+  coupon_code: string | null;
 }
 
 const empty = {
@@ -45,7 +47,10 @@ const empty = {
   link: "",
   image_url: "",
   active: true,
+  plan_slug: "",
+  coupon_code: "",
 };
+
 
 const AdminAnunciosPage = () => {
   const qc = useQueryClient();
