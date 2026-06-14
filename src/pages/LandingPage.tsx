@@ -81,7 +81,7 @@ const TESTIMONIALS = [
   { name: "Rafael 'RM Som'", role: "Dono de Paredão — Recife/PE", text: "Os pack de funk e arrocha tão sempre atualizados. Atualização todo mês mesmo. Vale cada centavo do vitalício.", rating: 5 },
   { name: "Juliana Reis", role: "Criadora de Conteúdo", text: "Uso pra trilha dos meus reels. A organização por estilo é absurda, acho qualquer coisa em segundos.", rating: 5 },
   { name: "Edinho Marques", role: "Som Automotivo — Goiânia/GO", text: "Comprei o vitalício mês passado. Já economizei mais do que paguei só não comprando avulso. Recomendo demais.", rating: 5 },
-  { name: "Bruno Campos", role: "DJ de Casamento", text: "Flashback, MPB, sertanejo raiz, eletrônica… o cara achar tudo isso em 320kbps num só lugar é coisa rara.", rating: 5 },
+  { name: "Bruno Campos", role: "DJ de Casamento", text: "Flashback, MPB, sertanejo raiz, eletrônica… o cara achar tudo isso num só lugar é coisa rara.", rating: 5 },
   { name: "Patrícia Lima", role: "Produtora de Eventos", text: "Painel super profissional. Suporte responde rápido e o sistema nunca cai. Indispensável pra quem trabalha com música.", rating: 5 },
 ];
 
