@@ -828,7 +828,10 @@ serve(async (req) => {
       } catch (err) {
         console.error("[push purchase] erro:", err);
       }
+      }
     }
+
+
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
