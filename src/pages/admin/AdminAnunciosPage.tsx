@@ -39,6 +39,8 @@ interface Anuncio {
   created_at: string;
   plan_slug: string | null;
   coupon_code: string | null;
+  include_plan_slugs: string[] | null;
+  exclude_plan_slugs: string[] | null;
 }
 
 const empty = {
@@ -49,7 +51,14 @@ const empty = {
   active: true,
   plan_slug: "",
   coupon_code: "",
+  include_plan_slugs: "",
+  exclude_plan_slugs: "",
 };
+
+const parseSlugs = (s: string): string[] =>
+  s.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+
+
 
 
 const AdminAnunciosPage = () => {
