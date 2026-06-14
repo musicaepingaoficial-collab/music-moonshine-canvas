@@ -731,7 +731,7 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
           ) : (
             <>
               <Lock className="h-4 w-4" />
-              Garantir Meu Acesso · R$ {planPrice.toFixed(2).replace(".", ",")}
+              Garantir Meu Acesso · R$ {finalPrice.toFixed(2).replace(".", ",")}
             </>
           )}
         </Button>
