@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,7 +16,10 @@ interface Anuncio {
   active: boolean;
   position: number;
   created_at: string;
+  plan_slug: string | null;
+  coupon_code: string | null;
 }
+
 
 export function HeroCarousel() {
   const { data: anuncios, isLoading } = useQuery<Anuncio[]>({
