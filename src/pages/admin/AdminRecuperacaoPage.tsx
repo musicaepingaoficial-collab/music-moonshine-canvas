@@ -313,9 +313,16 @@ function RecipientsTable() {
     queryFn: () => call("recipients", { step: step || undefined, status: status || undefined, q: q || undefined, page, pageSize: 50 }),
   });
 
+  const rows = dataQ.data?.rows ?? [];
+  const exportCsv = () => {
+    const csv = toCSV(rows, ["name", "email", "step", "status", "sent_at", "opened_at", "converted_at", "error"]);
+    downloadCSV(`destinatarios-${new Date().toISOString().slice(0,10)}.csv`, csv);
+  };
+
   return (
     <Card>
       <CardHeader>
+        <CardTitle className="mb-3">Já receberam</CardTitle>
         <div className="flex flex-wrap items-center gap-2">
           <Input placeholder="Buscar email..." value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} className="w-64" />
           <select value={step} onChange={(e) => { setStep(e.target.value); setPage(1); }} className="border rounded px-2 py-1 bg-background">
@@ -328,37 +335,49 @@ function RecipientsTable() {
             <option value="converted">Convertidos</option>
             <option value="failed">Falhas</option>
           </select>
-          <Badge variant="outline" className="ml-auto">Total: {dataQ.data?.total ?? 0}</Badge>
+          <Badge variant="outline">Total: {dataQ.data?.total ?? 0}</Badge>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="ml-auto">
+            <Download className="h-4 w-4 mr-2" /> CSV
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Step</TableHead><TableHead>Status</TableHead><TableHead>Enviado</TableHead><TableHead>Aberto</TableHead><TableHead>Convertido</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(dataQ.data?.rows ?? []).map((r: any) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.name ?? "—"}</TableCell>
-                <TableCell className="font-mono text-xs">{r.email}</TableCell>
-                <TableCell><Badge variant="outline">{r.step}</Badge></TableCell>
-                <TableCell>
-                  <Badge variant={r.status === "sent" ? "default" : r.status === "failed" ? "destructive" : "secondary"}>{r.status}</Badge>
-                </TableCell>
-                <TableCell className="text-xs">{r.sent_at ? new Date(r.sent_at).toLocaleString() : "—"}</TableCell>
-                <TableCell className="text-xs">{r.opened_at ? new Date(r.opened_at).toLocaleString() : "—"}</TableCell>
-                <TableCell className="text-xs">{r.converted_at ? new Date(r.converted_at).toLocaleString() : "—"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <div className="flex justify-between items-center mt-3">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-          <span className="text-sm text-muted-foreground">Página {page}</span>
-          <Button variant="outline" size="sm" disabled={(dataQ.data?.rows?.length ?? 0) < 50} onClick={() => setPage(p => p + 1)}>Próxima</Button>
-        </div>
+        {dataQ.isLoading && <Skeleton className="h-40 w-full" />}
+        {dataQ.isError && <ErrorBox error={dataQ.error} />}
+        {!dataQ.isLoading && !dataQ.isError && rows.length === 0 && (
+          <div className="text-sm text-muted-foreground py-8 text-center">Nenhum envio registrado ainda.</div>
+        )}
+        {rows.length > 0 && (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Step</TableHead><TableHead>Status</TableHead><TableHead>Enviado</TableHead><TableHead>Aberto</TableHead><TableHead>Convertido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r: any) => (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.name ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{r.email}</TableCell>
+                    <TableCell><Badge variant="outline">{r.step}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant={r.status === "sent" ? "default" : r.status === "failed" ? "destructive" : "secondary"}>{r.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs">{r.sent_at ? new Date(r.sent_at).toLocaleString() : "—"}</TableCell>
+                    <TableCell className="text-xs">{r.opened_at ? new Date(r.opened_at).toLocaleString() : "—"}</TableCell>
+                    <TableCell className="text-xs">{r.converted_at ? new Date(r.converted_at).toLocaleString() : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex justify-between items-center mt-3">
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
+              <span className="text-sm text-muted-foreground">Página {page}</span>
+              <Button variant="outline" size="sm" disabled={rows.length < 50} onClick={() => setPage(p => p + 1)}>Próxima</Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
