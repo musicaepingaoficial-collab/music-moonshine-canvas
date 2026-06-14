@@ -101,9 +101,12 @@ const AdminAnunciosPage = () => {
       active: a.active,
       plan_slug: a.plan_slug ?? "",
       coupon_code: a.coupon_code ?? "",
+      include_plan_slugs: (a.include_plan_slugs ?? []).join(", "),
+      exclude_plan_slugs: (a.exclude_plan_slugs ?? []).join(", "),
     });
     setOpen(true);
   };
+
 
 
   const handleUpload = async (file: File) => {
