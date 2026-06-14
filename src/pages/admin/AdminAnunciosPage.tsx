@@ -39,6 +39,8 @@ interface Anuncio {
   created_at: string;
   plan_slug: string | null;
   coupon_code: string | null;
+  include_plan_slugs: string[] | null;
+  exclude_plan_slugs: string[] | null;
 }
 
 const empty = {
@@ -49,7 +51,14 @@ const empty = {
   active: true,
   plan_slug: "",
   coupon_code: "",
+  include_plan_slugs: "",
+  exclude_plan_slugs: "",
 };
+
+const parseSlugs = (s: string): string[] =>
+  s.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+
+
 
 
 const AdminAnunciosPage = () => {
@@ -92,9 +101,12 @@ const AdminAnunciosPage = () => {
       active: a.active,
       plan_slug: a.plan_slug ?? "",
       coupon_code: a.coupon_code ?? "",
+      include_plan_slugs: (a.include_plan_slugs ?? []).join(", "),
+      exclude_plan_slugs: (a.exclude_plan_slugs ?? []).join(", "),
     });
     setOpen(true);
   };
+
 
 
   const handleUpload = async (file: File) => {
@@ -129,7 +141,10 @@ const AdminAnunciosPage = () => {
         active: form.active,
         plan_slug: form.plan_slug.trim() || null,
         coupon_code: form.coupon_code.trim().toUpperCase() || null,
+        include_plan_slugs: parseSlugs(form.include_plan_slugs),
+        exclude_plan_slugs: parseSlugs(form.exclude_plan_slugs),
       };
+
 
       if (editing) {
         const { error } = await (supabase.from("anuncios" as any) as any)
@@ -418,7 +433,35 @@ const AdminAnunciosPage = () => {
               </div>
             </div>
 
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="incl">Mostrar apenas para planos</Label>
+                <Input
+                  id="incl"
+                  value={form.include_plan_slugs}
+                  onChange={(e) => setForm({ ...form, include_plan_slugs: e.target.value })}
+                  placeholder="ex.: mensal, anual"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Vazio = todos. Use slugs separados por vírgula. Usuários sem plano contam como vazio.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="excl">Ocultar para planos</Label>
+                <Input
+                  id="excl"
+                  value={form.exclude_plan_slugs}
+                  onChange={(e) => setForm({ ...form, exclude_plan_slugs: e.target.value })}
+                  placeholder="ex.: vitalicio"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Slugs separados por vírgula.
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between rounded-lg border p-3">
+
               <div>
 
                 <Label className="cursor-pointer">Ativo</Label>

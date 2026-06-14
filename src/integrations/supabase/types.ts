@@ -202,8 +202,10 @@ export type Database = {
           active: boolean
           coupon_code: string | null
           created_at: string
+          exclude_plan_slugs: string[]
           id: string
           image_url: string | null
+          include_plan_slugs: string[]
           link: string | null
           plan_slug: string | null
           position: number
@@ -214,8 +216,10 @@ export type Database = {
           active?: boolean
           coupon_code?: string | null
           created_at?: string
+          exclude_plan_slugs?: string[]
           id?: string
           image_url?: string | null
+          include_plan_slugs?: string[]
           link?: string | null
           plan_slug?: string | null
           position?: number
@@ -226,8 +230,10 @@ export type Database = {
           active?: boolean
           coupon_code?: string | null
           created_at?: string
+          exclude_plan_slugs?: string[]
           id?: string
           image_url?: string | null
+          include_plan_slugs?: string[]
           link?: string | null
           plan_slug?: string | null
           position?: number

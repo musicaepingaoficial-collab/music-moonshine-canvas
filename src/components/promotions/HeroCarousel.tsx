@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { useQuery } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth, useAssinatura } from "@/hooks/useUser";
 
 interface Anuncio {
   id: string;
@@ -18,11 +19,21 @@ interface Anuncio {
   created_at: string;
   plan_slug: string | null;
   coupon_code: string | null;
+  include_plan_slugs: string[] | null;
+  exclude_plan_slugs: string[] | null;
 }
 
 
 export function HeroCarousel() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: assinatura } = useAssinatura(user?.id);
+  const currentPlan = useMemo(() => {
+    const a: any = assinatura;
+    if (!a || a.status !== "active") return null;
+    if (a.expires_at && new Date(a.expires_at) < new Date()) return null;
+    return (a.plan as string) ?? null;
+  }, [assinatura]);
 
   const { data: anuncios, isLoading } = useQuery<Anuncio[]>({
     queryKey: ["anuncios", "carousel"],
@@ -37,6 +48,21 @@ export function HeroCarousel() {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  const filtered = useMemo(() => {
+    if (!anuncios) return [];
+    return anuncios.filter((ad) => {
+      const incl = ad.include_plan_slugs ?? [];
+      const excl = ad.exclude_plan_slugs ?? [];
+      if (currentPlan && excl.includes(currentPlan)) return false;
+      if (incl.length > 0) {
+        if (!currentPlan || !incl.includes(currentPlan)) return false;
+      }
+      return true;
+    });
+  }, [anuncios, currentPlan]);
+
+
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "start" },
@@ -55,18 +81,19 @@ export function HeroCarousel() {
       setSnaps(emblaApi.scrollSnapList());
       onSelect();
     });
-  }, [emblaApi, anuncios?.length]);
+  }, [emblaApi, filtered.length]);
 
   if (isLoading) {
     return <div className="h-40 sm:h-56 md:h-64 w-full animate-pulse rounded-2xl bg-muted/50" />;
   }
-  if (!anuncios || anuncios.length === 0) return null;
+  if (filtered.length === 0) return null;
 
   return (
     <div className="relative">
       <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
         <div className="flex">
-          {anuncios.map((ad) => {
+          {filtered.map((ad) => {
+
             const inner = (
               <div className="relative h-40 sm:h-56 md:h-64 lg:h-72 w-full overflow-hidden">
                 <img
@@ -128,7 +155,7 @@ export function HeroCarousel() {
         </div>
       </div>
 
-      {anuncios.length > 1 && (
+      {filtered.length > 1 && (
         <>
           <button
             type="button"
