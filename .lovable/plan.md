@@ -1,46 +1,61 @@
-# Plano: corrigir Configurações + visualizar destinatários
+# Popup de Renovação Próxima do Vencimento
 
-## Diagnóstico
+Mantém pagamento avulso e adiciona aviso visual conforme o plano se aproxima do fim, com botão "Renovar agora" que abre o checkout.
 
-Verifiquei o banco e a configuração existe (`recovery_campaign_config.id='default'`, `enabled=true`, textos preenchidos). Então a aba **Configuração** aparecer vazia tem 2 causas prováveis:
+## Como vai funcionar (visão do usuário)
 
-1. **A edge function `recovery-campaign-admin` nunca foi chamada com sucesso** (sem logs). Ela usa `corsHeadersFor` de `_shared/cors.ts`, mas o resto do projeto usa o padrão `corsHeaders` direto — possível erro silencioso de import/CORS fazendo o `supabase.functions.invoke` falhar antes de chegar ao backend.
-2. **Autorização**: a função exige Bearer token de admin. Se o token não está sendo enviado (invoke do SDK envia), retorna 401 e o React Query mostra tudo vazio sem feedback.
+Quando o usuário logado tem uma assinatura ativa prestes a vencer, um popup aparece no app:
 
-A aba **Destinatários** também depende da mesma função, então cai no mesmo problema.
+- **7 dias antes** — Popup amarelo: "Seu plano vence em 7 dias"
+- **5 dias antes** — Popup laranja: "Faltam 5 dias para seu plano vencer"
+- **3 dias antes** — Popup laranja forte: "Apenas 3 dias restantes"
+- **1 dia antes** — Popup vermelho: "Seu plano vence amanhã!"
 
-## O que vou fazer
+Cada popup tem:
+- Mensagem clara com dias restantes
+- Botão grande **"Renovar agora"** → abre o dialog de checkout (mesmo fluxo do `SubscriptionDialog`)
+- Botão secundário **"Lembrar depois"** → fecha por 24h
 
-### 1. Robustecer a edge function `recovery-campaign-admin`
-- Trocar `corsHeadersFor` por CORS inline padrão (mesmo padrão das outras functions do projeto), garantindo que não há erro de import.
-- Logar cada `action` recebida + user.id no início (debug rápido via Edge logs).
-- Retornar erro 401 explícito com `reason` ("missing token" | "not admin") em vez de só "Unauthorized".
+Regra: o popup de cada marco aparece **uma vez por dia** (não fica perturbando a cada navegação). Se o usuário já clicou em "Lembrar depois" hoje, só volta amanhã.
 
-### 2. Mostrar feedback no frontend quando a config/lista falhar
-- Em `AdminRecuperacaoPage`, exibir mensagem de erro (vermelha) quando `cfgQ.isError`, `statsQ.isError`, etc., com o `error.message` — hoje silenciosamente mostra vazio.
-- Skeleton/loader nas abas enquanto carrega.
+## Implementação técnica
 
-### 3. Melhorar a aba **Destinatários** ("para quem vai ser enviado")
-Hoje só lista o `recovery_campaign_log` (quem já recebeu). Vou separar em dois blocos claros:
+### 1. Hook `useRenewalReminder`
+Novo arquivo `src/hooks/useRenewalReminder.ts`:
+- Lê assinatura ativa do usuário (já existe via `getSubscriptionStatus`)
+- Ignora plano `vitalicio` (sem `expires_at`)
+- Calcula `daysLeft = ceil((expires_at - now) / 86400000)`
+- Define `milestone` se `daysLeft ∈ {7,5,3,1}`
+- Verifica `localStorage` chave `renewal_reminder_dismissed_{milestone}_{YYYY-MM-DD}` para não repetir no mesmo dia
+- Retorna `{ show, daysLeft, milestone, dismiss(), openCheckout() }`
 
-**Bloco A — "Vão receber na próxima execução"** (já existe como "Próximos envios", vou mover/duplicar pra ficar visível também em Destinatários):
-- Tabela com Nome, Email, Step a ser enviado, Motivo, Data prevista de envio.
-- Contador total no topo + botão **"Exportar CSV"**.
-- Botão **"Disparar agora"** para essa lista.
+### 2. Componente `RenewalReminderDialog`
+Novo `src/components/subscription/RenewalReminderDialog.tsx`:
+- Usa `Dialog` do shadcn
+- Variantes de cor por `milestone` (7=amarelo, 5=laranja, 3=laranja-forte, 1=vermelho via tokens semânticos do `index.css`)
+- Ícone `Clock` / `AlertTriangle` (lucide-react)
+- Texto dinâmico por marco
+- Botão primário "Renovar agora" → fecha e abre `SubscriptionDialog` já existente
+- Botão "Lembrar depois" → grava dismissal no localStorage
 
-**Bloco B — "Já receberam"** (atual tabela), mantida com os filtros existentes (step, status, busca por email).
+### 3. Integração no `AppLayout`
+Em `src/components/layout/AppLayout.tsx`:
+- Adicionar `<RenewalReminderDialog />` no final
+- O componente se auto-controla via hook (sem props)
 
-### 4. Aumentar limite da prévia de elegíveis
-- Hoje `eligible` retorna apenas 200 (`rows.slice(0, 200)`). Vou paginar e retornar `total` real, mostrando "X usuários no total, exibindo primeiros 200".
-- Adicionar filtro por step (1/2/3) na aba.
-
-### 5. Verificação final
-- Após o deploy, chamar `recovery-campaign-admin` via `curl_edge_functions` com `get_config`, `eligible` e `stats` para confirmar que retornam dados.
-- Verificar logs da função.
+### 4. Reaproveitamento
+Reusa o `SubscriptionDialog` existente para o checkout — zero código novo de pagamento.
 
 ## Arquivos afetados
-- `supabase/functions/recovery-campaign-admin/index.ts` — CORS, logs, paginação de eligible.
-- `src/pages/admin/AdminRecuperacaoPage.tsx` — tratamento de erro, skeleton, aba Destinatários reorganizada, export CSV.
+
+- **Novo:** `src/hooks/useRenewalReminder.ts`
+- **Novo:** `src/components/subscription/RenewalReminderDialog.tsx`
+- **Editado:** `src/components/layout/AppLayout.tsx` (1 import + 1 linha JSX)
 
 ## Fora do escopo
-- Mudanças no envio (`send-recovery-emails`) e no schema do banco — está tudo correto e populado.
+
+- Nenhuma mudança em edge function, banco ou Mercado Pago
+- Sem e-mail/push (já existe campanha de recuperação separada)
+- Sem cobrança automática (continua avulso)
+
+Posso implementar?

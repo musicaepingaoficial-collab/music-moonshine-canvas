@@ -6,6 +6,7 @@ import { MusicPlayer } from "@/components/player/MusicPlayer";
 import { InstallBanner } from "@/components/pwa/InstallBanner";
 import { WelcomePopup } from "@/components/popup/WelcomePopup";
 import { DemoBanner } from "@/components/demo/DemoBanner";
+import { RenewalReminderDialog } from "@/components/subscription/RenewalReminderDialog";
 import { useAdminPushAutoSync } from "@/hooks/useAdminPushAutoSync";
 
 
@@ -26,7 +27,7 @@ export function AppLayout() {
       <MusicPlayer />
       <InstallBanner />
       <WelcomePopup />
-      
+      <RenewalReminderDialog />
     </SidebarProvider>
   );
 }
