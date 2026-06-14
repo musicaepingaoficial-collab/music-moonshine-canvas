@@ -334,7 +334,7 @@ serve(async (req) => {
         user_id: user.id,
         plan: selectedPlan.slug,
         status: "active",
-        price: selectedPlan.price,
+        price: finalPrice,
         starts_at: new Date().toISOString(),
         expires_at: expiresAt,
       });
