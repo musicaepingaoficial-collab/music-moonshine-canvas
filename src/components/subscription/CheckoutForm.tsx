@@ -6,7 +6,7 @@ import { Loader2, CreditCard, ArrowLeft, CheckCircle2, XCircle, Clock, QrCode, C
 import { CheckoutUrgencyBar } from "@/components/subscription/CheckoutUrgencyBar";
 
 import { validateCoupon } from "@/services/couponService";
-import { createPixPayment, getSubscriptionStatus, processTransparentPayment } from "@/services/paymentService";
+import { createPixPayment, getPaymentStatusById, processTransparentPayment } from "@/services/paymentService";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/pixels";
@@ -148,16 +148,17 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     if (status === "pending" && paymentMethod === "pix" && pixData?.paymentId) {
       interval = window.setInterval(async () => {
         try {
-          const status = await getSubscriptionStatus();
-          if (status.hasAccess) {
+          const res = await getPaymentStatusById(pixData.paymentId!);
+          if (res?.status === "approved") {
             toast.success("Pagamento confirmado automaticamente! Acesso liberado.");
             onSuccess();
           }
         } catch (err) {
           console.error("Error polling payment status:", err);
         }
-      }, 7000); // Check every 7 seconds
+      }, 7000);
     }
+
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -421,8 +422,9 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
   const handleCheckPixPayment = async () => {
     setStatus("processing");
     try {
-      const status = await getSubscriptionStatus();
-      if (status.hasAccess) {
+      const res = pixData?.paymentId ? await getPaymentStatusById(pixData.paymentId) : null;
+      if (res?.status === "approved") {
+
         const txId = pixData?.paymentId ? String(pixData.paymentId) : undefined;
         trackEvent("purchase", {
           event_id: txId,
