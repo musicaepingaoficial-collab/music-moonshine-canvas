@@ -382,16 +382,42 @@ const AdminAnunciosPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="l">Link (opcional)</Label>
+              <Label htmlFor="l">Link externo (opcional)</Label>
               <Input
                 id="l"
                 value={form.link}
                 onChange={(e) => setForm({ ...form, link: e.target.value })}
-                placeholder="https://..."
+                placeholder="https://... (ignorado se você preencher um plano abaixo)"
               />
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="plan">Plano alvo (opcional)</Label>
+                <Input
+                  id="plan"
+                  value={form.plan_slug}
+                  onChange={(e) => setForm({ ...form, plan_slug: e.target.value })}
+                  placeholder="ex.: vitalicio, anual, mensal"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se preenchido, o clique abre o checkout deste plano.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coupon">Cupom (opcional)</Label>
+                <Input
+                  id="coupon"
+                  value={form.coupon_code}
+                  onChange={(e) => setForm({ ...form, coupon_code: e.target.value.toUpperCase() })}
+                  placeholder="ex.: PROMO20"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Aplicado automaticamente no checkout.
+                </p>
+              </div>
+            </div>
+
               <div>
                 <Label className="cursor-pointer">Ativo</Label>
                 <p className="text-xs text-muted-foreground">
