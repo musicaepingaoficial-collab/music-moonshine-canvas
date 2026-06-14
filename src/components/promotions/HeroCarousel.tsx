@@ -84,9 +84,10 @@ export function HeroCarousel() {
     });
   }, [emblaApi, filtered.length]);
 
-  if (isLoading) {
+  if (isLoading || authLoading || (user && (subLoading || subFetching))) {
     return <div className="h-40 sm:h-56 md:h-64 w-full animate-pulse rounded-2xl bg-muted/50" />;
   }
+
   if (filtered.length === 0) return null;
 
   return (
