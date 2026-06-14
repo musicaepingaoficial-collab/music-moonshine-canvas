@@ -71,7 +71,7 @@ const FEATURES = [
   { icon: RefreshCw, title: "Atualizações mensais", desc: "Receba os hits novos direto no seu painel todos os meses." },
   { icon: Crown, title: "Acesso vitalício disponível", desc: "Pague uma vez e tenha o painel para sempre, sem mensalidade." },
   { icon: Smartphone, title: "Funciona no celular", desc: "Sem instalar app. Acesse de qualquer lugar, no celular ou PC." },
-  { icon: Music2, title: "MP3 em 320 KBPS", desc: "Áudio limpo, profissional, com capinha em todas as faixas." },
+  { icon: Music2, title: "Áudio de qualidade", desc: "Faixas limpas, profissionais, com capinha em todas as músicas." },
   { icon: Library, title: "Packs completos", desc: "Discografias, coletâneas e packs prontos para o seu evento." },
   { icon: Zap, title: "Acesso imediato", desc: "Pagou, recebeu o login. Comece a baixar em segundos." },
 ];
@@ -81,7 +81,7 @@ const TESTIMONIALS = [
   { name: "Rafael 'RM Som'", role: "Dono de Paredão — Recife/PE", text: "Os pack de funk e arrocha tão sempre atualizados. Atualização todo mês mesmo. Vale cada centavo do vitalício.", rating: 5 },
   { name: "Juliana Reis", role: "Criadora de Conteúdo", text: "Uso pra trilha dos meus reels. A organização por estilo é absurda, acho qualquer coisa em segundos.", rating: 5 },
   { name: "Edinho Marques", role: "Som Automotivo — Goiânia/GO", text: "Comprei o vitalício mês passado. Já economizei mais do que paguei só não comprando avulso. Recomendo demais.", rating: 5 },
-  { name: "Bruno Campos", role: "DJ de Casamento", text: "Flashback, MPB, sertanejo raiz, eletrônica… o cara achar tudo isso em 320kbps num só lugar é coisa rara.", rating: 5 },
+  { name: "Bruno Campos", role: "DJ de Casamento", text: "Flashback, MPB, sertanejo raiz, eletrônica… o cara achar tudo isso num só lugar é coisa rara.", rating: 5 },
   { name: "Patrícia Lima", role: "Produtora de Eventos", text: "Painel super profissional. Suporte responde rápido e o sistema nunca cai. Indispensável pra quem trabalha com música.", rating: 5 },
 ];
 
@@ -90,7 +90,7 @@ const FAQ = [
   { q: "Funciona no celular?", a: "Funciona perfeitamente. O sistema é 100% online e responsivo. Você acessa pelo navegador do celular sem precisar instalar nada." },
   { q: "Como recebo o acesso?", a: "Após a confirmação do pagamento (instantânea no PIX e cartão), você recebe login e senha por e-mail e já pode entrar no painel." },
   { q: "Preciso pagar mensalidade?", a: "Você escolhe: planos mensal, trimestral, anual ou vitalício. No vitalício é pagamento único e o acesso é para sempre." },
-  { q: "Qual é a qualidade das músicas?", a: "Todas as faixas em MP3 320 Kbps, sem vinhetas, com capinha e organizadas por estilo." },
+  { q: "Qual é a qualidade das músicas?", a: "Faixas em MP3, sem vinhetas, com capinha e organizadas por estilo." },
   { q: "Posso baixar packs completos?", a: "Sim. Você pode baixar faixa por faixa ou o pack inteiro com 1 clique." },
   { q: "Tenho garantia?", a: "Sim, 7 dias de garantia incondicional. Se não gostar, devolvemos 100% do seu dinheiro sem perguntas." },
   { q: "Posso passar pra um pendrive?", a: "Claro. Depois de baixar, é só copiar para o pendrive normalmente." },
@@ -329,7 +329,7 @@ export default function LandingPage() {
               </h1>
 
               <p className="mt-5 sm:mt-6 text-base sm:text-lg text-muted-foreground max-w-xl lg:max-w-[560px] mx-auto lg:mx-0 leading-relaxed">
-                Mais de <span className="text-foreground font-semibold">100 mil músicas em 320kbps</span>,
+                Mais de <span className="text-foreground font-semibold">100 mil músicas</span>,
                 organizadas, atualizadas e prontas para download. Pare de perder tempo procurando
                 música em sites quebrados.
               </p>
@@ -354,7 +354,7 @@ export default function LandingPage() {
               <div className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />Acesso imediato</div>
                 <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />7 dias de garantia</div>
-                <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />320 KBPS</div>
+                <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />Alta qualidade</div>
                 <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />Download 1 clique</div>
               </div>
             </motion.div>
@@ -395,7 +395,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Download em</div>
-                  <div className="text-sm font-bold">1 clique • 320kbps</div>
+                  <div className="text-sm font-bold">1 clique • MP3</div>
                 </div>
               </div>
             </motion.div>
@@ -780,7 +780,7 @@ export default function LandingPage() {
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Packs completos</li>
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Pesquisa inteligente</li>
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Atualizações mensais</li>
-                      <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />MP3 320 KBPS</li>
+                      <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Formato MP3</li>
                       {isLifetime && (
                         <li className="flex gap-2 font-semibold text-primary">
                           <Check className="h-4 w-4 shrink-0 mt-0.5" />Acesso vitalício
@@ -887,7 +887,7 @@ export default function LandingPage() {
               <span className="text-gradient-brand">ter agora o melhor Repertório no Seu Pendrive ?</span>
             </h2>
             <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Mais de 100 mil músicas em 320kbps, atualizações mensais e download em 1 clique
+              Mais de 100 mil músicas, atualizações mensais e download em 1 clique
               esperando por você. Junte-se aos +43 mil profissionais que já garantiram o acesso.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
