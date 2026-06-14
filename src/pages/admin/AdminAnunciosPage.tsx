@@ -418,7 +418,9 @@ const AdminAnunciosPage = () => {
               </div>
             </div>
 
+            <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
+
                 <Label className="cursor-pointer">Ativo</Label>
                 <p className="text-xs text-muted-foreground">
                   Banners inativos não aparecem no carrossel.
