@@ -616,11 +616,26 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
         </Button>
         <div className="min-w-0">
           <h3 className="font-bold text-foreground truncate">{planName}</h3>
-          <p className="text-sm text-muted-foreground">
-            R$ {planPrice.toFixed(2).replace(".", ",")}
-          </p>
+          {appliedCoupon ? (
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-muted-foreground line-through">
+                R$ {planPrice.toFixed(2).replace(".", ",")}
+              </span>
+              <span className="text-base font-bold text-primary">
+                R$ {finalPrice.toFixed(2).replace(".", ",")}
+              </span>
+              <span className="text-[10px] font-semibold text-emerald-600">
+                -{appliedCoupon.desconto_percentual}%
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              R$ {planPrice.toFixed(2).replace(".", ",")}
+            </p>
+          )}
         </div>
       </div>
+
 
 
       <div className="grid grid-cols-2 gap-2">
