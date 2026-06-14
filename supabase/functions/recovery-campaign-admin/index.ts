@@ -46,11 +46,20 @@ serve(async (req) => {
   const json = (b: unknown, status = 200) =>
     new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
+  const hasAuth = (req.headers.get("Authorization") || "").startsWith("Bearer ");
+  if (!hasAuth) {
+    console.warn("[recovery-campaign-admin] missing Authorization header");
+    return json({ error: "Unauthorized", reason: "missing_token" }, 401);
+  }
   const user = await requireAdmin(req);
-  if (!user) return json({ error: "Unauthorized" }, 401);
+  if (!user) {
+    console.warn("[recovery-campaign-admin] not admin");
+    return json({ error: "Unauthorized", reason: "not_admin" }, 403);
+  }
 
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const action = body.action as string | undefined;
+  console.log(`[recovery-campaign-admin] action=${action} user=${user.id}`);
   const supabase = svc();
 
   try {
@@ -193,7 +202,10 @@ serve(async (req) => {
           if (elapsed >= step3Delay) rows.push({ ...p, next_step: 3, reason: `Recebeu step 2 há ${elapsed.toFixed(1)} dias` });
         }
       }
-      return json({ rows: rows.slice(0, 200), total: rows.length });
+      const filterStep = body.step ? Number(body.step) : null;
+      const filtered = filterStep ? rows.filter(r => r.next_step === filterStep) : rows;
+      const limit = Math.min(1000, Math.max(10, Number(body.limit ?? 500)));
+      return json({ rows: filtered.slice(0, limit), total: filtered.length, totalAll: rows.length });
     }
 
     if (action === "run_now") {

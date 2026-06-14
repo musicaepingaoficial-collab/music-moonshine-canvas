@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Play, Save, Send, MailWarning } from "lucide-react";
+import { Loader2, Play, Save, Send, MailWarning, Download, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
 type Config = {
@@ -40,6 +42,33 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
       </CardContent>
     </Card>
   );
+}
+
+function ErrorBox({ error }: { error: unknown }) {
+  const msg = (error as any)?.message ?? String(error);
+  return (
+    <Alert variant="destructive">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Erro ao carregar</AlertTitle>
+      <AlertDescription className="text-xs font-mono break-all">{msg}</AlertDescription>
+    </Alert>
+  );
+}
+
+function toCSV(rows: Record<string, any>[], cols: string[]): string {
+  const esc = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [cols.join(","), ...rows.map(r => cols.map(c => esc(r[c])).join(","))].join("\n");
+}
+
+function downloadCSV(filename: string, csv: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function AdminRecuperacaoPage() {
@@ -155,10 +184,16 @@ export default function AdminRecuperacaoPage() {
         </TabsContent>
 
         <TabsContent value="config">
+          {cfgQ.isLoading && <div className="space-y-3"><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /><Skeleton className="h-64 w-full" /></div>}
+          {cfgQ.isError && <ErrorBox error={cfgQ.error} />}
+          {cfgQ.data && !cfgQ.data.config && (
+            <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Configuração não encontrada</AlertTitle><AlertDescription>O registro padrão (id='default') não existe em recovery_campaign_config.</AlertDescription></Alert>
+          )}
           {cfgQ.data?.config && <ConfigForm initial={cfgQ.data.config} onSaved={() => qc.invalidateQueries({ queryKey: ["rc-cfg"] })} />}
         </TabsContent>
 
-        <TabsContent value="recipients">
+        <TabsContent value="recipients" className="space-y-6">
+          <EligibleTable embedded />
           <RecipientsTable />
         </TabsContent>
 
@@ -278,9 +313,16 @@ function RecipientsTable() {
     queryFn: () => call("recipients", { step: step || undefined, status: status || undefined, q: q || undefined, page, pageSize: 50 }),
   });
 
+  const rows = dataQ.data?.rows ?? [];
+  const exportCsv = () => {
+    const csv = toCSV(rows, ["name", "email", "step", "status", "sent_at", "opened_at", "converted_at", "error"]);
+    downloadCSV(`destinatarios-${new Date().toISOString().slice(0,10)}.csv`, csv);
+  };
+
   return (
     <Card>
       <CardHeader>
+        <CardTitle className="mb-3">Já receberam</CardTitle>
         <div className="flex flex-wrap items-center gap-2">
           <Input placeholder="Buscar email..." value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} className="w-64" />
           <select value={step} onChange={(e) => { setStep(e.target.value); setPage(1); }} className="border rounded px-2 py-1 bg-background">
@@ -293,66 +335,139 @@ function RecipientsTable() {
             <option value="converted">Convertidos</option>
             <option value="failed">Falhas</option>
           </select>
-          <Badge variant="outline" className="ml-auto">Total: {dataQ.data?.total ?? 0}</Badge>
+          <Badge variant="outline">Total: {dataQ.data?.total ?? 0}</Badge>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} className="ml-auto">
+            <Download className="h-4 w-4 mr-2" /> CSV
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Step</TableHead><TableHead>Status</TableHead><TableHead>Enviado</TableHead><TableHead>Aberto</TableHead><TableHead>Convertido</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(dataQ.data?.rows ?? []).map((r: any) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.name ?? "—"}</TableCell>
-                <TableCell className="font-mono text-xs">{r.email}</TableCell>
-                <TableCell><Badge variant="outline">{r.step}</Badge></TableCell>
-                <TableCell>
-                  <Badge variant={r.status === "sent" ? "default" : r.status === "failed" ? "destructive" : "secondary"}>{r.status}</Badge>
-                </TableCell>
-                <TableCell className="text-xs">{r.sent_at ? new Date(r.sent_at).toLocaleString() : "—"}</TableCell>
-                <TableCell className="text-xs">{r.opened_at ? new Date(r.opened_at).toLocaleString() : "—"}</TableCell>
-                <TableCell className="text-xs">{r.converted_at ? new Date(r.converted_at).toLocaleString() : "—"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <div className="flex justify-between items-center mt-3">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-          <span className="text-sm text-muted-foreground">Página {page}</span>
-          <Button variant="outline" size="sm" disabled={(dataQ.data?.rows?.length ?? 0) < 50} onClick={() => setPage(p => p + 1)}>Próxima</Button>
-        </div>
+        {dataQ.isLoading && <Skeleton className="h-40 w-full" />}
+        {dataQ.isError && <ErrorBox error={dataQ.error} />}
+        {!dataQ.isLoading && !dataQ.isError && rows.length === 0 && (
+          <div className="text-sm text-muted-foreground py-8 text-center">Nenhum envio registrado ainda.</div>
+        )}
+        {rows.length > 0 && (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Step</TableHead><TableHead>Status</TableHead><TableHead>Enviado</TableHead><TableHead>Aberto</TableHead><TableHead>Convertido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r: any) => (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.name ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{r.email}</TableCell>
+                    <TableCell><Badge variant="outline">{r.step}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant={r.status === "sent" ? "default" : r.status === "failed" ? "destructive" : "secondary"}>{r.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs">{r.sent_at ? new Date(r.sent_at).toLocaleString() : "—"}</TableCell>
+                    <TableCell className="text-xs">{r.opened_at ? new Date(r.opened_at).toLocaleString() : "—"}</TableCell>
+                    <TableCell className="text-xs">{r.converted_at ? new Date(r.converted_at).toLocaleString() : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex justify-between items-center mt-3">
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
+              <span className="text-sm text-muted-foreground">Página {page}</span>
+              <Button variant="outline" size="sm" disabled={rows.length < 50} onClick={() => setPage(p => p + 1)}>Próxima</Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function EligibleTable() {
-  const dataQ = useQuery({ queryKey: ["rc-eligible"], queryFn: () => call("eligible") });
+function EligibleTable({ embedded = false }: { embedded?: boolean }) {
+  const qc = useQueryClient();
+  const [stepFilter, setStepFilter] = useState<string>("");
+  const dataQ = useQuery({
+    queryKey: ["rc-eligible", stepFilter],
+    queryFn: () => call("eligible", { step: stepFilter ? Number(stepFilter) : undefined, limit: 500 }),
+  });
+
+  const runNow = useMutation({
+    mutationFn: () => call("run_now"),
+    onSuccess: (d: any) => {
+      toast({ title: "Campanha disparada", description: `HTTP ${d.status}` });
+      qc.invalidateQueries({ queryKey: ["rc-eligible"] });
+      qc.invalidateQueries({ queryKey: ["rc-recipients"] });
+      qc.invalidateQueries({ queryKey: ["rc-stats"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: String(e?.message ?? e), variant: "destructive" }),
+  });
+
+  const rows = dataQ.data?.rows ?? [];
+  const total = dataQ.data?.total ?? 0;
+  const totalAll = dataQ.data?.totalAll ?? total;
+
+  const exportCsv = () => {
+    const csv = toCSV(rows, ["name", "email", "next_step", "reason"]);
+    downloadCSV(`destinatarios-proximo-envio-${new Date().toISOString().slice(0,10)}.csv`, csv);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Próxima execução</CardTitle>
-        <p className="text-sm text-muted-foreground">{dataQ.data?.total ?? 0} usuários serão processados</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <CardTitle>{embedded ? "Próximos a receber" : "Próxima execução"}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              <strong>{total}</strong> usuários serão processados
+              {stepFilter && totalAll !== total && <span className="text-muted-foreground"> (de {totalAll} no total)</span>}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            <select
+              value={stepFilter}
+              onChange={(e) => setStepFilter(e.target.value)}
+              className="border rounded px-2 py-1 bg-background text-sm"
+            >
+              <option value="">Todos os steps</option>
+              <option value="1">Step 1 (primeiro contato)</option>
+              <option value="2">Step 2 (cupom VOLTA20)</option>
+              <option value="3">Step 3 (cupom ULTIMA40)</option>
+            </select>
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length}>
+              <Download className="h-4 w-4 mr-2" /> CSV
+            </Button>
+            <Button size="sm" onClick={() => runNow.mutate()} disabled={runNow.isPending || !rows.length}>
+              {runNow.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Disparar agora
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Próximo step</TableHead><TableHead>Motivo</TableHead></TableRow>
-          </TableHeader>
-          <TableBody>
-            {(dataQ.data?.rows ?? []).map((r: any) => (
-              <TableRow key={r.id}>
-                <TableCell>{r.name ?? "—"}</TableCell>
-                <TableCell className="font-mono text-xs">{r.email}</TableCell>
-                <TableCell><Badge>Step {r.next_step}</Badge></TableCell>
-                <TableCell className="text-xs">{r.reason}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {dataQ.isLoading && <Skeleton className="h-40 w-full" />}
+        {dataQ.isError && <ErrorBox error={dataQ.error} />}
+        {!dataQ.isLoading && !dataQ.isError && rows.length === 0 && (
+          <div className="text-sm text-muted-foreground py-8 text-center">
+            Nenhum usuário elegível no momento.
+          </div>
+        )}
+        {rows.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Próximo step</TableHead><TableHead>Motivo</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r: any) => (
+                <TableRow key={r.id}>
+                  <TableCell>{r.name ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{r.email}</TableCell>
+                  <TableCell><Badge>Step {r.next_step}</Badge></TableCell>
+                  <TableCell className="text-xs">{r.reason}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
