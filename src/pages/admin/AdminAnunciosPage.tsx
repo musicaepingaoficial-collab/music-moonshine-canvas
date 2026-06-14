@@ -37,6 +37,8 @@ interface Anuncio {
   active: boolean;
   position: number;
   created_at: string;
+  plan_slug: string | null;
+  coupon_code: string | null;
 }
 
 const empty = {
@@ -45,7 +47,10 @@ const empty = {
   link: "",
   image_url: "",
   active: true,
+  plan_slug: "",
+  coupon_code: "",
 };
+
 
 const AdminAnunciosPage = () => {
   const qc = useQueryClient();
@@ -85,9 +90,12 @@ const AdminAnunciosPage = () => {
       link: a.link ?? "",
       image_url: a.image_url ?? "",
       active: a.active,
+      plan_slug: a.plan_slug ?? "",
+      coupon_code: a.coupon_code ?? "",
     });
     setOpen(true);
   };
+
 
   const handleUpload = async (file: File) => {
     setUploading(true);
@@ -113,29 +121,30 @@ const AdminAnunciosPage = () => {
       if (!form.title.trim()) throw new Error("Informe o título");
       if (!form.image_url) throw new Error("Envie uma imagem");
 
+      const payload = {
+        title: form.title.trim(),
+        subtitle: form.subtitle.trim() || null,
+        link: form.link.trim() || null,
+        image_url: form.image_url,
+        active: form.active,
+        plan_slug: form.plan_slug.trim() || null,
+        coupon_code: form.coupon_code.trim().toUpperCase() || null,
+      };
+
       if (editing) {
         const { error } = await (supabase.from("anuncios" as any) as any)
-          .update({
-            title: form.title.trim(),
-            subtitle: form.subtitle.trim() || null,
-            link: form.link.trim() || null,
-            image_url: form.image_url,
-            active: form.active,
-          })
+          .update(payload)
           .eq("id", editing.id);
         if (error) throw error;
       } else {
         const nextPos = (anuncios?.length ?? 0) + 1;
         const { error } = await (supabase.from("anuncios" as any) as any).insert({
-          title: form.title.trim(),
-          subtitle: form.subtitle.trim() || null,
-          link: form.link.trim() || null,
-          image_url: form.image_url,
-          active: form.active,
+          ...payload,
           position: nextPos,
         });
         if (error) throw error;
       }
+
     },
     onSuccess: () => {
       toast.success(editing ? "Banner atualizado" : "Banner criado");
@@ -373,17 +382,45 @@ const AdminAnunciosPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="l">Link (opcional)</Label>
+              <Label htmlFor="l">Link externo (opcional)</Label>
               <Input
                 id="l"
                 value={form.link}
                 onChange={(e) => setForm({ ...form, link: e.target.value })}
-                placeholder="https://..."
+                placeholder="https://... (ignorado se você preencher um plano abaixo)"
               />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="plan">Plano alvo (opcional)</Label>
+                <Input
+                  id="plan"
+                  value={form.plan_slug}
+                  onChange={(e) => setForm({ ...form, plan_slug: e.target.value })}
+                  placeholder="ex.: vitalicio, anual, mensal"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se preenchido, o clique abre o checkout deste plano.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coupon">Cupom (opcional)</Label>
+                <Input
+                  id="coupon"
+                  value={form.coupon_code}
+                  onChange={(e) => setForm({ ...form, coupon_code: e.target.value.toUpperCase() })}
+                  placeholder="ex.: PROMO20"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Aplicado automaticamente no checkout.
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
+
                 <Label className="cursor-pointer">Ativo</Label>
                 <p className="text-xs text-muted-foreground">
                   Banners inativos não aparecem no carrossel.

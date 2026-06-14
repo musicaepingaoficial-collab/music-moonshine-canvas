@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,9 +16,14 @@ interface Anuncio {
   active: boolean;
   position: number;
   created_at: string;
+  plan_slug: string | null;
+  coupon_code: string | null;
 }
 
+
 export function HeroCarousel() {
+  const navigate = useNavigate();
+
   const { data: anuncios, isLoading } = useQuery<Anuncio[]>({
     queryKey: ["anuncios", "carousel"],
     queryFn: async () => {
@@ -82,11 +88,29 @@ export function HeroCarousel() {
                 </div>
               </div>
             );
+            const internalTarget = ad.plan_slug
+              ? `/ofertas?plan=${encodeURIComponent(ad.plan_slug)}${
+                  ad.coupon_code ? `&coupon=${encodeURIComponent(ad.coupon_code)}` : ""
+                }`
+              : ad.link && ad.link.startsWith("/")
+              ? ad.link
+              : null;
+            const externalHref = !internalTarget && ad.link ? ad.link : null;
+
             return (
               <div key={ad.id} className="min-w-0 shrink-0 grow-0 basis-full">
-                {ad.link ? (
+                {internalTarget ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(internalTarget)}
+                    className="block w-full text-left cursor-pointer"
+                    aria-label={ad.title}
+                  >
+                    {inner}
+                  </button>
+                ) : externalHref ? (
                   <a
-                    href={ad.link}
+                    href={externalHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block"
@@ -100,6 +124,7 @@ export function HeroCarousel() {
               </div>
             );
           })}
+
         </div>
       </div>
 
