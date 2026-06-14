@@ -780,7 +780,7 @@ export default function LandingPage() {
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Packs completos</li>
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Pesquisa inteligente</li>
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Atualizações mensais</li>
-                      <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />MP3 320 KBPS</li>
+                      <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Formato MP3</li>
                       {isLifetime && (
                         <li className="flex gap-2 font-semibold text-primary">
                           <Check className="h-4 w-4 shrink-0 mt-0.5" />Acesso vitalício
