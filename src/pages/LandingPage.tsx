@@ -71,7 +71,7 @@ const FEATURES = [
   { icon: RefreshCw, title: "Atualizações mensais", desc: "Receba os hits novos direto no seu painel todos os meses." },
   { icon: Crown, title: "Acesso vitalício disponível", desc: "Pague uma vez e tenha o painel para sempre, sem mensalidade." },
   { icon: Smartphone, title: "Funciona no celular", desc: "Sem instalar app. Acesse de qualquer lugar, no celular ou PC." },
-  { icon: Music2, title: "MP3 em 320 KBPS", desc: "Áudio limpo, profissional, com capinha em todas as faixas." },
+  { icon: Music2, title: "Áudio de qualidade", desc: "Faixas limpas, profissionais, com capinha em todas as músicas." },
   { icon: Library, title: "Packs completos", desc: "Discografias, coletâneas e packs prontos para o seu evento." },
   { icon: Zap, title: "Acesso imediato", desc: "Pagou, recebeu o login. Comece a baixar em segundos." },
 ];
