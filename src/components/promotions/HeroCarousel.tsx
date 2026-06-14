@@ -155,7 +155,7 @@ export function HeroCarousel() {
         </div>
       </div>
 
-      {anuncios.length > 1 && (
+      {filtered.length > 1 && (
         <>
           <button
             type="button"
