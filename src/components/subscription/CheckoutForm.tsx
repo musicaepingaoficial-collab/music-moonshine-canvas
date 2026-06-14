@@ -148,16 +148,17 @@ export function CheckoutForm({ planSlug, planName, planPrice, onBack, onSuccess,
     if (status === "pending" && paymentMethod === "pix" && pixData?.paymentId) {
       interval = window.setInterval(async () => {
         try {
-          const status = await getSubscriptionStatus();
-          if (status.hasAccess) {
+          const res = await getPaymentStatusById(pixData.paymentId!);
+          if (res?.status === "approved") {
             toast.success("Pagamento confirmado automaticamente! Acesso liberado.");
             onSuccess();
           }
         } catch (err) {
           console.error("Error polling payment status:", err);
         }
-      }, 7000); // Check every 7 seconds
+      }, 7000);
     }
+
     return () => {
       if (interval) clearInterval(interval);
     };
