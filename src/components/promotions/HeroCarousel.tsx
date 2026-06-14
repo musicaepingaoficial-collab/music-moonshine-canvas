@@ -170,7 +170,7 @@ export function HeroCarousel() {
           <button
             type="button"
             onClick={() => emblaApi?.scrollPrev()}
-            className="absolute left-2 top-1/2 -translate-y-1/2 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-background/70 backdrop-blur text-foreground shadow hover:bg-background transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-background/70 backdrop-blur text-foreground shadow hover:bg-background transition"
             aria-label="Anterior"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -178,7 +178,7 @@ export function HeroCarousel() {
           <button
             type="button"
             onClick={() => emblaApi?.scrollNext()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-background/70 backdrop-blur text-foreground shadow hover:bg-background transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-background/70 backdrop-blur text-foreground shadow hover:bg-background transition"
             aria-label="Próximo"
           >
             <ChevronRight className="h-5 w-5" />
