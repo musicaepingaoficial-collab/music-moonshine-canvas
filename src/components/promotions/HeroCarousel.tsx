@@ -66,7 +66,7 @@ export function HeroCarousel() {
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "start" },
-    [Autoplay({ delay: 5000, stopOnInteraction: false })]
+    [Autoplay({ delay: 5000, stopOnInteraction: true, stopOnMouseEnter: true })]
   );
   const [selected, setSelected] = useState(0);
   const [snaps, setSnaps] = useState<number[]>([]);
@@ -94,27 +94,6 @@ export function HeroCarousel() {
         <div className="flex">
           {filtered.map((ad) => {
 
-            const inner = (
-              <div className="relative h-40 sm:h-56 md:h-64 lg:h-72 w-full overflow-hidden">
-                <img
-                  src={ad.image_url!}
-                  alt={ad.title}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
-                  <h3 className="text-lg sm:text-2xl font-bold text-white drop-shadow">
-                    {ad.title}
-                  </h3>
-                  {ad.subtitle && (
-                    <p className="mt-1 text-xs sm:text-sm text-white/85 line-clamp-2 max-w-2xl">
-                      {ad.subtitle}
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
             const internalTarget = ad.plan_slug
               ? `/ofertas?plan=${encodeURIComponent(ad.plan_slug)}${
                   ad.coupon_code ? `&coupon=${encodeURIComponent(ad.coupon_code)}` : ""
@@ -123,6 +102,37 @@ export function HeroCarousel() {
               ? ad.link
               : null;
             const externalHref = !internalTarget && ad.link ? ad.link : null;
+            const isClickable = !!(internalTarget || externalHref);
+
+            const inner = (
+              <div className="relative h-40 sm:h-56 md:h-64 lg:h-72 w-full overflow-hidden">
+                <img
+                  src={ad.image_url!}
+                  alt={ad.title}
+                  loading="lazy"
+                  className={cn(
+                    "absolute inset-0 h-full w-full object-cover transition-transform duration-300",
+                    isClickable && "group-hover:scale-[1.02]"
+                  )}
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-2xl font-bold text-white drop-shadow">
+                    {ad.title}
+                  </h3>
+                  {ad.subtitle && (
+                    <p className="mt-1 text-xs sm:text-sm text-white/85 line-clamp-2 max-w-2xl">
+                      {ad.subtitle}
+                    </p>
+                  )}
+                  {isClickable && (
+                    <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs sm:text-sm font-semibold text-primary-foreground shadow">
+                      Ver oferta →
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
 
             return (
               <div key={ad.id} className="min-w-0 shrink-0 grow-0 basis-full">
@@ -130,7 +140,7 @@ export function HeroCarousel() {
                   <button
                     type="button"
                     onClick={() => navigate(internalTarget)}
-                    className="block w-full text-left cursor-pointer"
+                    className="group block w-full text-left cursor-pointer rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label={ad.title}
                   >
                     {inner}
@@ -140,7 +150,7 @@ export function HeroCarousel() {
                     href={externalHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block"
+                    className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label={ad.title}
                   >
                     {inner}
@@ -160,7 +170,7 @@ export function HeroCarousel() {
           <button
             type="button"
             onClick={() => emblaApi?.scrollPrev()}
-            className="absolute left-2 top-1/2 -translate-y-1/2 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-background/70 backdrop-blur text-foreground shadow hover:bg-background transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-background/70 backdrop-blur text-foreground shadow hover:bg-background transition"
             aria-label="Anterior"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -168,7 +178,7 @@ export function HeroCarousel() {
           <button
             type="button"
             onClick={() => emblaApi?.scrollNext()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-background/70 backdrop-blur text-foreground shadow hover:bg-background transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-background/70 backdrop-blur text-foreground shadow hover:bg-background transition"
             aria-label="Próximo"
           >
             <ChevronRight className="h-5 w-5" />
