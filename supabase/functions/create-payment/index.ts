@@ -372,7 +372,7 @@ serve(async (req) => {
               plan_slug: selectedPlan.slug,
               plan_name: selectedPlan.name,
               payment_method: "PIX",
-              amount: Number(selectedPlan.price),
+              amount: finalPrice,
               buyer_name: buyerName,
               buyer_email: payerEmail,
               buyer_whatsapp: payerPhone,
