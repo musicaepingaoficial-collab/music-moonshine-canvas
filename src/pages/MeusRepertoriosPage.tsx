@@ -8,6 +8,8 @@ import { FolderOpen, Star } from "lucide-react";
 import type { RepertorioWithCount } from "@/hooks/useRepertorios";
 import { Badge } from "@/components/ui/badge";
 import { RepertorioBadge } from "@/components/repertorios/RepertorioBadge";
+import { HeroCarousel } from "@/components/promotions/HeroCarousel";
+
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
