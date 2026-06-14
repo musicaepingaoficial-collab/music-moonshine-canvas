@@ -25,6 +25,9 @@ const MeusRepertoriosPage = () => {
     <div className="space-y-8">
       <Banner title="Meus Repertórios" subtitle="Explore coleções de músicas organizadas." />
 
+      <HeroCarousel />
+
+
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {Array.from({ length: 6 }).map((_, i) => (
