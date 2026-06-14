@@ -44,6 +44,33 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   );
 }
 
+function ErrorBox({ error }: { error: unknown }) {
+  const msg = (error as any)?.message ?? String(error);
+  return (
+    <Alert variant="destructive">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Erro ao carregar</AlertTitle>
+      <AlertDescription className="text-xs font-mono break-all">{msg}</AlertDescription>
+    </Alert>
+  );
+}
+
+function toCSV(rows: Record<string, any>[], cols: string[]): string {
+  const esc = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [cols.join(","), ...rows.map(r => cols.map(c => esc(r[c])).join(","))].join("\n");
+}
+
+function downloadCSV(filename: string, csv: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminRecuperacaoPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState("overview");
