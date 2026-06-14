@@ -46,11 +46,20 @@ serve(async (req) => {
   const json = (b: unknown, status = 200) =>
     new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
+  const hasAuth = (req.headers.get("Authorization") || "").startsWith("Bearer ");
+  if (!hasAuth) {
+    console.warn("[recovery-campaign-admin] missing Authorization header");
+    return json({ error: "Unauthorized", reason: "missing_token" }, 401);
+  }
   const user = await requireAdmin(req);
-  if (!user) return json({ error: "Unauthorized" }, 401);
+  if (!user) {
+    console.warn("[recovery-campaign-admin] not admin");
+    return json({ error: "Unauthorized", reason: "not_admin" }, 403);
+  }
 
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const action = body.action as string | undefined;
+  console.log(`[recovery-campaign-admin] action=${action} user=${user.id}`);
   const supabase = svc();
 
   try {
