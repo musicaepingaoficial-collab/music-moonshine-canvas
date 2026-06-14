@@ -184,10 +184,16 @@ export default function AdminRecuperacaoPage() {
         </TabsContent>
 
         <TabsContent value="config">
+          {cfgQ.isLoading && <div className="space-y-3"><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /><Skeleton className="h-64 w-full" /></div>}
+          {cfgQ.isError && <ErrorBox error={cfgQ.error} />}
+          {cfgQ.data && !cfgQ.data.config && (
+            <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Configuração não encontrada</AlertTitle><AlertDescription>O registro padrão (id='default') não existe em recovery_campaign_config.</AlertDescription></Alert>
+          )}
           {cfgQ.data?.config && <ConfigForm initial={cfgQ.data.config} onSaved={() => qc.invalidateQueries({ queryKey: ["rc-cfg"] })} />}
         </TabsContent>
 
-        <TabsContent value="recipients">
+        <TabsContent value="recipients" className="space-y-6">
+          <EligibleTable embedded />
           <RecipientsTable />
         </TabsContent>
 
