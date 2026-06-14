@@ -1050,38 +1050,136 @@ export type Database = {
         }
         Relationships: []
       }
+      recovery_campaign_config: {
+        Row: {
+          batch_limit: number
+          enabled: boolean
+          id: string
+          step1_html: string
+          step1_subject: string
+          step2_cupom: string
+          step2_delay_days: number
+          step2_html: string
+          step2_subject: string
+          step3_cupom: string
+          step3_delay_days: number
+          step3_html: string
+          step3_subject: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          batch_limit?: number
+          enabled?: boolean
+          id?: string
+          step1_html: string
+          step1_subject: string
+          step2_cupom?: string
+          step2_delay_days?: number
+          step2_html: string
+          step2_subject: string
+          step3_cupom?: string
+          step3_delay_days?: number
+          step3_html: string
+          step3_subject: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          batch_limit?: number
+          enabled?: boolean
+          id?: string
+          step1_html?: string
+          step1_subject?: string
+          step2_cupom?: string
+          step2_delay_days?: number
+          step2_html?: string
+          step2_subject?: string
+          step3_cupom?: string
+          step3_delay_days?: number
+          step3_html?: string
+          step3_subject?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       recovery_campaign_log: {
         Row: {
+          converted_at: string | null
           created_at: string
           email: string
           error: string | null
           id: string
+          opened_at: string | null
           sent_at: string
           status: string
           step: number
           user_id: string
         }
         Insert: {
+          converted_at?: string | null
           created_at?: string
           email: string
           error?: string | null
           id?: string
+          opened_at?: string | null
           sent_at?: string
           status?: string
           step: number
           user_id: string
         }
         Update: {
+          converted_at?: string | null
           created_at?: string
           email?: string
           error?: string | null
           id?: string
+          opened_at?: string | null
           sent_at?: string
           status?: string
           step?: number
           user_id?: string
         }
         Relationships: []
+      }
+      recovery_email_events: {
+        Row: {
+          event_type: string
+          id: string
+          ip: string | null
+          log_id: string
+          metadata: Json | null
+          occurred_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          ip?: string | null
+          log_id: string
+          metadata?: Json | null
+          occurred_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          ip?: string | null
+          log_id?: string
+          metadata?: Json | null
+          occurred_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recovery_email_events_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "recovery_campaign_log"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       repertorio_musicas: {
         Row: {
