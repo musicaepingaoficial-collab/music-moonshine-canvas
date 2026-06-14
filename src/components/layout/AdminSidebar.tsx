@@ -33,6 +33,7 @@ const adminItems = [
   { title: "Discografias", url: "/admin/discografias", icon: Disc },
   { title: "Popup", url: "/admin/popup", icon: MessageSquare },
   { title: "Recuperação", url: "/admin/recuperacao", icon: MailWarning },
+  { title: "Afiliados", url: "/admin/afiliados", icon: Share2 },
 ];
 
 export function AdminSidebar() {

@@ -68,6 +68,7 @@ const AdminUserDetailsPage = lazy(() => import("./pages/admin/AdminUserDetailsPa
 const AdminSubscriptionDetailsPage = lazy(() => import("./pages/admin/AdminSubscriptionDetailsPage"));
 const AdminSalesPageStats = lazy(() => import("./pages/admin/AdminSalesPageStats"));
 const AdminRecuperacaoPage = lazy(() => import("./pages/admin/AdminRecuperacaoPage"));
+const AdminAfiliadosPage = lazy(() => import("./pages/admin/AdminAfiliadosPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -185,6 +186,7 @@ const App = () => (
                 <Route path="vendas-stats" element={<AdminSalesPageStats />} />
                 <Route path="popup" element={<AdminPopupPage />} />
                 <Route path="recuperacao" element={<AdminRecuperacaoPage />} />
+                <Route path="afiliados" element={<AdminAfiliadosPage />} />
               </Route>
               </Route>
 
