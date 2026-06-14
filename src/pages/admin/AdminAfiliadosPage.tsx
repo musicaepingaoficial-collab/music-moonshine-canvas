@@ -54,10 +54,11 @@ export default function AdminAfiliadosPage() {
   const [editValue, setEditValue] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  const { data: stats, isLoading } = useQuery<AfiliadoStat[]>({
+  const { data: stats, isLoading, error: statsError } = useQuery<AfiliadoStat[]>({
     queryKey: ["admin", "afiliados", "stats"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("admin_afiliados_stats");
+      console.log("[AdminAfiliados:rpc]", { rows: data?.length, error });
       if (error) throw error;
       return (data || []).map((r: any) => ({
         ...r,
@@ -69,7 +70,11 @@ export default function AdminAfiliadosPage() {
         commission_due: Number(r.commission_due),
       }));
     },
+    retry: false,
   });
+
+  const errMsg = (statsError as any)?.message || "";
+  const isForbidden = /forbidden/i.test(errMsg);
 
   const { data: detail } = useQuery<IndicacaoDetail[]>({
     queryKey: ["admin", "afiliado", "detail", detailId],

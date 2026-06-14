@@ -1,90 +1,41 @@
-# Painel Admin de Afiliados
+# Plano: corrigir "0 afiliados" na página Admin → Afiliados
 
-Página `/admin/afiliados` para o super admin acompanhar todos os afiliados: cliques, cadastros, conversões e receita gerada.
+## Diagnóstico
 
-## O que o admin verá
+Verifiquei o banco diretamente e existem **6 afiliados** cadastrados na tabela `public.afiliados` (rmoraes42, pereira.cgilmar, hcas59, franciscovagner…, adautoteclas, ninhorb11). Também confirmei que:
 
-**Cards no topo (totais gerais):**
-- Total de afiliados ativos
-- Total de cliques (todos os links)
-- Total de cadastros via indicação
-- Total de conversões pagas
-- Receita total gerada por afiliados (R$)
-- Comissão total devida (R$)
+- A função `admin_afiliados_stats()` existe e o JOIN funciona — quando rodo o mesmo SELECT direto, retorna as 6 linhas com `clicks=0` e `signups=0` (ainda não houve cliques nem indicações).
+- A RLS de `afiliados` permite admin (`has_role(auth.uid(),'admin')`).
+- Existem 2 admins: `rmoraes42@gmail.com` e `robsonmoraesdesigner@gmail.com`.
 
-**Tabela de afiliados** com colunas:
-- Nome / e-mail do afiliado
-- Código do link
-- Cliques
-- Cadastros (indicações criadas)
-- Conversões (indicados que viraram assinantes pagos)
-- Taxa de conversão (%)
-- Receita gerada (soma dos pagamentos dos indicados)
-- Comissão (%) e valor devido (R$)
-- Ações: editar comissão, ver detalhes, copiar link
+Como a página mostra **0 afiliados** mesmo com 6 no banco, a chamada `rpc('admin_afiliados_stats')` está falhando silenciosamente no front. As 3 causas prováveis, em ordem:
 
-**Drawer/Dialog de detalhes** ao clicar em um afiliado:
-- Lista dos indicados (nome, data, status, plano, valor)
-- Histórico de cliques por dia (gráfico simples)
+1. **Usuário logado no preview não é admin** → o RPC faz `RAISE EXCEPTION 'forbidden'`, o React Query joga o erro, o estado fica `undefined` e `totals.afiliados` cai para 0. A UI hoje só mostra "Nenhum afiliado encontrado." sem expor o erro.
+2. **RPC retorna erro mas não é exibido** — a página não tem `ErrorState`; um erro de rede/permissão fica invisível.
+3. **Tipos do Supabase ainda não regenerados** após a migration — improvável quebrar em runtime porque usamos `(supabase as any).rpc(...)`, mas vale revalidar.
 
-## Mudanças necessárias
+## Mudanças
 
-### 1. Tabela nova: `afiliado_clicks`
-Hoje não existe rastreamento de cliques. Criar tabela:
-- `afiliado_id` (fk)
-- `referrer` (texto, opcional)
-- `user_agent` (texto)
-- `ip_hash` (texto — hash, não IP cru)
-- `created_at`
+### 1. `src/pages/admin/AdminAfiliadosPage.tsx`
+- Capturar `error` do `useQuery` e exibir um bloco vermelho com a mensagem real (`error.message`) acima da tabela. Isso vai mostrar imediatamente se é `forbidden`, rede, etc.
+- Adicionar `console.log("[AdminAfiliados]", { stats, error })` para debug rápido.
+- Trocar o texto "Nenhum afiliado encontrado." por dois estados distintos: erro vs. lista vazia de verdade.
 
-RLS: insert público (qualquer visitante), select só admin.
+### 2. Fallback resiliente para não-admin acidental
+- Se o erro for `forbidden`, mostrar mensagem clara: "Esta página é restrita a administradores. Você está logado como X." com botão de logout.
 
-### 2. Edge function pública `track-affiliate-click`
-Chamada por `ReferralTracker.tsx` quando detecta `?ref=CODIGO` na URL. Resolve o código → `afiliado_id` e insere uma linha em `afiliado_clicks`. Sem auth necessária.
+### 3. (Opcional) Garantir contagem mesmo sem cliques/indicações
+- A RPC já usa `LEFT JOIN`, então afiliados sem cliques aparecem com 0. Vou revalidar isso na UI: caso `stats.length > 0`, sempre renderiza a tabela mesmo com todas as colunas zeradas — isso confirma o cadastro.
 
-### 3. Coluna nova em `indicacoes`
-Adicionar `converted_at timestamptz` e `assinatura_id uuid` para marcar quando o indicado virou pagante (preenchido pelo webhook do MP em `payment-webhook` quando a primeira assinatura ativa for criada).
+## Como validar
 
-### 4. View/RPC `admin_afiliados_stats`
-Função security definer que retorna, para todos os afiliados, os agregados (cliques, indicações, conversões, receita). Acessível só a admin via `has_role`.
+1. Recarregar `/admin/afiliados` logado como `rmoraes42@gmail.com`.
+2. Devem aparecer os 6 afiliados na tabela, todos com `Cliques=0`, `Cadastros=0`, `Receita=R$ 0,00`.
+3. Stat card "Afiliados" passa a mostrar **6**.
+4. Se aparecer erro `forbidden`, é sinal de que o usuário logado no preview não tem role `admin` em `user_roles` — me avisa o e-mail que aparece no canto da página que eu resolvo.
 
-### 5. Página `src/pages/admin/AdminAfiliadosPage.tsx`
-- Cards de totais
-- Tabela com sort/filtro por nome
-- Botão "Editar comissão" → dialog que atualiza `commission_percent`
-- Botão "Detalhes" → drawer com lista de indicados + cliques por dia
-- Reusa `ResponsiveTable`
+## Detalhes técnicos
 
-### 6. Rota + menu no admin
-- Adicionar rota `/admin/afiliados` em `App.tsx`
-- Adicionar item no `AdminSidebar.tsx`
-
-### 7. Atualizar `ReferralTracker.tsx`
-Já registra `?ref=`. Adicionar chamada à edge function `track-affiliate-click` na primeira detecção do código (uma vez por sessão, via sessionStorage).
-
-### 8. Atualizar `payment-webhook`
-Quando uma assinatura é aprovada, se o usuário tem entrada em `indicacoes` com `status='pending'`, marcar `converted_at = now()` e `assinatura_id`.
-
-## Arquivos afetados
-
-**Novos:**
-- `supabase/functions/track-affiliate-click/index.ts`
-- `src/pages/admin/AdminAfiliadosPage.tsx`
-- `src/components/admin/AfiliadoDetailsDrawer.tsx`
-
-**Editados:**
-- `supabase/functions/payment-webhook/index.ts` (marcar conversão)
-- `src/components/referrals/ReferralTracker.tsx` (tracking de clique)
-- `src/components/layout/AdminSidebar.tsx` (item de menu)
-- `src/App.tsx` (rota)
-
-**Migrações SQL:**
-- Criar `afiliado_clicks` + grants + RLS
-- Adicionar `converted_at`, `assinatura_id` em `indicacoes`
-- Criar função `admin_afiliados_stats()`
-
-## Fora do escopo
-- Pagamento automático de comissões (só calcula o devido)
-- Saque/financeiro do afiliado (apenas visão admin)
-
-Posso implementar?
+- Arquivo único alterado: `src/pages/admin/AdminAfiliadosPage.tsx`.
+- Sem mudanças de banco (a função RPC já está correta, dados existem).
+- Sem novas dependências.
