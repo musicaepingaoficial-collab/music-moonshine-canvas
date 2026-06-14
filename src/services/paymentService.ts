@@ -11,6 +11,7 @@ export interface TransparentPaymentData {
   installments: number;
   plan: string;
   device_id?: string;
+  coupon_code?: string;
   payer: {
     email: string;
     first_name?: string;
@@ -19,6 +20,7 @@ export interface TransparentPaymentData {
     identification: { type: string; number: string };
   };
 }
+
 
 export interface PaymentResponse {
   status: string;
