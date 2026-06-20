@@ -724,57 +724,49 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+          <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto items-stretch">
             {visiblePlanos.map((p: any, idx: number) => {
-              const isLifetime = p.slug === "vitalicio";
-              const isTrimestral = p.slug === "trimestral";
-              const isHighlight = isLifetime;
-              const periodLabel =
-                p.slug === "mensal" ? "/ mês" :
-                p.slug === "trimestral" ? "/ 3 meses" :
-                p.slug === "anual" ? "/ ano" : "pagamento único";
+              const isAnual = p.slug === "anual";
+              const periodLabel = isAnual ? "/ ano" : "/ mês";
+              const subtitle = isAnual ? "Acesso completo por 1 ano" : "Acesso completo por 30 dias";
               return (
                 <motion.div
                   key={p.id}
                   {...fadeUp}
-                  transition={{ duration: 0.5, delay: idx * 0.06 }}
+                  transition={{ duration: 0.5, delay: idx * 0.08 }}
+                  className={isAnual ? "sm:scale-[1.04] sm:-translate-y-1" : ""}
                 >
                   <Card
-                    className={`relative p-6 h-full flex flex-col bg-card/80 backdrop-blur transition-all ${
-                      isHighlight
-                        ? "border-primary shadow-glow-lg lg:scale-[1.04] lg:-translate-y-1"
+                    className={`relative p-6 sm:p-7 h-full flex flex-col bg-card/80 backdrop-blur transition-all ${
+                      isAnual
+                        ? "border-primary border-2 ring-2 ring-primary/40 shadow-glow-lg animate-glow-pulse"
                         : "border-border/60 hover:border-primary/50"
                     }`}
                   >
-                    {isHighlight && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-cta text-primary-foreground text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full flex items-center gap-1 shadow-glow">
+                    {isAnual && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-cta text-primary-foreground text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full flex items-center gap-1 shadow-glow whitespace-nowrap">
                         <Crown className="h-3 w-3" />
-                        Melhor Custo
-                      </div>
-                    )}
-                    {isTrimestral && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-card border border-primary/60 text-primary text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
                         Mais Vendido
                       </div>
                     )}
 
                     <h3 className="text-lg font-black uppercase tracking-wide">{p.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1 mb-5 min-h-[32px]">{p.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1 mb-5 min-h-[32px]">{subtitle}</p>
 
                     <div className="mb-5">
-                      <div className="text-xs text-muted-foreground">
-                        De <span className="line-through">R$ {(Number(p.price) * 1.8).toFixed(2).replace(".", ",")}</span> por
-                      </div>
+                      {isAnual && (
+                        <div className="text-xs text-muted-foreground">
+                          De <span className="line-through">R$ 418,80</span> por
+                        </div>
+                      )}
                       <div className="flex items-baseline gap-1">
                         <span className="text-xs text-muted-foreground">R$</span>
-                        <span className="text-4xl font-black">
+                        <span className={`font-black ${isAnual ? "text-5xl" : "text-4xl"}`}>
                           {Number(p.price).toFixed(2).replace(".", ",")}
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground">{periodLabel}</span>
                     </div>
-
 
                     <ul className="space-y-2.5 text-sm flex-1 mb-6">
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />+100 mil músicas</li>
@@ -783,12 +775,7 @@ export default function LandingPage() {
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Pesquisa inteligente</li>
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Atualizações mensais</li>
                       <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />Formato MP3</li>
-                      {isLifetime && (
-                        <li className="flex gap-2 font-semibold text-primary">
-                          <Check className="h-4 w-4 shrink-0 mt-0.5" />Acesso vitalício
-                        </li>
-                      )}
-                      {(isLifetime || p.slug === "anual") && (
+                      {isAnual && (
                         <li className="flex gap-2 font-semibold text-primary">
                           <Crown className="h-4 w-4 shrink-0 mt-0.5" />Discografias inclusas
                         </li>
@@ -805,10 +792,10 @@ export default function LandingPage() {
                         });
                         setCheckoutPlan({ slug: p.slug, name: p.name, price: Number(p.price) });
                       }}
-                      className={`mt-auto w-full font-bold h-12 ${
-                        isHighlight
-                          ? "bg-gradient-cta text-primary-foreground shadow-glow hover:opacity-95"
-                          : "bg-primary/15 text-primary hover:bg-primary hover:text-primary-foreground border border-primary/40"
+                      className={`mt-auto w-full font-bold ${
+                        isAnual
+                          ? "h-14 text-base font-black bg-gradient-cta text-primary-foreground shadow-glow hover:opacity-95"
+                          : "h-12 bg-primary/15 text-primary hover:bg-primary hover:text-primary-foreground border border-primary/40"
                       }`}
                     >
                       QUERO ESTE PLANO
@@ -818,6 +805,7 @@ export default function LandingPage() {
               );
             })}
           </div>
+
 
           {/* GUARANTEE */}
           <motion.div {...fadeUp} className="mt-16 max-w-3xl mx-auto">
