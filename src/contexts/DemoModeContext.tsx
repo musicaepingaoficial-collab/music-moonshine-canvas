@@ -40,8 +40,7 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
   const isDemoUser =
     !!(user as any)?.is_anonymous ||
     (user as any)?.app_metadata?.demo_user === true ||
-    (user as any)?.user_metadata?.demo_user === true ||
-    (!isLoadingAssinatura && !assinatura);
+    (user as any)?.user_metadata?.demo_user === true;
 
   const isDemo = !loading && isDemoUser;
   const wantsDemo =
