@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth, useAssinatura } from "@/hooks/useUser";
+import { useAuth, useAssinatura, useIsAdmin } from "@/hooks/useUser";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEMO_LIMIT = 5;
@@ -30,20 +30,23 @@ const DemoModeContext = createContext<DemoModeContextValue | null>(null);
 export function DemoModeProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const { data: assinatura, isLoading: isLoadingAssinatura } = useAssinatura(user?.id);
+  const { data: isAdmin, isLoading: isLoadingAdmin } = useIsAdmin(user?.id);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [gate, setGate] = useState<GateState>({ open: false, reason: null });
 
-  // "trial" = usuário real cadastrado pelo fluxo /login?intent=trial, ainda sem assinatura
-  const isTrialUser =
-    (user as any)?.user_metadata?.trial_user === true ||
-    (user as any)?.app_metadata?.trial_user === true;
-
-  const isDemoUser =
-    !!(user as any)?.is_anonymous ||
+  const isAnonymous = !!(user as any)?.is_anonymous;
+  const hasDemoMetadata =
     (user as any)?.app_metadata?.demo_user === true ||
-    (user as any)?.user_metadata?.demo_user === true ||
-    (isTrialUser && !isLoadingAssinatura && !assinatura);
+    (user as any)?.user_metadata?.demo_user === true;
+
+  // Modo demo = anônimo, metadata demo, OU qualquer usuário logado (não-admin)
+  // sem assinatura ativa. Assim usuários com teste expirado continuam navegando
+  // e o gate (Mensal/Anual) só aparece ao tentar reproduzir/baixar.
+  const isDemoUser =
+    isAnonymous ||
+    hasDemoMetadata ||
+    (!!user && !isLoadingAssinatura && !isLoadingAdmin && !isAdmin && !assinatura);
 
   const isDemo = !loading && isDemoUser;
 
