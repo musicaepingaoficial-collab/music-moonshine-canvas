@@ -1,0 +1,1 @@
+UPDATE public.planos SET price = 34.90 WHERE slug = 'mensal'; UPDATE public.planos SET price = 97.00 WHERE slug = 'anual';
