@@ -75,11 +75,14 @@ const LoginPage = () => {
 
     try {
       if (isSignUp) {
+        const params = new URLSearchParams(window.location.search);
+        const intent = params.get("intent");
+        const isTrial = intent === "trial";
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { name, whatsapp },
+            data: { name, whatsapp, ...(isTrial ? { trial_user: true } : {}) },
             emailRedirectTo: window.location.origin,
           },
         });
