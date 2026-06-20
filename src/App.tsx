@@ -14,6 +14,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DemoOrProtectedRoute } from "@/components/auth/DemoOrProtectedRoute";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import { SignupGateDialog } from "@/components/demo/SignupGateDialog";
+import { DemoWarningDialog } from "@/components/demo/DemoWarningDialog";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
 import { PixelInjector } from "@/components/pixels/PixelInjector";
@@ -119,6 +120,7 @@ const App = () => (
           <OnlineStatusTracker />
           <SingleSessionGuard />
           <SignupGateDialog />
+          <DemoWarningDialog />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
             <Routes>
