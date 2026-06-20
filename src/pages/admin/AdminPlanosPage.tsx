@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { ResetUserSubscriptionCard } from "@/components/admin/ResetUserSubscriptionCard";
 
 interface Plano {
   id: string;
