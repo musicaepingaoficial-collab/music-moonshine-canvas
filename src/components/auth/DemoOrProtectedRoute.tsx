@@ -92,9 +92,12 @@ export function DemoOrProtectedRoute() {
     return <Navigate to="/completar-perfil" replace />;
   }
 
-  // Usuário logado, não-admin e sem assinatura ativa → forçar reassinatura.
-  // Liberamos apenas rotas onde a pessoa precisa estar para resolver isso.
+  // Trial user (cadastro pelo /login?intent=trial) sem assinatura → liberado para navegar
+  // como demo (5 plays, gate de assinatura). Demais usuários sem assinatura vão pra /planos.
   if (!isAdmin && !assinatura) {
+    if (isTrialUser) {
+      return <Outlet />;
+    }
     const ALLOWED = ["/planos", "/completar-perfil", "/ofertas"];
     if (!ALLOWED.some((p) => location.pathname.startsWith(p))) {
       return <Navigate to="/planos" replace />;
