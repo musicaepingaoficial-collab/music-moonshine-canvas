@@ -26,7 +26,13 @@ interface SubscriptionDialogProps {
 
 export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, prefill }: SubscriptionDialogProps) {
   const [selectedPlan, setSelectedPlan] = useState<Plano | null>(null);
-  const { isDemo, deactivateDemo } = useDemoMode();
+  const { deactivateDemo } = useDemoMode();
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setIsAnonymous(!!(data.user as any)?.is_anonymous);
+    });
+  }, [open]);
   const queryClient = useQueryClient();
 
   const { data: planos, isLoading } = useQuery<Plano[]>({
@@ -78,7 +84,7 @@ export function SubscriptionDialog({ open, onTrialStarted, initialPlanSlug, pref
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground animate-pulse">Carregando planos...</p>
           </div>
-        ) : isDemo ? (
+        ) : isAnonymous ? (
           <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
             <AlertCircle className="h-12 w-12 text-amber-500" />
             <h2 className="text-xl font-bold">Modo demonstração</h2>
