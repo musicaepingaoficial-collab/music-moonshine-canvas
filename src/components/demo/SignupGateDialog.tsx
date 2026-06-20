@@ -84,6 +84,19 @@ export function SignupGateDialog() {
     price: number;
   } | null>(null);
 
+  // Detecta se já existe um usuário logado (trial). Nesse caso o checkout
+  // público (que recria conta) não serve — mandamos para /planos.
+  const [hasUser, setHasUser] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted) setHasUser(!!data.user && !(data.user as any).is_anonymous);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [gate.open]);
+
   const reason = gate.reason || "plays";
   const meta = COPY[reason] ?? COPY.plays;
   const Icon = meta.icon;
@@ -115,11 +128,14 @@ export function SignupGateDialog() {
       content_ids: [p.slug],
       content_name: p.name,
     });
-    setCheckoutPlan({ slug: p.slug, name: p.name, price: Number(p.price) });
     closeGate();
-    // Não deslogar a sessão demo aqui — se o usuário fechar o checkout,
-    // ele permanece na tela onde estava em vez de cair em /login.
-    // A sessão demo é substituída automaticamente pela conta real após o pagamento.
+    if (hasUser) {
+      // Trial logado: usa o fluxo do PlanosGatePage que vincula ao usuário atual.
+      navigate(`/planos?plano=${p.slug}`);
+      return;
+    }
+    // Sessão anônima legada: usa o checkout público (cria conta nova).
+    setCheckoutPlan({ slug: p.slug, name: p.name, price: Number(p.price) });
   };
 
   const handleGoLogin = async () => {

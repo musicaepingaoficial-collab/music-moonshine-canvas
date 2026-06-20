@@ -504,7 +504,7 @@ export default function LandingPage() {
               Chega disso. <span className="text-gradient-brand">A gente resolve tudo.</span>
             </p>
             <div className="mt-6 flex justify-center">
-              <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_problem" })}>
+              <Link to="/login?intent=trial" onClick={() => trackEvent("lead", { content_name: "demo_problem" })}>
                 <Button size="lg" variant="outline" className="border-primary/40 hover:border-primary hover:bg-primary/10 h-12 px-6 font-bold">
                   <Sparkles className="mr-2 h-4 w-4" />
                   Experimentar grátis agora
@@ -552,7 +552,7 @@ export default function LandingPage() {
           </div>
 
           <motion.div {...fadeUp} className="mt-12 text-center">
-            <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_benefits" })}>
+            <Link to="/login?intent=trial" onClick={() => trackEvent("lead", { content_name: "demo_benefits" })}>
               <Button size="lg" variant="outline" className="border-primary/40 hover:border-primary hover:bg-primary/10 h-12 px-6 font-bold">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Testar grátis sem cartão
@@ -693,7 +693,7 @@ export default function LandingPage() {
           </div>
 
           <motion.div {...fadeUp} className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_social_proof" })}>
+            <Link to="/login?intent=trial" onClick={() => trackEvent("lead", { content_name: "demo_social_proof" })}>
               <Button size="lg" variant="outline" className="border-primary/40 hover:border-primary hover:bg-primary/10 h-12 px-6 font-bold">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Experimentar grátis
@@ -889,7 +889,7 @@ export default function LandingPage() {
                 <Play className="mr-2 h-5 w-5 fill-current" />
                 QUERO ACESSAR AGORA
               </Button>
-              <Link to="/dashboard?demo=1" onClick={() => trackEvent("lead", { content_name: "demo_final_cta" })}>
+              <Link to="/login?intent=trial" onClick={() => trackEvent("lead", { content_name: "demo_final_cta" })}>
                 <Button size="lg" variant="outline" className="h-14 px-8 text-base w-full sm:w-auto border-primary/40 hover:border-primary hover:bg-primary/10">
                   <Sparkles className="mr-2 h-5 w-5" />
                   Experimentar grátis

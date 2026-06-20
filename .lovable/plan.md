@@ -1,88 +1,122 @@
-## Auditoria das mudanças de hoje (pré-produção)
+## Contexto correto
 
-Revi cada arquivo tocado hoje. Achei **3 bugs reais**, **2 problemas de UX** e **1 fragilidade na migration**. Lista priorizada — corrigir os "Bugs" antes do deploy; UX pode ir depois.
+Você tem razão — o cadastro **com senha** já existe via `/login?intent=trial` (em `LoginPage.tsx`). O que precisa mudar é só **deixar de usar o login anônimo** e fazer o app reconhecer esse usuário como "trial" (sem assinatura, mas recuperável por e-mail).
+
+Estado atual:
+
+- `LandingPage.tsx` tem **dois caminhos paralelos** para "teste grátis":
+  - 1 botão aponta para `/login?intent=trial` (fluxo correto, com senha).
+  - 4 CTAs principais (`#problem`, `#benefits`, `#social-proof`, `#final`) ainda apontam para `/dashboard?demo=1` (fluxo anônimo via `signInAnonymously`).
+- Edge function `create-trial` existe mas **não é chamada por ninguém** (orphan).
+- Após o cadastro com `intent=trial`, o usuário cai em `/dashboard` sem `assinaturas` → o guard atualizado de hoje o redireciona para `/planos`. Ou seja, o fluxo "correto" está **quebrado** pela última mudança.
+
+## Solução
+
+Padronizar tudo no cadastro com senha e tratar quem se cadastrou via trial como "demo logado".
+
+### 1. `src/pages/LandingPage.tsx`
+- Trocar **todos** os `<Link to="/dashboard?demo=1">` por `<Link to="/login?intent=trial">`. Manter o `trackEvent("lead", ...)` em cada um.
+- Resultado: única porta de entrada do trial é o cadastro com senha.
+
+### 2. `src/pages/LoginPage.tsx`
+- No `signUp` quando `intent === "trial"`, marcar `user_metadata.trial_user = true` (acrescentar ao objeto `options.data`).
+- Manter o restante (consent_logs, tracking, redirect para `/dashboard`).
+- Não chamar `create-trial` — vamos parar de usar essa função (ver item 7).
+
+### 3. `src/contexts/DemoModeContext.tsx`
+- Voltar `isDemoUser` a contemplar trial, mas só com flag explícita:
+
+  ```ts
+  const isTrialUser =
+    (user as any)?.user_metadata?.trial_user === true ||
+    (user as any)?.app_metadata?.trial_user === true;
+
+  const isDemoUser =
+    !!(user as any)?.is_anonymous ||
+    (user as any)?.app_metadata?.demo_user === true ||
+    (user as any)?.user_metadata?.demo_user === true ||
+    (isTrialUser && !isLoadingAssinatura && !assinatura);
+  ```
+
+- Remover `signInAnonymously` e o fallback `demo-signin` em `startDemoSession`.
+- Remover suporte ao parâmetro `?demo=1` e ao `PENDING_FLAG`.
+- `activateDemo` passa a apenas redirecionar para `/login?intent=trial`.
+
+### 4. `src/components/auth/DemoOrProtectedRoute.tsx`
+- Permitir browse para anônimo (legado) **e** para `trial_user && !assinatura`.
+- Demais usuários logados sem assinatura continuam redirecionados para `/planos`.
+
+  ```ts
+  const isAnonymous = !!(user as any)?.is_anonymous;
+  const isTrialUser =
+    (user as any)?.user_metadata?.trial_user === true ||
+    (user as any)?.app_metadata?.trial_user === true;
+
+  if (isAnonymous || (isTrialUser && !assinatura)) return <Outlet />;
+
+  if (!isAdmin && !assinatura) {
+    if (!ALLOWED.some(p => location.pathname.startsWith(p))) {
+      return <Navigate to="/planos" replace />;
+    }
+  }
+  return <Outlet />;
+  ```
+
+### 5. `src/components/demo/SignupGateDialog.tsx` + `PublicCheckoutDialog.tsx`
+- Quando o usuário do gate é um trial logado:
+  - Não usar fluxo "guest/anonymous" do checkout. Passar `anonymous: false` no `paymentService.postPayment` para que a assinatura saia vinculada ao `user.id` real.
+  - Pré-preencher e-mail, nome, WhatsApp e CPF (do `profile`).
+  - Manter o fluxo anonymous=true como fallback apenas se `user` não existir.
+- `PublicCheckoutDialog` precisa receber `existingUser?: { id, email, name, whatsapp, cpf }` e, quando presente, **pular** as etapas de "criar conta + senha" (o usuário já tem). Após pagamento aprovado, apenas invalida queries.
+
+### 6. `src/components/demo/DemoBanner.tsx`
+- Sem mudanças funcionais. Como `isDemoUser` cobre o trial, o banner aparece corretamente.
+
+### 7. Edge function `create-trial`
+- **Excluir** (orphan, e não queremos criar `assinaturas plan='trial'` que se passe por assinatura real e habilite downloads).
+- Excluir o arquivo `supabase/functions/create-trial/index.ts`.
+
+### 8. Recuperação de leads
+- `send-recovery-emails` já consulta `profiles` por e-mail e exclui quem tem assinatura. Trial users entram automaticamente na fila.
+- Opcional, fora de escopo: filtrar `user_metadata.trial_user = true` para campanhas dedicadas.
 
 ---
 
-### Bug 1 — `ResetUserSubscriptionCard`: "Voltar ao teste grátis" não devolve ao demo
+## Plano de teste
 
-`src/components/admin/ResetUserSubscriptionCard.tsx` (mutation `resetToTrial`) cancela a assinatura e apaga `demo_play_log`, mas **não desloga** o usuário. Como o guard novo (`DemoOrProtectedRoute`) redireciona qualquer usuário **logado** sem assinatura para `/planos`, o alvo do reset cai em `/planos` em vez de voltar ao teste grátis (que exige sessão anônima).
-
-**Fix:** ajustar o copy/UX do botão para refletir o comportamento real ("Cancelar e enviar para /planos") OU adicionar uma instrução clara ao admin de que o usuário precisará deslogar e reentrar pelo link `?demo=1` para voltar ao demo. Alterar a `AlertDialogDescription` para deixar isso explícito.
-
----
-
-### Bug 2 — Expirado preso em /ofertas vê banner de demo confuso
-
-Com o novo guard, um usuário **logado expirado** pode visitar `/ofertas` (rota permitida). Mas `DemoModeContext.isDemoUser` retorna `true` para "logado sem assinatura", então:
-- O `DemoBanner` mostra "Modo demonstração — faltam X músicas" (errado, ele não é demo).
-- O `DemoWarningDialog` pode abrir ao tocar uma música em `/ofertas` (não vai tocar nada lá, mas a flag fica setada).
-
-**Fix:** em `src/contexts/DemoModeContext.tsx`, restringir `isDemoUser` a **apenas** usuário anônimo:
-
-```ts
-const isDemoUser =
-  !!(user as any)?.is_anonymous ||
-  (user as any)?.app_metadata?.demo_user === true ||
-  (user as any)?.user_metadata?.demo_user === true;
-// remover a condição `(!isLoadingAssinatura && !assinatura)` que classificava
-// expirados como demo
-```
-
-O guard já cuida dos expirados redirecionando para `/planos`, então não precisa mais dessa classificação no contexto.
+1. Landing → clicar qualquer CTA de "Teste grátis" → cai em `/login?intent=trial` em modo cadastro.
+2. Preencher nome/email/whatsapp/senha + termos → submit.
+3. Verificar no banco: `profiles` populado com e-mail; `auth.users.raw_user_meta_data.trial_user = true`.
+4. `/dashboard` renderiza normalmente; `DemoBanner` aparece com "Modo demonstração — restam 5 músicas".
+5. Tocar 3 → `DemoWarningDialog`; tocar 5 → `SignupGateDialog`.
+6. Escolher plano → checkout pré-preenchido; pagar cartão → assinatura criada com `user_id` correto, sem criar conta nova.
+7. Voltar ao app → `DemoBanner` some, downloads habilitados, guard libera tudo.
+8. Cancelar essa assinatura no super-admin → próxima ação do usuário → `/planos` (já que não é mais trial_user com sub).
+9. Rodar `send-recovery-emails` num lead que cadastrou trial e não pagou → recebe step 1.
 
 ---
 
-### Bug 3 — `DemoOrProtectedRoute` lista `/conta` como permitida, mas `/conta` está sob `ProtectedRoute`
+## Arquivos a editar / criar / remover
 
-`src/components/auth/DemoOrProtectedRoute.tsx` linha 94 inclui `/conta` em `ALLOWED`, porém `/conta` está registrada sob `<ProtectedRoute />` em `App.tsx`. O item é inerte hoje, mas se a rota mudar de guard a regra silenciosamente diverge.
+**Editar:**
+- `src/pages/LandingPage.tsx`
+- `src/pages/LoginPage.tsx`
+- `src/contexts/DemoModeContext.tsx`
+- `src/components/auth/DemoOrProtectedRoute.tsx`
+- `src/components/demo/SignupGateDialog.tsx`
+- `src/components/subscription/PublicCheckoutDialog.tsx`
 
-**Fix:** remover `/conta` do array `ALLOWED` (ou movê-lo para `ProtectedRoute` se houver caso de uso real para expirados acessarem a conta — que aliás existe: ele precisa poder ver/cancelar). Recomendo mover a checagem para também acontecer em `ProtectedRoute` para consistência, mas pelo menos remover daqui agora.
+**Remover:**
+- `supabase/functions/create-trial/index.ts`
 
----
+**Não tocar:**
+- Migration / schema.
+- `handle_new_user` trigger.
+- `send-recovery-emails`.
+- `demo_play_log` (continua sendo a fonte do contador de plays para trial users).
 
-### UX 1 — `SignupGateDialog`: assinatura demo permanece ativa após escolher plano
+## Fora de escopo
 
-Removemos `deactivateDemo()` do `handlePick` (intencional, para não cair no /login). Mas agora, enquanto o usuário preenche o `PublicCheckoutDialog`, a sessão demo continua ativa em background e ainda conta plays via `demo_play_log`. Se o usuário fechar o checkout sem pagar, ele volta ao app já em demo e pode continuar. Isso é o comportamento desejado, **porém**: depois de pagar, o `PublicCheckoutDialog.setSession` substitui a sessão anônima — confirmar que a edge function `create-payment`/webhook está vinculando os dados ao novo `user_id` e não ao anônimo.
-
-**Ação:** revisar `supabase/functions/create-payment/index.ts` para garantir que ao receber `payment_method: card` (aprovação instantânea) o `user_id` da nova `assinatura` é o da conta real recém-criada, não o do anônimo. Não exige mudança se já está correto — só validar.
-
----
-
-### UX 2 — `DemoWarningDialog` pode disparar fora do contexto de "ouvindo"
-
-O dialog dispara assim que `playsUsed >= 3` no efeito, independente do que o usuário está fazendo (ele pode ter fechado o player, estar navegando categorias). Isso é normalmente aceitável, mas em mobile com modal em cima de modal pode ficar estranho. Recomendo manter (já tem `sessionStorage` para não repetir) e monitorar.
-
----
-
-### Migration — `20260620133334_*.sql` está incompleta
-
-O arquivo gerado contém **apenas** uma `CREATE POLICY` em `public.demo_play_log` (admin manage). Não há `CREATE TABLE` nem `GRANT`, e a tabela `demo_play_log` já existia antes. Não viola a regra de GRANTs (não cria tabela), mas é uma policy órfã — verificar se as RLS antigas continuam intactas. Risco baixo, mas como vai para produção:
-
-**Ação:** rodar `supabase--read_query` para listar policies atuais de `demo_play_log` e confirmar que (a) a nova policy foi de fato adicionada e (b) as duas policies originais (`Users can read/update own demo log`) continuam ativas, senão o usuário demo deixa de gravar plays.
-
----
-
-### Checklist final antes do deploy
-
-1. Fix Bug 1: editar copy do `resetToTrial`.
-2. Fix Bug 2: remover `!assinatura` da definição de `isDemoUser` em `DemoModeContext`.
-3. Fix Bug 3: remover `/conta` de `ALLOWED` no `DemoOrProtectedRoute`.
-4. Validar UX 1 inspecionando `create-payment` edge function.
-5. Validar migration via `SELECT polname FROM pg_policy WHERE polrelid = 'public.demo_play_log'::regclass`.
-6. Smoke test manual:
-   - Login normal com sub ativa → entra em `/dashboard`.
-   - Admin cancela essa sub → próxima troca de aba do user → cai em `/planos`.
-   - Usuário anônimo (`?demo=1`) → 3 plays dispara `DemoWarningDialog` uma vez; 5 plays dispara `SignupGateDialog`.
-   - Clicar plano no gate → checkout abre; fechar mantém na mesma tela em demo (não vai pro /login).
-   - Admin "Excluir histórico" → user é redirecionado a `/planos` na próxima ação.
-
-## Arquivos a editar (se aprovado)
-
-- `src/components/admin/ResetUserSubscriptionCard.tsx` — texto do dialog.
-- `src/contexts/DemoModeContext.tsx` — definição de `isDemoUser`.
-- `src/components/auth/DemoOrProtectedRoute.tsx` — array `ALLOWED`.
-
-## Fora do escopo desta auditoria
-
-Não vou refatorar `create-payment` nem alterar a migration — apenas validar. Se a validação acusar problema, abro um plano separado.
+- Não vamos limpar usuários anônimos antigos do `auth.users` agora.
+- Não vamos criar uma campanha de recuperação dedicada a trials (a campanha geral já alcança).
+- Não vamos mudar o fluxo de senha — o `LoginPage` já coleta senha no cadastro.

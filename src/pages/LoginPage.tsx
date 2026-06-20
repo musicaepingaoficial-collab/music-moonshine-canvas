@@ -75,11 +75,14 @@ const LoginPage = () => {
 
     try {
       if (isSignUp) {
+        const params = new URLSearchParams(window.location.search);
+        const intent = params.get("intent");
+        const isTrial = intent === "trial";
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { name, whatsapp },
+            data: { name, whatsapp, ...(isTrial ? { trial_user: true } : {}) },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -100,14 +103,8 @@ const LoginPage = () => {
         });
         if (data.session) {
           await registerPendingReferral();
-          const params = new URLSearchParams(window.location.search);
-          const intent = params.get("intent");
-          if (intent === "trial") {
-            navigate("/dashboard");
-          } else {
-            // Redirect to dashboard by default instead of plans to allow the free plays
-            navigate("/dashboard");
-          }
+          // Trial e default vão pro dashboard; o guard libera porque trial_user=true.
+          navigate("/dashboard");
         } else {
           toast({
             title: "Conta criada!",
