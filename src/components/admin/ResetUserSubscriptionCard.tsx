@@ -263,8 +263,7 @@ export function ResetUserSubscriptionCard() {
                   <AlertDialogDescription>
                     Cancela todas as assinaturas ativas de <strong>{selected.email}</strong> e zera o contador de músicas do modo demonstração.
                     <br /><br />
-                    <strong>Importante:</strong> se o usuário estiver logado, ele será enviado para a tela de planos na próxima ação.
-                    Para reentrar como teste grátis (anônimo), ele precisa deslogar e voltar pelo link com <code>?demo=1</code>.
+                    <strong>Importante:</strong> se o usuário foi cadastrado como trial (marca <code>trial_user</code>), ele continua podendo navegar com o limite de 5 plays e ser recuperado por e-mail. Caso contrário, será enviado para a tela de planos na próxima ação.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
