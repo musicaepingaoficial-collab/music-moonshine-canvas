@@ -84,6 +84,19 @@ export function SignupGateDialog() {
     price: number;
   } | null>(null);
 
+  // Detecta se já existe um usuário logado (trial). Nesse caso o checkout
+  // público (que recria conta) não serve — mandamos para /planos.
+  const [hasUser, setHasUser] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted) setHasUser(!!data.user && !(data.user as any).is_anonymous);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [gate.open]);
+
   const reason = gate.reason || "plays";
   const meta = COPY[reason] ?? COPY.plays;
   const Icon = meta.icon;
