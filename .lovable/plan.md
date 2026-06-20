@@ -1,122 +1,54 @@
-## Contexto correto
+# Plano: corrigir comportamento do "teste expirado"
 
-Você tem razão — o cadastro **com senha** já existe via `/login?intent=trial` (em `LoginPage.tsx`). O que precisa mudar é só **deixar de usar o login anônimo** e fazer o app reconhecer esse usuário como "trial" (sem assinatura, mas recuperável por e-mail).
+## Problema observado
+Quando um usuário com **teste gratuito expirado** (trial_user já cadastrado, mas com as 5 reproduções consumidas e sem assinatura) faz login, o app está redirecionando direto para `/planos` em vez de deixar entrar no sistema. O esperado é:
 
-Estado atual:
+1. Login → entra no `/dashboard` normalmente, navega à vontade (biblioteca, busca, perfis etc.).
+2. Só ao **clicar em reproduzir uma música** é que o `SignupGateDialog` aparece, mostrando **apenas Mensal e Anual** (como já está configurado hoje).
 
-- `LandingPage.tsx` tem **dois caminhos paralelos** para "teste grátis":
-  - 1 botão aponta para `/login?intent=trial` (fluxo correto, com senha).
-  - 4 CTAs principais (`#problem`, `#benefits`, `#social-proof`, `#final`) ainda apontam para `/dashboard?demo=1` (fluxo anônimo via `signInAnonymously`).
-- Edge function `create-trial` existe mas **não é chamada por ninguém** (orphan).
-- Após o cadastro com `intent=trial`, o usuário cai em `/dashboard` sem `assinaturas` → o guard atualizado de hoje o redireciona para `/planos`. Ou seja, o fluxo "correto" está **quebrado** pela última mudança.
+A causa atual está em `src/components/auth/DemoOrProtectedRoute.tsx`: quando o usuário logado não é trial e não tem assinatura, o guard manda para `/planos`. Usuários antigos (cadastrados antes do flag `trial_user`) caem nessa regra. Também é o caso de qualquer signup feito fora do fluxo `/login?intent=trial`.
 
 ## Solução
 
-Padronizar tudo no cadastro com senha e tratar quem se cadastrou via trial como "demo logado".
+Tratar **todo usuário logado sem assinatura ativa** (e que não seja admin) como usuário em modo demonstração — exatamente como já fazemos com `trial_user`. Assim:
+- Ele entra no sistema normalmente.
+- O contador de plays (`demo_play_log`) já é por `user_id`, então o limite de 5 continua valendo.
+- O `SignupGateDialog` (Mensal + Anual) é aberto pelo player ao bater o limite ou ao tentar reproduzir já expirado.
 
-### 1. `src/pages/LandingPage.tsx`
-- Trocar **todos** os `<Link to="/dashboard?demo=1">` por `<Link to="/login?intent=trial">`. Manter o `trackEvent("lead", ...)` em cada um.
-- Resultado: única porta de entrada do trial é o cadastro com senha.
+### Arquivos a alterar
 
-### 2. `src/pages/LoginPage.tsx`
-- No `signUp` quando `intent === "trial"`, marcar `user_metadata.trial_user = true` (acrescentar ao objeto `options.data`).
-- Manter o restante (consent_logs, tracking, redirect para `/dashboard`).
-- Não chamar `create-trial` — vamos parar de usar essa função (ver item 7).
+1. **`src/components/auth/DemoOrProtectedRoute.tsx`**
+   - Remover o redirect `→ /planos` para usuários logados sem assinatura.
+   - Manter o redirect `→ /completar-perfil` quando faltar `whatsapp`.
+   - Continuar permitindo admin e usuários com assinatura normalmente.
+   - Resultado: qualquer usuário autenticado (com perfil completo) recebe `<Outlet />`.
 
-### 3. `src/contexts/DemoModeContext.tsx`
-- Voltar `isDemoUser` a contemplar trial, mas só com flag explícita:
+2. **`src/contexts/DemoModeContext.tsx`**
+   - Ampliar `isDemoUser`: além de anônimo / `demo_user` / `trial_user sem assinatura`, incluir **qualquer usuário logado, não-admin, sem assinatura**, depois que `useAssinatura` terminou de carregar.
+   - Usar `useIsAdmin(user?.id)` para excluir admins do modo demo.
+   - Sem isso, o player não dispararia `openGate` para esses usuários.
 
-  ```ts
-  const isTrialUser =
-    (user as any)?.user_metadata?.trial_user === true ||
-    (user as any)?.app_metadata?.trial_user === true;
+3. **Sem mudanças** em `SignupGateDialog.tsx` (já filtra `slug in ['mensal','anual']`), `MusicPlayer`, `demo_play_log`, schema ou edge functions.
 
-  const isDemoUser =
-    !!(user as any)?.is_anonymous ||
-    (user as any)?.app_metadata?.demo_user === true ||
-    (user as any)?.user_metadata?.demo_user === true ||
-    (isTrialUser && !isLoadingAssinatura && !assinatura);
+## Detalhes técnicos
+
+- `DemoOrProtectedRoute` passa a ter apenas dois bloqueios para logado: perfil incompleto → `/completar-perfil`; tudo mais → `<Outlet />`.
+- `DemoModeContext` calcula:
   ```
-
-- Remover `signInAnonymously` e o fallback `demo-signin` em `startDemoSession`.
-- Remover suporte ao parâmetro `?demo=1` e ao `PENDING_FLAG`.
-- `activateDemo` passa a apenas redirecionar para `/login?intent=trial`.
-
-### 4. `src/components/auth/DemoOrProtectedRoute.tsx`
-- Permitir browse para anônimo (legado) **e** para `trial_user && !assinatura`.
-- Demais usuários logados sem assinatura continuam redirecionados para `/planos`.
-
-  ```ts
-  const isAnonymous = !!(user as any)?.is_anonymous;
-  const isTrialUser =
-    (user as any)?.user_metadata?.trial_user === true ||
-    (user as any)?.app_metadata?.trial_user === true;
-
-  if (isAnonymous || (isTrialUser && !assinatura)) return <Outlet />;
-
-  if (!isAdmin && !assinatura) {
-    if (!ALLOWED.some(p => location.pathname.startsWith(p))) {
-      return <Navigate to="/planos" replace />;
-    }
-  }
-  return <Outlet />;
+  isDemoUser =
+    isAnonymous ||
+    hasDemoMetadata ||
+    (!loading && !isLoadingAssinatura && !isLoadingAdmin && !!user && !isAdmin && !assinatura)
   ```
-
-### 5. `src/components/demo/SignupGateDialog.tsx` + `PublicCheckoutDialog.tsx`
-- Quando o usuário do gate é um trial logado:
-  - Não usar fluxo "guest/anonymous" do checkout. Passar `anonymous: false` no `paymentService.postPayment` para que a assinatura saia vinculada ao `user.id` real.
-  - Pré-preencher e-mail, nome, WhatsApp e CPF (do `profile`).
-  - Manter o fluxo anonymous=true como fallback apenas se `user` não existir.
-- `PublicCheckoutDialog` precisa receber `existingUser?: { id, email, name, whatsapp, cpf }` e, quando presente, **pular** as etapas de "criar conta + senha" (o usuário já tem). Após pagamento aprovado, apenas invalida queries.
-
-### 6. `src/components/demo/DemoBanner.tsx`
-- Sem mudanças funcionais. Como `isDemoUser` cobre o trial, o banner aparece corretamente.
-
-### 7. Edge function `create-trial`
-- **Excluir** (orphan, e não queremos criar `assinaturas plan='trial'` que se passe por assinatura real e habilite downloads).
-- Excluir o arquivo `supabase/functions/create-trial/index.ts`.
-
-### 8. Recuperação de leads
-- `send-recovery-emails` já consulta `profiles` por e-mail e exclui quem tem assinatura. Trial users entram automaticamente na fila.
-- Opcional, fora de escopo: filtrar `user_metadata.trial_user = true` para campanhas dedicadas.
-
----
+  Mantém `staleTime: 5_000` e `refetchOnWindowFocus: true` para reagir rápido a assinatura recém-criada.
+- Página `/planos` continua acessível por link/botão (banner "Assinar agora", CTA do gate, etc.) — apenas deixa de ser forçada.
+- Recuperação por email (`send-recovery-emails`) continua funcionando: trial/sem assinatura permanecem em `profiles`.
 
 ## Plano de teste
 
-1. Landing → clicar qualquer CTA de "Teste grátis" → cai em `/login?intent=trial` em modo cadastro.
-2. Preencher nome/email/whatsapp/senha + termos → submit.
-3. Verificar no banco: `profiles` populado com e-mail; `auth.users.raw_user_meta_data.trial_user = true`.
-4. `/dashboard` renderiza normalmente; `DemoBanner` aparece com "Modo demonstração — restam 5 músicas".
-5. Tocar 3 → `DemoWarningDialog`; tocar 5 → `SignupGateDialog`.
-6. Escolher plano → checkout pré-preenchido; pagar cartão → assinatura criada com `user_id` correto, sem criar conta nova.
-7. Voltar ao app → `DemoBanner` some, downloads habilitados, guard libera tudo.
-8. Cancelar essa assinatura no super-admin → próxima ação do usuário → `/planos` (já que não é mais trial_user com sub).
-9. Rodar `send-recovery-emails` num lead que cadastrou trial e não pagou → recebe step 1.
-
----
-
-## Arquivos a editar / criar / remover
-
-**Editar:**
-- `src/pages/LandingPage.tsx`
-- `src/pages/LoginPage.tsx`
-- `src/contexts/DemoModeContext.tsx`
-- `src/components/auth/DemoOrProtectedRoute.tsx`
-- `src/components/demo/SignupGateDialog.tsx`
-- `src/components/subscription/PublicCheckoutDialog.tsx`
-
-**Remover:**
-- `supabase/functions/create-trial/index.ts`
-
-**Não tocar:**
-- Migration / schema.
-- `handle_new_user` trigger.
-- `send-recovery-emails`.
-- `demo_play_log` (continua sendo a fonte do contador de plays para trial users).
-
-## Fora de escopo
-
-- Não vamos limpar usuários anônimos antigos do `auth.users` agora.
-- Não vamos criar uma campanha de recuperação dedicada a trials (a campanha geral já alcança).
-- Não vamos mudar o fluxo de senha — o `LoginPage` já coleta senha no cadastro.
+1. Login com usuário trial cujo `plays_used = 5` → cai em `/dashboard`, navega livre.
+2. Clicar play em qualquer música → `SignupGateDialog` abre mostrando **Mensal** e **Anual** apenas.
+3. Login com usuário antigo (sem `trial_user`) sem assinatura → mesmo comportamento.
+4. Login com assinante ativo → fluxo normal, sem gate.
+5. Login como admin sem assinatura → entra no admin, sem gate ao reproduzir.
+6. Após assinar, o gate some e plays liberam (invalidação de `useAssinatura`).
