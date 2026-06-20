@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { ResetUserSubscriptionCard } from "@/components/admin/ResetUserSubscriptionCard";
 
 interface Plano {
   id: string;
@@ -75,6 +76,9 @@ const AdminPlanosPage = () => {
         <h1 className="text-2xl font-bold text-foreground">Planos</h1>
         <p className="text-muted-foreground">Gerencie os planos de assinatura.</p>
       </div>
+
+      <ResetUserSubscriptionCard />
+
 
       {isLoading ? (
         <div className="flex justify-center py-12">
