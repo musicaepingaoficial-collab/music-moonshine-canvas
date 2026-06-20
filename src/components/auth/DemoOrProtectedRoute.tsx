@@ -12,13 +12,17 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
  */
 export function DemoOrProtectedRoute() {
   const { user, loading } = useAuth();
-  const isDemoUser =
-    !!(user as any)?.is_anonymous ||
+  const isAnonymous = !!(user as any)?.is_anonymous;
+  const isDemoMeta =
     (user as any)?.app_metadata?.demo_user === true ||
     (user as any)?.user_metadata?.demo_user === true;
-  const { data: profile, isLoading: profileLoading } = useProfile(isDemoUser ? null : user?.id);
-  const { data: assinatura, isLoading: subLoading } = useAssinatura(isDemoUser ? null : user?.id);
-  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(isDemoUser ? null : user?.id);
+  const isTrialUser =
+    (user as any)?.user_metadata?.trial_user === true ||
+    (user as any)?.app_metadata?.trial_user === true;
+  const isDemoUser = isAnonymous || isDemoMeta;
+  const { data: profile, isLoading: profileLoading } = useProfile(isAnonymous ? null : user?.id);
+  const { data: assinatura, isLoading: subLoading } = useAssinatura(isAnonymous ? null : user?.id);
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(isAnonymous ? null : user?.id);
   const location = useLocation();
   const { isActivatingDemo, demoActivationError } = useDemoMode();
 
