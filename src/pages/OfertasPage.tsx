@@ -168,10 +168,21 @@ const OfertasPage = () => {
                 <p className="mt-1 text-sm text-muted-foreground">{getDurationLabel(plano.duration_days)}</p>
 
                 <div className="mt-4">
+                  <div className="text-xs text-muted-foreground">
+                    De{" "}
+                    <span className="line-through">
+                      R$ {plano.slug === "anual" ? "418,80" : "59,90"}
+                    </span>{" "}
+                    por
+                  </div>
                   <span className="text-3xl font-extrabold text-foreground">
                     R$ {plano.price.toFixed(2).replace(".", ",")}
                   </span>
+                  <span className="ml-1 text-sm text-muted-foreground">
+                    {plano.slug === "anual" ? "/ ano" : "/ mês"}
+                  </span>
                 </div>
+
 
                 {plano.description && (
                   <p className="mt-3 text-sm text-muted-foreground">{plano.description}</p>
