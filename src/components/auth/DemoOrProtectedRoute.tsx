@@ -92,17 +92,8 @@ export function DemoOrProtectedRoute() {
     return <Navigate to="/completar-perfil" replace />;
   }
 
-  // Trial user (cadastro pelo /login?intent=trial) sem assinatura → liberado para navegar
-  // como demo (5 plays, gate de assinatura). Demais usuários sem assinatura vão pra /planos.
-  if (!isAdmin && !assinatura) {
-    if (isTrialUser) {
-      return <Outlet />;
-    }
-    const ALLOWED = ["/planos", "/completar-perfil", "/ofertas"];
-    if (!ALLOWED.some((p) => location.pathname.startsWith(p))) {
-      return <Navigate to="/planos" replace />;
-    }
-  }
-
+  // Qualquer usuário logado (com perfil completo) pode navegar.
+  // Usuários sem assinatura ativa entram em modo demo (5 plays) e o
+  // SignupGateDialog aparece somente ao tentar reproduzir/baixar.
   return <Outlet />;
 }
