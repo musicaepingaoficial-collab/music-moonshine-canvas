@@ -1,48 +1,72 @@
 ## Problema
 
-Quando o teste grátis acaba e o usuário clica em **"QUERO ESTE PLANO"** no `SignupGateDialog`, dois popups aparecem corretamente (gate → checkout). Porém, no fundo, a tela visível é a de **login**. Se ele fechar o popup de checkout, fica preso no login — perdendo o contexto de onde estava (dashboard, música, etc.).
+Quando o admin marca uma assinatura como **expirada** ou **cancelada** no painel, o usuário afetado continua entrando no app normalmente (dashboard, biblioteca, etc.) como se tivesse acesso pago.
 
 ## Causa raiz
 
-Em `src/components/demo/SignupGateDialog.tsx`, o handler `handlePick` faz:
+O guard `src/components/auth/DemoOrProtectedRoute.tsx` foi modificado em algum momento para "permitir 5 plays grátis" antes de exigir assinatura. O bloco virou:
 
 ```ts
-setCheckoutPlan(...);   // abre PublicCheckoutDialog
-closeGate();
-void deactivateDemo();  // 👈 desloga o usuário demo IMEDIATAMENTE
+// Remove immediate redirect to /planos for logged-in users without subscription
+if (!isAdmin && !assinatura && location.pathname === "/planos") {
+  return <Outlet />;
+}
+return <Outlet />;   // 👈 fallback libera TUDO mesmo sem assinatura
 ```
 
-Ao deslogar o usuário anônimo, o `DemoOrProtectedRoute` detecta `!user` e redireciona para `/login`. Esse redirect acontece **por baixo** do dialog de checkout, então ao fechar, o usuário cai no `/login`.
+Resultado: qualquer usuário **logado** (não-anônimo) sem assinatura ativa — incluindo alguém cuja assinatura foi expirada/cancelada pelo admin — recebe `<Outlet />` e navega livremente. O `useAssinatura` retorna `null` corretamente (filtra `status='active'` e `expires_at > now`), mas o guard não age sobre isso.
 
-O `deactivateDemo()` foi colocado ali por precaução (para o checkout público criar uma conta nova sem conflito), mas a sessão demo anônima não atrapalha o `PublicCheckoutDialog` — ele cria a conta real via edge function e faz `setSession` depois do pagamento confirmado, substituindo a sessão demo naturalmente.
-
-O mesmo padrão se repete em `handleGoLogin` (ali sim faz sentido, pois o usuário está indo pro login de propósito).
+Adicionalmente:
+- `DemoModeContext.isDemoUser` também trata o caso (`!assinatura` → vira "demo"), mas isso só limita **plays** (5 músicas), não restringe **navegação** nem o resto da UI. Por isso o usuário "expirado" parece ter acesso normal.
+- `ProtectedRoute` (usado em rotas que exigem pagamento) já redireciona corretamente; o vazamento está só no `DemoOrProtectedRoute`.
 
 ## Solução
 
-### 1. `src/components/demo/SignupGateDialog.tsx`
-- **Remover** `void deactivateDemo()` de `handlePick`. Manter a sessão demo viva enquanto o checkout está aberto, para que a rota por trás continue válida.
-- Garantir que `closeGate()` só feche o gate (não navegue).
-- No fechamento do `PublicCheckoutDialog` (quando o usuário cancela sem pagar), **não fazer nada** — ele permanece na tela onde estava, ainda em modo demo, e pode reabrir o gate quando quiser.
-- No sucesso do checkout (já tratado dentro do `PublicCheckoutDialog` via `setSession` com a conta nova), a sessão demo é substituída automaticamente pela conta paga. Adicionar um `void deactivateDemo()` defensivo apenas **se** o checkout indicar falha de substituição (não é necessário no fluxo atual; revisar `PublicCheckoutDialog.onSuccess` para confirmar).
+### 1. `src/components/auth/DemoOrProtectedRoute.tsx`
+Diferenciar **usuário anônimo (demo real)** de **usuário logado sem assinatura ativa**:
 
-### 2. Sanidade no `DemoModeContext`
-- `deactivateDemo()` continua chamando `supabase.auth.signOut()`. Como não é mais invocado ao escolher plano, o redirect para `/login` deixa de acontecer no meio do fluxo.
-- Nenhuma mudança de contrato exigida.
+- Anônimo (`is_anonymous` / `app_metadata.demo_user`): mantém comportamento atual — `<Outlet />` (server-side limita os 5 plays).
+- Logado **sem** assinatura ativa **e** não-admin: redirecionar para `/planos`, exceto se já estiver em rotas permitidas (`/planos`, `/completar-perfil`, `/conta`, `/ofertas`).
+- Logado com assinatura ativa **ou** admin: `<Outlet />` (comportamento atual).
+
+Pseudocódigo:
+
+```ts
+const PUBLIC_FOR_EXPIRED = ["/planos", "/completar-perfil", "/conta", "/ofertas"];
+
+if (!isAdmin && !assinatura) {
+  if (!PUBLIC_FOR_EXPIRED.some(p => location.pathname.startsWith(p))) {
+    return <Navigate to="/planos" replace />;
+  }
+}
+return <Outlet />;
+```
+
+Isso garante que, assim que o admin cancela/expira, no próximo refetch (ou troca de rota) o usuário cai em `/planos` e precisa reassinar.
+
+### 2. Forçar refetch da assinatura
+Para que a mudança no admin reflita rápido na sessão aberta do usuário, o `useAssinatura` precisa revalidar:
+
+- Em `src/hooks/useUser.ts`, adicionar à query `["assinatura", userId]`:
+  - `refetchOnWindowFocus: true`
+  - `refetchOnReconnect: true`
+  - `staleTime: 30_000` (já refetchará rápido ao voltar à aba)
+
+Sem isso o cache do React Query pode segurar a assinatura antiga indefinidamente na sessão do usuário.
 
 ### 3. Verificação manual
-- Esgotar as 5 plays como demo.
-- Clicar **QUERO ASSINAR AGORA** → escolher plano → checkout abre.
-- **Fechar** o checkout (X) → deve voltar para a página onde estava (dashboard/música), ainda como demo, **não** para `/login`.
-- Reabrir gate via player/banner → fluxo continua funcionando.
-- Concluir checkout até o pagamento → sessão real assume e usuário cai no dashboard autenticado.
+1. Logar como usuário com assinatura ativa → acessar `/dashboard`.
+2. Em outra aba, no super admin, cancelar (ou marcar expired) a assinatura desse usuário.
+3. Voltar à aba do usuário → ao mudar de rota ou refocar, deve ser redirecionado para `/planos`.
+4. Logar de novo do zero como esse usuário → deve cair direto em `/planos` em vez do dashboard.
+5. Usuário anônimo do modo demo continua navegando normalmente (sem regressão).
 
 ## Arquivos a editar
 
-- `src/components/demo/SignupGateDialog.tsx` — remover `deactivateDemo()` de `handlePick`.
+- `src/components/auth/DemoOrProtectedRoute.tsx` — separar usuário demo (anônimo) de usuário logado sem assinatura; redirecionar o segundo para `/planos`.
+- `src/hooks/useUser.ts` — habilitar `refetchOnWindowFocus`/`refetchOnReconnect` na query `useAssinatura`.
 
 ## Fora do escopo
 
-- Não mexer em `PublicCheckoutDialog` (lógica de pagamento permanece).
-- Não mexer em `DemoOrProtectedRoute` — o comportamento de redirecionar para `/login` quando não há usuário continua correto para os outros fluxos.
-- Não alterar `handleGoLogin` (deslogar ali é intencional).
+- Não mexer no `ProtectedRoute` nem nas mutations do admin (já estão corretas — escrevem `status='cancelled'` + `expires_at=now`).
+- Não criar nova ação "Marcar como expirada" se a intenção do admin é cancelar — o `cancelSub` existente já produz o mesmo efeito (`useAssinatura` filtra por `expires_at > now`).

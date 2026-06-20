@@ -122,6 +122,9 @@ export function useAssinatura(userId?: string | null) {
       return rows[0];
     },
     enabled: !!userId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 
