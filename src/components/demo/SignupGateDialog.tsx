@@ -117,7 +117,9 @@ export function SignupGateDialog() {
     });
     setCheckoutPlan({ slug: p.slug, name: p.name, price: Number(p.price) });
     closeGate();
-    void deactivateDemo();
+    // Não deslogar a sessão demo aqui — se o usuário fechar o checkout,
+    // ele permanece na tela onde estava em vez de cair em /login.
+    // A sessão demo é substituída automaticamente pela conta real após o pagamento.
   };
 
   const handleGoLogin = async () => {
