@@ -22,7 +22,7 @@ import {
   ListMusic,
   Library,
   ArrowRight,
-  TrendingUp,
+  
   Users,
   Award,
 } from "lucide-react";
