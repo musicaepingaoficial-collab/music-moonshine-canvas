@@ -88,12 +88,14 @@ export function DemoOrProtectedRoute() {
     return <Navigate to="/completar-perfil" replace />;
   }
 
-  // Remove immediate redirect to /planos for logged-in users without subscription
-  // This allows them to use the 5 free plays before being prompted to subscribe
-  if (!isAdmin && !assinatura && location.pathname === "/planos") {
-    return <Outlet />;
+  // Usuário logado, não-admin e sem assinatura ativa → forçar reassinatura.
+  // Liberamos apenas rotas onde a pessoa precisa estar para resolver isso.
+  if (!isAdmin && !assinatura) {
+    const ALLOWED = ["/planos", "/completar-perfil", "/conta", "/ofertas"];
+    if (!ALLOWED.some((p) => location.pathname.startsWith(p))) {
+      return <Navigate to="/planos" replace />;
+    }
   }
-
 
   return <Outlet />;
 }
