@@ -22,15 +22,15 @@ const PlanosGatePage = () => {
     if (!loading) {
       if (!user) {
         navigate("/login", { replace: true });
-      } else if (isDemo) {
-        // Se for usuário demo tentando assinar, desconectamos para forçar fluxo de checkout público (Guest)
-        // que pede e-mail e senha novos.
+      } else if ((user as any)?.is_anonymous) {
+        // Sessão anônima legada: precisa virar conta real pelo checkout público.
         deactivateDemo().then(() => {
           navigate("/#planos", { replace: true });
         });
       }
     }
-  }, [user, loading, isDemo, navigate, deactivateDemo]);
+  }, [user, loading, navigate, deactivateDemo]);
+
 
   useEffect(() => {
     if (!subLoading && assinatura) {
