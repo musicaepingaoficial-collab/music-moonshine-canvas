@@ -261,7 +261,9 @@ export default function LandingPage() {
     document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const visiblePlanos = (planos ?? []).filter((p: any) => p.slug !== "discografias");
+  const visiblePlanos = (planos ?? [])
+    .filter((p: any) => p.slug === "mensal" || p.slug === "anual")
+    .sort((a: any, b: any) => (a.slug === "mensal" ? -1 : 1));
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/30">
