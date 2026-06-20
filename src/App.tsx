@@ -120,6 +120,7 @@ const App = () => (
           <OnlineStatusTracker />
           <SingleSessionGuard />
           <SignupGateDialog />
+          <DemoWarningDialog />
           <Suspense fallback={<PageLoader />}>
             <MaintenanceGate>
             <Routes>
