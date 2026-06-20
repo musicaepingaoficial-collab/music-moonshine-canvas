@@ -261,7 +261,10 @@ export function ResetUserSubscriptionCard() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Resetar para o teste grátis?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Cancela todas as assinaturas ativas de <strong>{selected.email}</strong> e zera o contador de músicas usadas no modo demonstração. O usuário volta a ter acesso ao período de teste grátis ao entrar.
+                    Cancela todas as assinaturas ativas de <strong>{selected.email}</strong> e zera o contador de músicas do modo demonstração.
+                    <br /><br />
+                    <strong>Importante:</strong> se o usuário estiver logado, ele será enviado para a tela de planos na próxima ação.
+                    Para reentrar como teste grátis (anônimo), ele precisa deslogar e voltar pelo link com <code>?demo=1</code>.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
