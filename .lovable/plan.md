@@ -1,54 +1,49 @@
-# Plano: corrigir comportamento do "teste expirado"
+# Plano: Avisos de teste ficam atrás do player no mobile
 
-## Problema observado
-Quando um usuário com **teste gratuito expirado** (trial_user já cadastrado, mas com as 5 reproduções consumidas e sem assinatura) faz login, o app está redirecionando direto para `/planos` em vez de deixar entrar no sistema. O esperado é:
+## Diagnóstico
+O player de música está fixo com `z-[60]` (`MusicPlayer.tsx` linha 112), mas os diálogos do Radix usam o padrão `z-50` (`ui/dialog.tsx` linhas 22 e 40). No celular o player ocupa a base da tela e acaba ficando **na frente** do overlay e do conteúdo dos diálogos de aviso ("Faltam só X músicas", "Termine seu cadastro / veja os planos"), escondendo o botão CTA e dificultando a assinatura.
 
-1. Login → entra no `/dashboard` normalmente, navega à vontade (biblioteca, busca, perfis etc.).
-2. Só ao **clicar em reproduzir uma música** é que o `SignupGateDialog` aparece, mostrando **apenas Mensal e Anual** (como já está configurado hoje).
+Componentes afetados pelo mesmo problema:
+- `DemoWarningDialog` (aviso 3 de 5)
+- `SignupGateDialog` (gate ao tentar tocar/baixar)
+- `SubscriptionDialog` (escolha de plano + checkout)
+- `DemoBanner` (sticky com `z-40`, também fica abaixo do player — apenas no topo, sem conflito direto, mas vale revisar)
 
-A causa atual está em `src/components/auth/DemoOrProtectedRoute.tsx`: quando o usuário logado não é trial e não tem assinatura, o guard manda para `/planos`. Usuários antigos (cadastrados antes do flag `trial_user`) caem nessa regra. Também é o caso de qualquer signup feito fora do fluxo `/login?intent=trial`.
+## Mudanças
 
-## Solução
+### 1. `src/components/demo/DemoWarningDialog.tsx`
+No `<DialogContent>` adicionar classes para subir acima do player e dar respiro do fundo no mobile:
+- Acrescentar `z-[80]` e `mb-[calc(env(safe-area-inset-bottom)+96px)] sm:mb-0` no `className`.
+- No `DialogOverlay` (vem do componente base) já será coberto pela mudança global abaixo.
 
-Tratar **todo usuário logado sem assinatura ativa** (e que não seja admin) como usuário em modo demonstração — exatamente como já fazemos com `trial_user`. Assim:
-- Ele entra no sistema normalmente.
-- O contador de plays (`demo_play_log`) já é por `user_id`, então o limite de 5 continua valendo.
-- O `SignupGateDialog` (Mensal + Anual) é aberto pelo player ao bater o limite ou ao tentar reproduzir já expirado.
+### 2. `src/components/demo/SignupGateDialog.tsx`
+Mesmo tratamento: `z-[80]` no `DialogContent` e margem inferior no mobile para o conteúdo nunca encostar/ser encoberto pelo player.
 
-### Arquivos a alterar
+### 3. `src/components/subscription/SubscriptionDialog.tsx`
+Adicionar `z-[80]` e `max-h-[calc(100dvh-96px)] overflow-y-auto mb-[calc(env(safe-area-inset-bottom)+96px)] sm:mb-0` no `DialogContent` (já tem `max-w-2xl`), garantindo que em telas pequenas o card de planos role e o botão "Assinar" fique sempre visível acima do player.
 
-1. **`src/components/auth/DemoOrProtectedRoute.tsx`**
-   - Remover o redirect `→ /planos` para usuários logados sem assinatura.
-   - Manter o redirect `→ /completar-perfil` quando faltar `whatsapp`.
-   - Continuar permitindo admin e usuários com assinatura normalmente.
-   - Resultado: qualquer usuário autenticado (com perfil completo) recebe `<Outlet />`.
+### 4. `src/components/ui/dialog.tsx` (ajuste global)
+Para garantir que o overlay escuro também cubra o player:
+- `DialogOverlay`: trocar `z-50` por `z-[75]`.
+- `DialogContent`: trocar `z-50` por `z-[80]`.
 
-2. **`src/contexts/DemoModeContext.tsx`**
-   - Ampliar `isDemoUser`: além de anônimo / `demo_user` / `trial_user sem assinatura`, incluir **qualquer usuário logado, não-admin, sem assinatura**, depois que `useAssinatura` terminou de carregar.
-   - Usar `useIsAdmin(user?.id)` para excluir admins do modo demo.
-   - Sem isso, o player não dispararia `openGate` para esses usuários.
+Isso resolve o problema para **todos** os diálogos do app (modais de admin, checkout, etc.) sem precisar tocar em cada um. Como o player é `z-[60]` e os popovers do player são `z-[70]`, a hierarquia final fica:
+- Player bar: 60
+- Popovers internos do player (fila/queue): 70
+- Overlay de diálogo: 75
+- Conteúdo de diálogo: 80
 
-3. **Sem mudanças** em `SignupGateDialog.tsx` (já filtra `slug in ['mensal','anual']`), `MusicPlayer`, `demo_play_log`, schema ou edge functions.
+### 5. `src/components/demo/DemoBanner.tsx` (opcional / leve)
+Banner fica no topo (`top-0`), sem conflito com o player. Manter `z-40`. Sem mudança.
+
+## Validação
+1. Abrir preview em viewport mobile.
+2. Logar como usuário em modo demo e tocar 3 músicas até disparar `DemoWarningDialog` — confirmar que o botão "QUERO OUVIR ILIMITADO" aparece acima do player.
+3. Tocar a 6ª música para abrir `SignupGateDialog` — confirmar CTA visível.
+4. Clicar em "Assinar agora" no banner → `SubscriptionDialog` rola e mostra o botão "Assinar" de cada plano sem ser encoberto.
+5. Repetir em desktop para garantir que nada quebrou.
 
 ## Detalhes técnicos
-
-- `DemoOrProtectedRoute` passa a ter apenas dois bloqueios para logado: perfil incompleto → `/completar-perfil`; tudo mais → `<Outlet />`.
-- `DemoModeContext` calcula:
-  ```
-  isDemoUser =
-    isAnonymous ||
-    hasDemoMetadata ||
-    (!loading && !isLoadingAssinatura && !isLoadingAdmin && !!user && !isAdmin && !assinatura)
-  ```
-  Mantém `staleTime: 5_000` e `refetchOnWindowFocus: true` para reagir rápido a assinatura recém-criada.
-- Página `/planos` continua acessível por link/botão (banner "Assinar agora", CTA do gate, etc.) — apenas deixa de ser forçada.
-- Recuperação por email (`send-recovery-emails`) continua funcionando: trial/sem assinatura permanecem em `profiles`.
-
-## Plano de teste
-
-1. Login com usuário trial cujo `plays_used = 5` → cai em `/dashboard`, navega livre.
-2. Clicar play em qualquer música → `SignupGateDialog` abre mostrando **Mensal** e **Anual** apenas.
-3. Login com usuário antigo (sem `trial_user`) sem assinatura → mesmo comportamento.
-4. Login com assinante ativo → fluxo normal, sem gate.
-5. Login como admin sem assinatura → entra no admin, sem gate ao reproduzir.
-6. Após assinar, o gate some e plays liberam (invalidação de `useAssinatura`).
+- Uso de `env(safe-area-inset-bottom)` cobre iPhones com notch.
+- `100dvh` evita o bug da barra de endereço do Safari mobile.
+- Alterar o z-index global do Dialog é seguro porque o único elemento da app acima de 50 é o próprio player (60/70), que precisamos cobrir.
