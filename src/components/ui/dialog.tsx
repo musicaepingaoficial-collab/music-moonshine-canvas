@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-[75] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
@@ -36,9 +36,9 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Mobile-first: bottom-sheet
-        "fixed z-50 grid gap-4 border bg-background shadow-lg duration-200",
-        "left-0 right-0 bottom-0 w-full rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-h-[92dvh] overflow-y-auto overscroll-contain",
+        // Mobile-first: bottom-sheet (acima do player fixo z-[60])
+        "fixed z-[80] grid gap-4 border bg-background shadow-lg duration-200",
+        "left-0 right-0 bottom-[calc(env(safe-area-inset-bottom)+96px)] w-full rounded-2xl p-4 max-h-[calc(100dvh-120px)] overflow-y-auto overscroll-contain",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
         // Desktop: centered modal (restores original behavior)
