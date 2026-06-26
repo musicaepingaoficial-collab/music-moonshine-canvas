@@ -35,9 +35,9 @@ function applyPlaceholders(body: string, name: string | null) {
   const firstName = fullName.split(" ")[0] || "amigo";
   const planosUrl = `${window.location.origin}/#planos`;
   return body
-    .replaceAll("{primeiro_nome}", firstName)
-    .replaceAll("{nome}", fullName || firstName)
-    .replaceAll("{link_planos}", planosUrl);
+    .replace(/\{primeiro_nome\}/g, firstName)
+    .replace(/\{nome\}/g, fullName || firstName)
+    .replace(/\{link_planos\}/g, planosUrl);
 }
 
 export function WhatsAppRecoveryDialog({ open, onOpenChange, user }: Props) {
