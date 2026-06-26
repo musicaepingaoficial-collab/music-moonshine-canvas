@@ -269,6 +269,24 @@ const AdminUsuariosPage = () => {
               );
             })}
           </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {([
+              { v: "all", l: "Recuperação: todos" },
+              { v: "not_contacted", l: "Não contactados" },
+              { v: "contacted", l: "Já contactados" },
+              { v: "stale", l: "Contactados há +7d" },
+            ] as { v: RecoveryFilter; l: string }[]).map((f) => (
+              <Button
+                key={f.v}
+                size="sm"
+                variant={recoveryFilter === f.v ? "default" : "outline"}
+                onClick={() => setRecoveryFilter(f.v)}
+                className="h-8 text-xs"
+              >
+                {f.l}
+              </Button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
