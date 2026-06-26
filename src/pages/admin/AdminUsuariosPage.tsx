@@ -31,6 +31,7 @@ import {
 import { useAuth } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { WhatsAppRecoveryDialog } from "@/components/admin/WhatsAppRecoveryDialog";
 
 interface UserWithSub {
   id: string;
