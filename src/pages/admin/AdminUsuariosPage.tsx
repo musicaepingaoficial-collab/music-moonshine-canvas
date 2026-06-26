@@ -196,13 +196,23 @@ const AdminUsuariosPage = () => {
     return acc;
   }, {});
 
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
   const filtered = (users ?? []).filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
-    if (planFilter === "all") return true;
-    return getActivePlan(u) === planFilter;
+    if (planFilter !== "all" && getActivePlan(u) !== planFilter) return false;
+    if (recoveryFilter !== "all") {
+      const rec = recoveryMap?.get(u.id);
+      if (recoveryFilter === "contacted" && !rec) return false;
+      if (recoveryFilter === "not_contacted" && rec) return false;
+      if (recoveryFilter === "stale") {
+        if (!rec) return false;
+        if (Date.now() - new Date(rec.sent_at).getTime() < SEVEN_DAYS) return false;
+      }
+    }
+    return true;
   });
 
   console.log("[AdminUsuarios:render]", { total: users?.length, filtered: filtered.length });
