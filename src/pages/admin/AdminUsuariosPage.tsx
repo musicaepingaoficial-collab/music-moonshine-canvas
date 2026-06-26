@@ -547,6 +547,11 @@ const AdminUsuariosPage = () => {
           )}
         </DialogContent>
       </Dialog>
+      <WhatsAppRecoveryDialog
+        open={!!waTarget}
+        onOpenChange={(v) => !v && setWaTarget(null)}
+        user={waTarget ? { id: waTarget.id, name: waTarget.name, whatsapp: waTarget.whatsapp } : null}
+      />
     </div>
   );
 };
