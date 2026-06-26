@@ -1529,6 +1529,71 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_recovery_log: {
+        Row: {
+          id: string
+          message: string
+          sent_at: string
+          sent_by: string | null
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          message: string
+          sent_at?: string
+          sent_by?: string | null
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          message?: string
+          sent_at?: string
+          sent_by?: string | null
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_recovery_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_recovery_templates: {
+        Row: {
+          active: boolean
+          body: string
+          id: string
+          order_index: number
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          body: string
+          id: string
+          order_index?: number
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          body?: string
+          id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
