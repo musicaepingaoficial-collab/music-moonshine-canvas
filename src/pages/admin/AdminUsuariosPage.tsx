@@ -360,11 +360,18 @@ const AdminUsuariosPage = () => {
                           {user.referred_by || "—"}
                         </TableCell>
                         <TableCell className="text-right hidden sm:table-cell">
-                          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const rec = recoveryMap?.get(user.id);
+                              return rec ? (
+                                <Badge className="bg-emerald-500/15 text-emerald-600 border-0 text-[10px] mr-1" title={`Enviado em ${new Date(rec.sent_at).toLocaleString("pt-BR")}`}>
+                                  Contactado
+                                </Badge>
+                              ) : null;
+                            })()}
                             <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
-                              const phone = user.whatsapp?.replace(/\D/g, "");
-                              if (!phone) return toast.error("Usuário sem WhatsApp");
-                              window.open(`https://wa.me/55${phone}`, "_blank");
+                              if (!user.whatsapp) return toast.error("Usuário sem WhatsApp");
+                              setWaTarget(user);
                             }}>
                               <MessageCircle className="h-4 w-4" />
                             </Button>
