@@ -129,6 +129,24 @@ const AdminUsuariosPage = () => {
     },
   });
 
+  const { data: recoveryMap } = useQuery({
+    queryKey: ["admin-users-recovery-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("whatsapp_recovery_log")
+        .select("user_id, sent_at, template_id")
+        .order("sent_at", { ascending: false });
+      if (error) throw error;
+      const map = new Map<string, { sent_at: string; template_id: string | null }>();
+      for (const row of data ?? []) {
+        if (!map.has(row.user_id)) {
+          map.set(row.user_id, { sent_at: row.sent_at, template_id: row.template_id });
+        }
+      }
+      return map;
+    },
+  });
+
   const toggleDiscografiasMutation = useMutation({
     mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
       console.log(`[AdminUsuarios] Toggling discografias for ${userId} to ${enabled}`);
