@@ -56,12 +56,16 @@ const PLAN_FILTERS: { value: PlanFilter; label: string }[] = [
   { value: "vitalicio", label: "Vitalício" },
 ];
 
+type RecoveryFilter = "all" | "contacted" | "not_contacted" | "stale";
+
 const AdminUsuariosPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<PlanFilter>("all");
+  const [recoveryFilter, setRecoveryFilter] = useState<RecoveryFilter>("all");
   const [deleteTarget, setDeleteTarget] = useState<UserWithSub | null>(null);
   const [viewTarget, setViewTarget] = useState<UserWithSub | null>(null);
+  const [waTarget, setWaTarget] = useState<UserWithSub | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
