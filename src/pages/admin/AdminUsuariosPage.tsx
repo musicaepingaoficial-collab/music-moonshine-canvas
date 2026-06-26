@@ -31,6 +31,7 @@ import {
 import { useAuth } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { WhatsAppRecoveryDialog } from "@/components/admin/WhatsAppRecoveryDialog";
 
 interface UserWithSub {
   id: string;
@@ -55,12 +56,16 @@ const PLAN_FILTERS: { value: PlanFilter; label: string }[] = [
   { value: "vitalicio", label: "Vitalício" },
 ];
 
+type RecoveryFilter = "all" | "contacted" | "not_contacted" | "stale";
+
 const AdminUsuariosPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<PlanFilter>("all");
+  const [recoveryFilter, setRecoveryFilter] = useState<RecoveryFilter>("all");
   const [deleteTarget, setDeleteTarget] = useState<UserWithSub | null>(null);
   const [viewTarget, setViewTarget] = useState<UserWithSub | null>(null);
+  const [waTarget, setWaTarget] = useState<UserWithSub | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
@@ -124,6 +129,24 @@ const AdminUsuariosPage = () => {
     },
   });
 
+  const { data: recoveryMap } = useQuery({
+    queryKey: ["admin-users-recovery-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("whatsapp_recovery_log")
+        .select("user_id, sent_at, template_id")
+        .order("sent_at", { ascending: false });
+      if (error) throw error;
+      const map = new Map<string, { sent_at: string; template_id: string | null }>();
+      for (const row of data ?? []) {
+        if (!map.has(row.user_id)) {
+          map.set(row.user_id, { sent_at: row.sent_at, template_id: row.template_id });
+        }
+      }
+      return map;
+    },
+  });
+
   const toggleDiscografiasMutation = useMutation({
     mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
       console.log(`[AdminUsuarios] Toggling discografias for ${userId} to ${enabled}`);
@@ -173,13 +196,23 @@ const AdminUsuariosPage = () => {
     return acc;
   }, {});
 
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
   const filtered = (users ?? []).filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
-    if (planFilter === "all") return true;
-    return getActivePlan(u) === planFilter;
+    if (planFilter !== "all" && getActivePlan(u) !== planFilter) return false;
+    if (recoveryFilter !== "all") {
+      const rec = recoveryMap?.get(u.id);
+      if (recoveryFilter === "contacted" && !rec) return false;
+      if (recoveryFilter === "not_contacted" && rec) return false;
+      if (recoveryFilter === "stale") {
+        if (!rec) return false;
+        if (Date.now() - new Date(rec.sent_at).getTime() < SEVEN_DAYS) return false;
+      }
+    }
+    return true;
   });
 
   console.log("[AdminUsuarios:render]", { total: users?.length, filtered: filtered.length });
@@ -235,6 +268,24 @@ const AdminUsuariosPage = () => {
                 </Button>
               );
             })}
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {([
+              { v: "all", l: "Recuperação: todos" },
+              { v: "not_contacted", l: "Não contactados" },
+              { v: "contacted", l: "Já contactados" },
+              { v: "stale", l: "Contactados há +7d" },
+            ] as { v: RecoveryFilter; l: string }[]).map((f) => (
+              <Button
+                key={f.v}
+                size="sm"
+                variant={recoveryFilter === f.v ? "default" : "outline"}
+                onClick={() => setRecoveryFilter(f.v)}
+                className="h-8 text-xs"
+              >
+                {f.l}
+              </Button>
+            ))}
           </div>
         </CardHeader>
         <CardContent>
@@ -309,11 +360,18 @@ const AdminUsuariosPage = () => {
                           {user.referred_by || "—"}
                         </TableCell>
                         <TableCell className="text-right hidden sm:table-cell">
-                          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const rec = recoveryMap?.get(user.id);
+                              return rec ? (
+                                <Badge className="bg-emerald-500/15 text-emerald-600 border-0 text-[10px] mr-1" title={`Enviado em ${new Date(rec.sent_at).toLocaleString("pt-BR")}`}>
+                                  Contactado
+                                </Badge>
+                              ) : null;
+                            })()}
                             <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
-                              const phone = user.whatsapp?.replace(/\D/g, "");
-                              if (!phone) return toast.error("Usuário sem WhatsApp");
-                              window.open(`https://wa.me/55${phone}`, "_blank");
+                              if (!user.whatsapp) return toast.error("Usuário sem WhatsApp");
+                              setWaTarget(user);
                             }}>
                               <MessageCircle className="h-4 w-4" />
                             </Button>
@@ -489,6 +547,11 @@ const AdminUsuariosPage = () => {
           )}
         </DialogContent>
       </Dialog>
+      <WhatsAppRecoveryDialog
+        open={!!waTarget}
+        onOpenChange={(v) => !v && setWaTarget(null)}
+        user={waTarget ? { id: waTarget.id, name: waTarget.name, whatsapp: waTarget.whatsapp } : null}
+      />
     </div>
   );
 };
