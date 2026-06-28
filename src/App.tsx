@@ -70,6 +70,7 @@ const AdminSubscriptionDetailsPage = lazy(() => import("./pages/admin/AdminSubsc
 const AdminSalesPageStats = lazy(() => import("./pages/admin/AdminSalesPageStats"));
 const AdminRecuperacaoPage = lazy(() => import("./pages/admin/AdminRecuperacaoPage"));
 const AdminAfiliadosPage = lazy(() => import("./pages/admin/AdminAfiliadosPage"));
+const AdminRastreamentoPage = lazy(() => import("./pages/admin/AdminRastreamentoPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
