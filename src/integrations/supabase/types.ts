@@ -625,6 +625,87 @@ export type Database = {
           },
         ]
       }
+      kiwify_bridge_config: {
+        Row: {
+          created_at: string
+          destination_url: string | null
+          enabled: boolean
+          forward_pending: boolean
+          forward_refused: boolean
+          id: string
+          product_id: string | null
+          product_name: string | null
+          secret_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          destination_url?: string | null
+          enabled?: boolean
+          forward_pending?: boolean
+          forward_refused?: boolean
+          id?: string
+          product_id?: string | null
+          product_name?: string | null
+          secret_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          destination_url?: string | null
+          enabled?: boolean
+          forward_pending?: boolean
+          forward_refused?: boolean
+          id?: string
+          product_id?: string | null
+          product_name?: string | null
+          secret_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      kiwify_bridge_logs: {
+        Row: {
+          created_at: string
+          destination_url: string | null
+          error_message: string | null
+          id: string
+          kiwify_status: string | null
+          mp_payment_id: string | null
+          mp_status: string | null
+          request_payload: Json | null
+          response_body: string | null
+          response_status: number | null
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          destination_url?: string | null
+          error_message?: string | null
+          id?: string
+          kiwify_status?: string | null
+          mp_payment_id?: string | null
+          mp_status?: string | null
+          request_payload?: Json | null
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          destination_url?: string | null
+          error_message?: string | null
+          id?: string
+          kiwify_status?: string | null
+          mp_payment_id?: string | null
+          mp_status?: string | null
+          request_payload?: Json | null
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean
+        }
+        Relationships: []
+      }
       meta_capi_logs: {
         Row: {
           created_at: string
