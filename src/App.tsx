@@ -190,6 +190,7 @@ const App = () => (
                 <Route path="popup" element={<AdminPopupPage />} />
                 <Route path="recuperacao" element={<AdminRecuperacaoPage />} />
                 <Route path="afiliados" element={<AdminAfiliadosPage />} />
+                <Route path="rastreamento" element={<AdminRastreamentoPage />} />
               </Route>
               </Route>
 
