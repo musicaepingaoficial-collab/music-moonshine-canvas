@@ -28,6 +28,7 @@ const adminItems = [
   { title: "Financeiro", url: "/admin/financeiro", icon: DollarSign },
   { title: "Site", url: "/admin/site", icon: Settings },
   { title: "Pixels", url: "/admin/pixels", icon: Target },
+  { title: "Rastreamento", url: "/admin/rastreamento", icon: Radar },
   { title: "Notificações", url: "/admin/notificacoes", icon: Bell },
   { title: "Tutoriais", url: "/admin/tutoriais", icon: Video },
   { title: "Discografias", url: "/admin/discografias", icon: Disc },
