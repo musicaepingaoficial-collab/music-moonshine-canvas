@@ -43,6 +43,34 @@ function injectSnippet(snippet: TrackingSnippet): Element[] {
   ];
 
   for (const el of candidates) {
+    // Evita duplicar scripts externos já presentes no HTML estático (ex: SuperPixel no index.html)
+    if (el.tagName.toLowerCase() === "script") {
+      const src = el.getAttribute("src");
+      if (src && document.querySelector(`script[src="${src}"]`)) continue;
+    }
+    const clone = cloneNodeForInjection(el);
+    if (!clone) continue;
+    clone.setAttribute(MARKER_ATTR, snippet.id);
+    if (snippet.placement === "body_start") {
+      target.prepend(clone);
+    } else {
+      target.appendChild(clone);
+    }
+    injected.push(clone);
+  }
+  return injected;
+}
+
+
+  const target = snippet.placement === "body_start" ? document.body : document.head;
+  if (!target) return injected;
+
+  const candidates = [
+    ...Array.from(doc.head?.children ?? []),
+    ...Array.from(doc.body?.children ?? []),
+  ];
+
+  for (const el of candidates) {
     const clone = cloneNodeForInjection(el);
     if (!clone) continue;
     clone.setAttribute(MARKER_ATTR, snippet.id);
