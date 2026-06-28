@@ -62,13 +62,15 @@ export function TrackingSnippets() {
   useEffect(() => {
     if (!snippets || snippets.length === 0) return;
 
-    // Remove any previously injected nodes (avoids duplicates on refetch)
+    // Remove any previously injected nodes (avoids duplicates on refetch / StrictMode)
     document
       .querySelectorAll(`[${MARKER_ATTR}]`)
       .forEach((n) => n.remove());
 
     const injected: Element[] = [];
     for (const s of snippets) {
+      // Idempotência: se já existe um nó com este snippet.id, não injeta de novo
+      if (document.querySelector(`[${MARKER_ATTR}="${s.id}"]`)) continue;
       injected.push(...injectSnippet(s));
     }
 
