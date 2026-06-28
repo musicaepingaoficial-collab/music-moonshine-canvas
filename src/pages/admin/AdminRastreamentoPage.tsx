@@ -183,15 +183,114 @@ export default function AdminRastreamentoPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Integrações futuras</CardTitle>
-          <CardDescription>
-            Espaço reservado para postbacks, IDs de plataformas externas e webhooks de conversão.
-            Avise quando quiser conectar a sua plataforma de UTMs que adicionamos os campos aqui.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <SnippetsCard />
     </div>
   );
 }
+
+function SnippetsCard() {
+  const { data: snippets, isLoading } = useTrackingSnippets();
+  const update = useUpdateSnippet();
+  const del = useDeleteSnippet();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<TrackingSnippet | null>(null);
+
+  function openNew() {
+    setEditing(null);
+    setOpen(true);
+  }
+  function openEdit(s: TrackingSnippet) {
+    setEditing(s);
+    setOpen(true);
+  }
+  async function toggle(s: TrackingSnippet) {
+    try {
+      await update.mutateAsync({ id: s.id, values: { enabled: !s.enabled } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao atualizar");
+    }
+  }
+  async function remove(s: TrackingSnippet) {
+    if (!confirm(`Excluir snippet "${s.name}"?`)) return;
+    try {
+      await del.mutateAsync(s.id);
+      toast.success("Snippet excluído");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao excluir");
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Code2 className="h-5 w-5" /> Códigos de rastreamento (head / body)
+          </CardTitle>
+          <CardDescription>
+            Cole aqui os scripts que sua plataforma de UTMs pedir. Eles serão
+            injetados automaticamente em todas as páginas.
+          </CardDescription>
+        </div>
+        <Button onClick={openNew} size="sm">
+          <Plus className="mr-2 h-4 w-4" /> Adicionar snippet
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {isLoading && (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        )}
+        {!isLoading && (!snippets || snippets.length === 0) && (
+          <p className="text-sm text-muted-foreground">
+            Nenhum snippet cadastrado. Clique em "Adicionar snippet" para começar.
+          </p>
+        )}
+        {snippets?.map((s) => (
+          <div
+            key={s.id}
+            className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center"
+          >
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{s.name}</span>
+                <Badge variant="outline" className="text-xs">
+                  {s.placement === "head" ? "<head>" : "<body>"}
+                </Badge>
+                {!s.enabled && (
+                  <Badge variant="secondary" className="text-xs">
+                    inativo
+                  </Badge>
+                )}
+              </div>
+              <p className="truncate font-mono text-xs text-muted-foreground">
+                {s.code.replace(/\s+/g, " ").slice(0, 120)}
+                {s.code.length > 120 ? "…" : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={s.enabled} onCheckedChange={() => toggle(s)} />
+              <Button size="icon" variant="ghost" onClick={() => openEdit(s)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => remove(s)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        <p className="text-xs text-muted-foreground">
+          ⚠️ Os códigos rodam em todas as páginas públicas. Só cole conteúdo de
+          fontes confiáveis.
+        </p>
+      </CardContent>
+
+      <TrackingSnippetDialog open={open} onOpenChange={setOpen} snippet={editing} />
+    </Card>
+  );
+}
+
