@@ -131,13 +131,15 @@ export default function AdminRastreamentoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <UrlRow label={DEST_LABELS.vendas} url={urls.vendas} />
-          <UrlRow label={DEST_LABELS.checkout} url={urls.checkout} />
-          <UrlRow label={DEST_LABELS.obrigado} url={urls.obrigado} />
+          {(Object.keys(DEST_PATHS) as DestKey[]).map((k) => (
+            <UrlRow key={k} label={DEST_LABELS[k]} url={urls[k]} />
+          ))}
           <p className="text-xs text-muted-foreground">
-            A página pós-pagamento é o <code>/dashboard</code> com <code>?status=success</code> —
-            esse parâmetro é adicionado automaticamente após a aprovação do pagamento e serve
-            como gatilho de conversão.
+            <strong>Dois funis:</strong> use os links de <em>Checkout direto</em> para campanhas
+            que vão direto para o pagamento (abre o modal de checkout do plano escolhido na
+            página de vendas) e o link de <em>Teste grátis</em> para o funil de quem testa antes
+            de comprar. A página pós-pagamento (<code>?status=success</code>) é o gatilho de
+            conversão.
           </p>
         </CardContent>
       </Card>
