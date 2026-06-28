@@ -37,8 +37,14 @@
 
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- Códigos de rastreamento são gerenciados dinamicamente via Super Admin
-         (tabela tracking_snippets) e injetados por src/components/pixels/TrackingSnippets.tsx -->
+    <!-- Códigos de rastreamento dinâmicos via Super Admin (tracking_snippets)
+         são injetados por src/components/pixels/TrackingSnippets.tsx.
+         IMPORTANTE: scripts que precisam ser detectados por crawlers SEM JS
+         (ex.: SuperPixel) devem ficar estáticos aqui no HTML. -->
+
+    <!-- SuperPixel Tracking (precisa estar no HTML estático p/ o crawler detectar) -->
+    <script src="https://superpixel-tracking.b-cdn.net/js/tracking.js?token=35cec3&platform=kiwify&funnel_id=4857"></script>
+
 
   </head>
 
