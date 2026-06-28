@@ -324,7 +324,7 @@ export function PublicCheckoutDialog({ open, onOpenChange, plan }: Props) {
       }
       toast.success("Tudo pronto! Bem-vindo.");
       handleClose(false);
-      navigate("/dashboard");
+      navigate(`/dashboard?status=success&plano=${plan?.slug ?? ""}`);
     } catch (err: any) {
       if (err.code === "already_claimed" || err.code === "email_exists") {
         toast.error(err.message);
