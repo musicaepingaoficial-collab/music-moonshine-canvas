@@ -185,6 +185,8 @@ export default function AdminRastreamentoPage() {
       </Card>
 
       <SnippetsCard />
+
+      <KiwifyBridgeCard />
     </div>
   );
 }
