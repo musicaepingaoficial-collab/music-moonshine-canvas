@@ -159,9 +159,11 @@ export default function AdminRastreamentoPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="vendas">{DEST_LABELS.vendas}</SelectItem>
-                <SelectItem value="checkout">{DEST_LABELS.checkout}</SelectItem>
-                <SelectItem value="obrigado">{DEST_LABELS.obrigado}</SelectItem>
+                {(Object.keys(DEST_PATHS) as DestKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {DEST_LABELS[k]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
