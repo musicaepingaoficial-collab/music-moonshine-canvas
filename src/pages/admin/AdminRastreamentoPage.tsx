@@ -21,6 +21,7 @@ import {
   type TrackingSnippet,
 } from "@/hooks/useTrackingSnippets";
 import { TrackingSnippetDialog } from "@/components/admin/TrackingSnippetDialog";
+import { KiwifyBridgeCard } from "@/components/admin/KiwifyBridgeCard";
 
 type DestKey = "vendas" | "checkout" | "obrigado";
 
