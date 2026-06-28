@@ -37,24 +37,9 @@
 
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- UTMfy Tracking Script -->
-    <script
-      src="https://cdn.utmify.com.br/scripts/utms/latest.js"
-      data-utmify-prevent-xcod-sck
-      data-utmify-prevent-subids
-      async
-      defer
-    ></script>
+    <!-- Códigos de rastreamento são gerenciados dinamicamente via Super Admin
+         (tabela tracking_snippets) e injetados por src/components/pixels/TrackingSnippets.tsx -->
 
-    <!-- Kwai Pixel Script via UTMfy -->
-    <script>
-      window.kwaiPixelId = "6a2b86573d3fc64e70cd72cd";
-      var a = document.createElement("script");
-      a.setAttribute("async", "");
-      a.setAttribute("defer", "");
-      a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel-kwai.js");
-      document.head.appendChild(a);
-    </script>
   </head>
 
   <body>
