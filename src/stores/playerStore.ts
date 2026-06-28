@@ -3,21 +3,50 @@ import type { Musica } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Single, persistent <audio> element — reusing it across tracks preserves
+// the browser's transient user activation, so autoplay-after-ended keeps
+// working past the 2nd track on Chrome/Safari/iOS.
 let audio: HTMLAudioElement | null = null;
 let progressInterval: ReturnType<typeof setInterval> | null = null;
 let currentBlobUrl: string | null = null;
 let playToken = 0;
 
-function cleanupAudio() {
+function getAudio(): HTMLAudioElement {
+  if (!audio) {
+    audio = new Audio();
+    audio.preload = "auto";
+  }
+  return audio;
+}
+
+function clearProgress() {
   if (progressInterval) {
     clearInterval(progressInterval);
     progressInterval = null;
   }
+}
+
+function detachListeners(el: HTMLAudioElement) {
+  el.onloadedmetadata = null;
+  el.onended = null;
+  el.onerror = null;
+}
+
+function resetForNextTrack() {
+  clearProgress();
   if (audio) {
     try {
-      audio.onloadedmetadata = null;
-      audio.onended = null;
-      audio.onerror = null;
+      detachListeners(audio);
+      audio.pause();
+    } catch {}
+  }
+}
+
+function destroyAudio() {
+  clearProgress();
+  if (audio) {
+    try {
+      detachListeners(audio);
       audio.pause();
       audio.removeAttribute("src");
       audio.load();
@@ -50,7 +79,6 @@ async function getStreamUrl(fileId: string): Promise<string> {
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     console.error("[Player:getStreamUrl] Error:", res.status, errorData);
-    // Server-enforced demo limit → open signup gate
     if (errorData?.code === "DEMO_LIMIT" && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("demo:gate", { detail: { reason: "plays" } }));
     }
@@ -109,10 +137,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   play: async (track, queueContext) => {
     const { queue, volume, muted, currentTrack, isLoading } = get();
 
-    // Demo limit is enforced server-side in the google-drive edge function.
-    // If the limit is reached, getStreamUrl will throw and the gate dialog
-    // opens via the "demo:gate" event.
-
     // Anti double-tap: ignore repeated clicks while same track is loading
     if (isLoading && currentTrack?.id === track.id) {
       return;
@@ -133,8 +157,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // Claim ownership of this play invocation
     const myToken = ++playToken;
 
-    // Stop any prior audio synchronously BEFORE awaiting anything
-    cleanupAudio();
+    // Soft reset (keep the <audio> element alive to preserve user activation)
+    resetForNextTrack();
 
     // If a new queue context is provided, update the queue
     if (queueContext && queueContext.length > 0) {
@@ -147,6 +171,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
 
     set({ currentTrack: track, isPlaying: false, progress: 0, currentTime: 0, duration: 0, isLoading: true });
+
+    // Remember the previous blob so we can revoke it AFTER the new src is set
+    const previousBlobUrl = currentBlobUrl;
 
     try {
       let src = track.file_url || "";
@@ -170,54 +197,62 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         return;
       }
 
-      const localAudio = new Audio(src);
-      localAudio.volume = muted ? 0 : volume / 100;
-      audio = localAudio;
+      const el = getAudio();
+      detachListeners(el);
+      try { el.pause(); } catch {}
+
+      el.src = src;
+      el.load();
+      el.volume = muted ? 0 : volume / 100;
       currentBlobUrl = createdBlobUrl;
 
-      localAudio.onloadedmetadata = () => {
+      // Now safe to revoke the previous blob — new src is attached
+      if (previousBlobUrl && previousBlobUrl !== createdBlobUrl) {
+        try { URL.revokeObjectURL(previousBlobUrl); } catch {}
+      }
+
+      el.onloadedmetadata = () => {
         if (myToken !== playToken) return;
-        set({ duration: localAudio.duration || 0, isLoading: false });
+        set({ duration: el.duration || 0, isLoading: false });
       };
-      localAudio.onended = () => {
+      el.onended = () => {
         if (myToken !== playToken) return;
         get().next();
       };
-      localAudio.onerror = (e) => {
+      el.onerror = (e) => {
         if (myToken !== playToken) return;
         console.error("[Player] Audio error:", e);
         set({ isPlaying: false, isLoading: false });
       };
 
-      await localAudio.play();
+      await el.play();
 
       // Aborted while waiting for play() to start
       if (myToken !== playToken) {
-        try {
-          localAudio.pause();
-          localAudio.removeAttribute("src");
-          localAudio.load();
-        } catch {}
-        if (createdBlobUrl) {
-          try { URL.revokeObjectURL(createdBlobUrl); } catch {}
-        }
+        try { el.pause(); } catch {}
         return;
       }
 
       set({ isPlaying: true, isLoading: false });
 
-      if (progressInterval) clearInterval(progressInterval);
+      clearProgress();
       progressInterval = setInterval(() => {
         if (myToken !== playToken) return;
-        if (localAudio && !localAudio.paused) {
-          const prog = localAudio.duration ? (localAudio.currentTime / localAudio.duration) * 100 : 0;
-          set({ progress: prog, currentTime: localAudio.currentTime });
+        if (el && !el.paused) {
+          const prog = el.duration ? (el.currentTime / el.duration) * 100 : 0;
+          set({ progress: prog, currentTime: el.currentTime });
         }
       }, 250);
-    } catch (err) {
+    } catch (err: any) {
       if (myToken !== playToken) return;
       console.error("[Player] Play error:", err);
       set({ isPlaying: false, isLoading: false });
+      if (err?.name === "NotAllowedError") {
+        toast("Toque em ▶ para continuar a reprodução");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("player:needs-gesture"));
+        }
+      }
     }
   },
 
@@ -227,7 +262,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   close: () => {
-    cleanupAudio();
+    destroyAudio();
     set({ currentTrack: null, isPlaying: false, progress: 0, duration: 0, currentTime: 0, isLoading: false });
   },
 
@@ -266,8 +301,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const { queue, currentTrack } = get();
     const newQueue = queue.filter((t) => t.id !== trackId);
     set({ queue: newQueue });
-    
-    // If we removed the currently playing track, play the next one
+
     if (currentTrack?.id === trackId) {
       if (newQueue.length > 0) {
         const idx = queue.findIndex(t => t.id === trackId);
@@ -282,7 +316,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   playNext: (track) => {
     const { queue, currentTrack } = get();
     const filteredQueue = queue.filter(t => t.id !== track.id);
-    
+
     if (!currentTrack) {
       get().play(track);
       return;
@@ -291,7 +325,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const currentIndex = filteredQueue.findIndex(t => t.id === currentTrack.id);
     const newQueue = [...filteredQueue];
     newQueue.splice(currentIndex + 1, 0, track);
-    
+
     set({ queue: newQueue });
     toast.success(`"${track.title}" será a próxima a tocar`);
   },
@@ -313,7 +347,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   setProgress: (p) => {
-    // When user drags the slider, also seek
     get().seek(p);
   },
 
