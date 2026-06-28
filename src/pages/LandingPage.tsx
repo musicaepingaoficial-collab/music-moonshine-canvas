@@ -169,6 +169,19 @@ export default function LandingPage() {
     tryScroll();
   }, []);
 
+  // Auto-abre checkout quando a URL traz ?checkout=<slug> (ex: /?checkout=mensal)
+  useEffect(() => {
+    if (!planos || planos.length === 0) return;
+    if (checkoutPlan) return;
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("checkout");
+    if (!slug) return;
+    const found = (planos as any[]).find((p) => p.slug === slug);
+    if (found) {
+      setCheckoutPlan({ slug: found.slug, name: found.name, price: Number(found.price) });
+    }
+  }, [planos, checkoutPlan]);
+
   // Mitiga loop do "Voltar" e problemas de cache/redirect da Hostinger
   useEffect(() => {
     try {

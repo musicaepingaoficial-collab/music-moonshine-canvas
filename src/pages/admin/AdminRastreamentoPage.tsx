@@ -23,18 +23,33 @@ import {
 import { TrackingSnippetDialog } from "@/components/admin/TrackingSnippetDialog";
 import { KiwifyBridgeCard } from "@/components/admin/KiwifyBridgeCard";
 
-type DestKey = "vendas" | "checkout" | "obrigado";
+type DestKey =
+  | "vendas"
+  | "planos"
+  | "checkout_mensal"
+  | "checkout_anual"
+  | "checkout_vitalicio"
+  | "teste_gratis"
+  | "obrigado";
 
 const DEST_PATHS: Record<DestKey, string> = {
   vendas: "/",
-  checkout: "/planos",
+  planos: "/#planos",
+  checkout_mensal: "/?checkout=mensal#planos",
+  checkout_anual: "/?checkout=anual#planos",
+  checkout_vitalicio: "/?checkout=vitalicio#planos",
+  teste_gratis: "/login?intent=trial",
   obrigado: "/dashboard?status=success",
 };
 
 const DEST_LABELS: Record<DestKey, string> = {
-  vendas: "Página de vendas",
-  checkout: "Checkout / planos",
-  obrigado: "Página pós-pagamento",
+  vendas: "Página de vendas (topo)",
+  planos: "Página de vendas (seção Planos)",
+  checkout_mensal: "Checkout direto — Plano Mensal",
+  checkout_anual: "Checkout direto — Plano Anual",
+  checkout_vitalicio: "Checkout direto — Vitalício",
+  teste_gratis: "Teste grátis (funil trial)",
+  obrigado: "Pós-pagamento (conversão)",
 };
 
 function copy(text: string, label = "URL") {
@@ -61,14 +76,13 @@ function UrlRow({ label, url }: { label: string; url: string }) {
 export default function AdminRastreamentoPage() {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  const urls = useMemo(
-    () => ({
-      vendas: `${origin}${DEST_PATHS.vendas}`,
-      checkout: `${origin}${DEST_PATHS.checkout}`,
-      obrigado: `${origin}${DEST_PATHS.obrigado}`,
-    }),
-    [origin],
-  );
+  const urls = useMemo(() => {
+    const out = {} as Record<DestKey, string>;
+    (Object.keys(DEST_PATHS) as DestKey[]).forEach((k) => {
+      out[k] = `${origin}${DEST_PATHS[k]}`;
+    });
+    return out;
+  }, [origin]);
 
   const [dest, setDest] = useState<DestKey>("vendas");
   const [utm, setUtm] = useState({
@@ -117,13 +131,15 @@ export default function AdminRastreamentoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <UrlRow label={DEST_LABELS.vendas} url={urls.vendas} />
-          <UrlRow label={DEST_LABELS.checkout} url={urls.checkout} />
-          <UrlRow label={DEST_LABELS.obrigado} url={urls.obrigado} />
+          {(Object.keys(DEST_PATHS) as DestKey[]).map((k) => (
+            <UrlRow key={k} label={DEST_LABELS[k]} url={urls[k]} />
+          ))}
           <p className="text-xs text-muted-foreground">
-            A página pós-pagamento é o <code>/dashboard</code> com <code>?status=success</code> —
-            esse parâmetro é adicionado automaticamente após a aprovação do pagamento e serve
-            como gatilho de conversão.
+            <strong>Dois funis:</strong> use os links de <em>Checkout direto</em> para campanhas
+            que vão direto para o pagamento (abre o modal de checkout do plano escolhido na
+            página de vendas) e o link de <em>Teste grátis</em> para o funil de quem testa antes
+            de comprar. A página pós-pagamento (<code>?status=success</code>) é o gatilho de
+            conversão.
           </p>
         </CardContent>
       </Card>
@@ -143,9 +159,11 @@ export default function AdminRastreamentoPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="vendas">{DEST_LABELS.vendas}</SelectItem>
-                <SelectItem value="checkout">{DEST_LABELS.checkout}</SelectItem>
-                <SelectItem value="obrigado">{DEST_LABELS.obrigado}</SelectItem>
+                {(Object.keys(DEST_PATHS) as DestKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {DEST_LABELS[k]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
