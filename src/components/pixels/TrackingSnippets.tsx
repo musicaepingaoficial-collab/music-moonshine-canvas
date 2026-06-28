@@ -43,6 +43,11 @@ function injectSnippet(snippet: TrackingSnippet): Element[] {
   ];
 
   for (const el of candidates) {
+    // Evita duplicar scripts externos já presentes no HTML estático (ex: SuperPixel no index.html)
+    if (el.tagName.toLowerCase() === "script") {
+      const src = el.getAttribute("src");
+      if (src && document.querySelector(`script[src="${src}"]`)) continue;
+    }
     const clone = cloneNodeForInjection(el);
     if (!clone) continue;
     clone.setAttribute(MARKER_ATTR, snippet.id);
@@ -55,6 +60,8 @@ function injectSnippet(snippet: TrackingSnippet): Element[] {
   }
   return injected;
 }
+
+
 
 export function TrackingSnippets() {
   const { data: snippets } = usePublicTrackingSnippets();
