@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -10,8 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Copy, Link2, Radar } from "lucide-react";
+import { Code2, Copy, Link2, Pencil, Plus, Radar, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  useDeleteSnippet,
+  useTrackingSnippets,
+  useUpdateSnippet,
+  type TrackingSnippet,
+} from "@/hooks/useTrackingSnippets";
+import { TrackingSnippetDialog } from "@/components/admin/TrackingSnippetDialog";
 
 type DestKey = "vendas" | "checkout" | "obrigado";
 
