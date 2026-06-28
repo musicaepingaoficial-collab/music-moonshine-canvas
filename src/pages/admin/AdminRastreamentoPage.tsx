@@ -76,14 +76,13 @@ function UrlRow({ label, url }: { label: string; url: string }) {
 export default function AdminRastreamentoPage() {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  const urls = useMemo(
-    () => ({
-      vendas: `${origin}${DEST_PATHS.vendas}`,
-      checkout: `${origin}${DEST_PATHS.checkout}`,
-      obrigado: `${origin}${DEST_PATHS.obrigado}`,
-    }),
-    [origin],
-  );
+  const urls = useMemo(() => {
+    const out = {} as Record<DestKey, string>;
+    (Object.keys(DEST_PATHS) as DestKey[]).forEach((k) => {
+      out[k] = `${origin}${DEST_PATHS[k]}`;
+    });
+    return out;
+  }, [origin]);
 
   const [dest, setDest] = useState<DestKey>("vendas");
   const [utm, setUtm] = useState({
