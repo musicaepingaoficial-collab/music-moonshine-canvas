@@ -62,27 +62,6 @@ function injectSnippet(snippet: TrackingSnippet): Element[] {
 }
 
 
-  const target = snippet.placement === "body_start" ? document.body : document.head;
-  if (!target) return injected;
-
-  const candidates = [
-    ...Array.from(doc.head?.children ?? []),
-    ...Array.from(doc.body?.children ?? []),
-  ];
-
-  for (const el of candidates) {
-    const clone = cloneNodeForInjection(el);
-    if (!clone) continue;
-    clone.setAttribute(MARKER_ATTR, snippet.id);
-    if (snippet.placement === "body_start") {
-      target.prepend(clone);
-    } else {
-      target.appendChild(clone);
-    }
-    injected.push(clone);
-  }
-  return injected;
-}
 
 export function TrackingSnippets() {
   const { data: snippets } = usePublicTrackingSnippets();
