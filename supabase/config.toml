@@ -2,3 +2,7 @@ project_id = "zsquzchwxnsuysfrlngt"
 
 [functions.track-email-open]
 verify_jwt = false
+
+[functions.mp-to-kiwify-webhook]
+verify_jwt = false
+
