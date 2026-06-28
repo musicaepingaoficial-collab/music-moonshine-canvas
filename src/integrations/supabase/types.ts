@@ -1397,6 +1397,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tracking_snippets: {
+        Row: {
+          code: string
+          created_at: string
+          enabled: boolean
+          id: string
+          name: string
+          placement: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name: string
+          placement?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          placement?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tutoriais: {
         Row: {
           conteudo: string | null

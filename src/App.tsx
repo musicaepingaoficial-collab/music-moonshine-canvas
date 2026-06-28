@@ -18,6 +18,7 @@ import { DemoWarningDialog } from "@/components/demo/DemoWarningDialog";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { MaintenanceGate } from "@/components/auth/MaintenanceGate";
 import { PixelInjector } from "@/components/pixels/PixelInjector";
+import { TrackingSnippets } from "@/components/pixels/TrackingSnippets";
 import { RouteTracker } from "@/components/pixels/RouteTracker";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { CookiePreferencesDialog } from "@/components/legal/CookiePreferencesDialog";
@@ -114,6 +115,7 @@ const App = () => (
         <BrowserRouter>
           <DemoModeProvider>
           <PixelInjector />
+          <TrackingSnippets />
           <RouteTracker />
           <CookieBanner />
           <CookiePreferencesDialog />
