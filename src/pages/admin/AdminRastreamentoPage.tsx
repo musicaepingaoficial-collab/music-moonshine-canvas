@@ -23,18 +23,33 @@ import {
 import { TrackingSnippetDialog } from "@/components/admin/TrackingSnippetDialog";
 import { KiwifyBridgeCard } from "@/components/admin/KiwifyBridgeCard";
 
-type DestKey = "vendas" | "checkout" | "obrigado";
+type DestKey =
+  | "vendas"
+  | "planos"
+  | "checkout_mensal"
+  | "checkout_anual"
+  | "checkout_vitalicio"
+  | "teste_gratis"
+  | "obrigado";
 
 const DEST_PATHS: Record<DestKey, string> = {
   vendas: "/",
-  checkout: "/planos",
+  planos: "/#planos",
+  checkout_mensal: "/?checkout=mensal#planos",
+  checkout_anual: "/?checkout=anual#planos",
+  checkout_vitalicio: "/?checkout=vitalicio#planos",
+  teste_gratis: "/login?intent=trial",
   obrigado: "/dashboard?status=success",
 };
 
 const DEST_LABELS: Record<DestKey, string> = {
-  vendas: "Página de vendas",
-  checkout: "Checkout / planos",
-  obrigado: "Página pós-pagamento",
+  vendas: "Página de vendas (topo)",
+  planos: "Página de vendas (seção Planos)",
+  checkout_mensal: "Checkout direto — Plano Mensal",
+  checkout_anual: "Checkout direto — Plano Anual",
+  checkout_vitalicio: "Checkout direto — Vitalício",
+  teste_gratis: "Teste grátis (funil trial)",
+  obrigado: "Pós-pagamento (conversão)",
 };
 
 function copy(text: string, label = "URL") {
