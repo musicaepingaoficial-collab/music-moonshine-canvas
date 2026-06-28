@@ -1,74 +1,86 @@
 
-# Plano: Aba "Rastreamento / UTMs" no Admin com URLs prontas para copiar
+# Plano: Snippets de rastreamento personalizados na aba Rastreamento
 
 ## Objetivo
-Criar uma nova seção no menu do super admin onde você consiga copiar com 1 clique:
-- URL da **página de vendas** (LandingPage `/`)
-- URL do **checkout** (gate `/planos`, que abre o `PublicCheckoutDialog`)
-- URL da **página de obrigado / pós-pagamento** (hoje o app redireciona para `/dashboard` após sucesso; vamos formalizar isso e deixar configurável)
-
-A página já fica pronta para receber novos campos depois (parâmetros UTM padrão, IDs de plataformas externas, postbacks, etc.).
+Permitir que o super admin cadastre **vários trechos de código** (scripts/pixels de plataformas de UTM como Utmify, RedTrack, Hyros, etc.) e que esses trechos sejam **injetados automaticamente** em todas as páginas do site, no `<head>` ou no início do `<body>`, sem precisar editar `index.html`.
 
 ## O que vai mudar
 
-### 1. Nova rota e item de menu
-- Adicionar item **"Rastreamento"** (ícone `Link2` ou `Radar`) em `src/components/layout/AdminSidebar.tsx`, logo abaixo de "Pixels".
-- Nova rota `/admin/rastreamento` em `src/App.tsx` → componente `AdminRastreamentoPage`.
-
-### 2. Página `src/pages/admin/AdminRastreamentoPage.tsx`
-Layout em cards:
+### 1. Banco — nova tabela `tracking_snippets`
+Cada snippet é uma linha independente, podendo ser ativado/desativado individualmente.
 
 ```text
-┌─ URLs principais ─────────────────────────────┐
-│  Página de vendas      [https://.../]   [Copiar] │
-│  Checkout / planos     [https://.../planos] [Copiar] │
-│  Página pós-pagamento  [https://.../dashboard?status=success] [Copiar] │
-└───────────────────────────────────────────────┘
-
-┌─ URLs com UTM (gerador) ──────────────────────┐
-│  Destino: [ select: vendas | checkout | obrigado ] │
-│  utm_source   [______]                         │
-│  utm_medium   [______]                         │
-│  utm_campaign [______]                         │
-│  utm_term     [______]                         │
-│  utm_content  [______]                         │
-│  Resultado:  [https://.../?utm_source=...] [Copiar] │
-└───────────────────────────────────────────────┘
-
-┌─ Integrações futuras (placeholder) ───────────┐
-│  Postback URL (vamos preencher com a plataforma) │
-│  Webhook de conversão                           │
-└───────────────────────────────────────────────┘
+tracking_snippets
+├── id            uuid pk
+├── name          text         (ex: "Utmify", "RedTrack pageview")
+├── code          text         (HTML bruto: <script>...</script> ou <noscript><img.../></noscript>)
+├── placement     text         ('head' | 'body_start')  default 'head'
+├── enabled       boolean      default true
+├── sort_order    int          default 0
+├── created_at    timestamptz  default now()
+└── updated_at    timestamptz  default now()
 ```
 
-Detalhes:
-- Base URL = `window.location.origin` (funciona em preview, publicado e domínio próprio).
-- Cada linha usa um botão `Copiar` que chama `navigator.clipboard.writeText(...)` + toast "URL copiada".
-- Gerador de UTM monta a URL com `URLSearchParams`, ignorando campos vazios.
+Políticas:
+- `SELECT` público (anon + authenticated) apenas onde `enabled = true` — o site precisa ler para injetar.
+- `INSERT/UPDATE/DELETE` somente para `admin` (via `has_role`).
+- Grants padrão (`anon` SELECT, `authenticated` SELECT, `service_role` ALL).
 
-### 3. Página de obrigado / pós-pagamento
-Hoje não existe uma página dedicada — o `PublicCheckoutDialog` apenas chama `navigate('/login?...')` após confirmar. Para integrar com plataforma de UTMs precisamos de uma URL estável e pública.
+### 2. Injeção no site — novo componente `TrackingSnippets`
+Arquivo: `src/components/pixels/TrackingSnippets.tsx`.
 
-Opção escolhida (mais simples e segura):
-- Usar `/dashboard?status=success` como **URL de obrigado oficial** (sem criar página nova).
-- Quando o `payment-webhook` confirmar pagamento, o front já leva o usuário para `/dashboard`. Adicionar `?status=success&plano=<slug>` ao redirect para que a plataforma de UTMs detecte a conversão via parâmetro.
-- Disparar evento de conversão (Meta/GA já existentes em `pixels.ts`) somente quando esse parâmetro estiver presente, evitando duplicações.
+- Faz `useQuery` em `tracking_snippets` (enabled=true, ordenado por `sort_order`).
+- Para cada snippet, cria os elementos via DOM (`document.createElement`) e injeta:
+  - `placement = 'head'` → `document.head.appendChild`
+  - `placement = 'body_start'` → `document.body.prepend`
+- Parse mínimo: extrai `<script>`/`<noscript>` do HTML; cria `<script>` real (necessário porque `innerHTML` não executa scripts) preservando `src`, `async`, atributos `data-*`, e `textContent` para scripts inline.
+- Cleanup no unmount/refetch remove apenas os nós marcados com `data-tracking-snippet-id={id}` para evitar duplicação.
+- Montado uma única vez em `src/App.tsx` ao lado do `PixelInjector` existente.
 
-Se você preferir uma página dedicada `/obrigado`, eu crio — só me avise. Por padrão sigo com `/dashboard?status=success`.
+### 3. UI na aba Rastreamento
+Atualizar `src/pages/admin/AdminRastreamentoPage.tsx` adicionando um novo Card **"Códigos de rastreamento (head / body)"** com:
 
-### 4. Sem mudanças no banco
-Nada de tabela nova nesta etapa — todas as URLs derivam do `origin` + rotas existentes. Quando você quiser salvar configurações de rastreamento (IDs externos, postbacks), criamos `tracking_settings` numa próxima iteração.
+- Lista de snippets cadastrados (nome, placement, on/off, editar, excluir).
+- Botão **"Adicionar snippet"** abre um `Dialog` com:
+  - `Input` — Nome (referência interna).
+  - `Select` — Posição: `<head>` ou início do `<body>`.
+  - `Textarea` (mono, altura grande) — Código HTML completo (cola o `<script>` que a plataforma fornece).
+  - `Switch` — Ativo.
+  - Botão Salvar.
+- Aviso visível: *"Cole apenas códigos de fontes confiáveis. Eles serão executados em todas as páginas do site."*
+- Reordenação simples por setas ↑↓ (atualiza `sort_order`).
+
+### 4. Hook de dados
+Novo `src/hooks/useTrackingSnippets.ts` com:
+- `useTrackingSnippets()` — admin: lista todos.
+- `usePublicTrackingSnippets()` — público: só `enabled=true`, usado pelo `TrackingSnippets` injetor.
+- Mutations: `useCreateSnippet`, `useUpdateSnippet`, `useDeleteSnippet`, `useReorderSnippet`.
 
 ## Detalhes técnicos
-- Arquivos novos: `src/pages/admin/AdminRastreamentoPage.tsx`.
-- Arquivos alterados: `src/App.tsx` (rota + lazy import), `src/components/layout/AdminSidebar.tsx` (item de menu), `src/components/subscription/PublicCheckoutDialog.tsx` (adicionar `?status=success&plano=...` no redirect pós-pagamento).
-- Sem dependências novas. Componentes shadcn já existentes (`Card`, `Input`, `Button`, `Select`, `Label`).
-- Acesso protegido pela `AdminRoute` existente.
+
+- **Por que DOM e não `dangerouslySetInnerHTML`:** o React não executa `<script>` injetado via innerHTML. Precisamos criar o elemento `<script>` programaticamente.
+- **Parser:** usar `DOMParser` em `text/html`, percorrer `doc.head` + `doc.body`, recriar `<script>`/`<noscript>`/`<meta>`/`<link>` clonando atributos e `textContent`.
+- **Sem mexer no `index.html`** — tudo dinâmico via banco.
+- **Performance:** os snippets carregam após hidratação. Para pixels que precisam disparar pageview imediato isso é suficiente (mesmo padrão do `PixelInjector` atual).
+- **Migração SQL** seguindo a regra: `CREATE TABLE` → `GRANT` → `ENABLE RLS` → `CREATE POLICY`.
+
+## Arquivos
+
+Novos:
+- `supabase/migrations/<timestamp>_tracking_snippets.sql`
+- `src/hooks/useTrackingSnippets.ts`
+- `src/components/pixels/TrackingSnippets.tsx`
+- `src/components/admin/TrackingSnippetDialog.tsx`
+
+Alterados:
+- `src/App.tsx` — montar `<TrackingSnippets />`.
+- `src/pages/admin/AdminRastreamentoPage.tsx` — novo card de gerenciamento.
 
 ## Validação
-1. `/admin/rastreamento` aparece no menu, abre a página, mostra as 3 URLs com `origin` correto.
-2. Botão Copiar coloca a URL na área de transferência e dispara toast.
-3. Gerador de UTM produz URL válida e copiável.
-4. Após pagamento aprovado, o usuário cai em `/dashboard?status=success&plano=<slug>` (visível na barra de endereço).
+1. Cadastrar um `<script>console.log('utm-ok')</script>` em head → recarregar qualquer página pública → log aparece no console.
+2. Desativar o snippet → recarregar → log some.
+3. Cadastrar pixel real (ex: Utmify) → verificar requisições saindo na aba Network.
+4. Excluir e confirmar que o nó injetado é removido.
+5. Testar com placement `body_start` (ex: `<noscript><img>` de fallback).
 
 Aprovando, eu implemento.
