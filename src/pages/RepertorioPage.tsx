@@ -420,32 +420,55 @@ const RepertorioPage = () => {
     );
   }
 
-  const renderMusicGrid = (tracks: Musica[]) => (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-      className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6"
-    >
-      {tracks.map((t) => (
+  const renderMusicItems = (tracks: Musica[]) => {
+    if (folderViewMode === "list") {
+      return (
         <motion.div
-          key={t.id}
-          className="min-w-0 max-w-full overflow-hidden"
-          variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
+          initial="hidden"
+          animate="show"
+          variants={{ show: { transition: { staggerChildren: 0.03 } } }}
+          className="flex w-full min-w-0 max-w-full flex-col divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-card/40"
         >
-          <MusicCard
-            id={t.id}
-            title={t.title}
-            artist={t.artist}
-            coverUrl={t.cover_url}
-            fileUrl={t.file_url}
-            driveId={t.drive_id}
-            queueContext={displayMusicas}
-          />
+          {tracks.map((t, i) => (
+            <motion.div
+              key={t.id}
+              className="min-w-0 max-w-full overflow-hidden"
+              variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+            >
+              <MusicListRow musica={t} queueContext={displayMusicas} index={i} />
+            </motion.div>
+          ))}
         </motion.div>
-      ))}
-    </motion.div>
-  );
+      );
+    }
+    return (
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+        className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6"
+      >
+        {tracks.map((t) => (
+          <motion.div
+            key={t.id}
+            className="min-w-0 max-w-full overflow-hidden"
+            variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
+          >
+            <MusicCard
+              id={t.id}
+              title={t.title}
+              artist={t.artist}
+              coverUrl={t.cover_url}
+              fileUrl={t.file_url}
+              driveId={t.drive_id}
+              queueContext={displayMusicas}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
+    );
+  };
+
 
   return (
     <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
