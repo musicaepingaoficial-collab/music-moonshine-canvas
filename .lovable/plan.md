@@ -1,44 +1,34 @@
-## O que muda
+## Objetivo
+Hoje, na página do Repertório (`/repertorio/:id`), o botão de alternar entre grade e lista existe, mas afeta **apenas a exibição das subpastas**. As músicas dentro da pasta selecionada continuam sempre em grade. Queremos que o mesmo toggle também controle a exibição das músicas, permitindo ver a lista de faixas em formato compacto (linha), igual ao usado na busca da Biblioteca.
 
-Hoje a **Biblioteca** (`/biblioteca`) só mostra repertórios em grade — não tem campo de busca. A busca do topo (`Header`) apenas navega para a página de detalhes da música. O usuário quer transformar a Biblioteca num buscador estilo **YouTube Music**: digitar e ver resultados que já dão pra tocar direto.
+## Escopo
+Somente frontend, arquivo `src/pages/RepertorioPage.tsx`. Reaproveitando o componente já existente `src/components/music/MusicListRow.tsx`.
 
-## Mudanças (frontend apenas)
+## Mudanças
 
-### `src/pages/BibliotecaPage.tsx`
+1. **Reutilizar o estado `folderViewMode`** (já persistido em `localStorage: repertorio:folderViewMode`) para também controlar o layout das músicas — mantém uma única preferência do usuário para "pastas + músicas".
 
-- Adicionar barra de busca fixa no topo (abaixo do `Banner`), full-width, com ícone `Search`, `X` para limpar e placeholder "Buscar músicas, artistas...".
-- Estado local `searchTerm` com debounce de 250 ms (`useEffect` + `setTimeout`).
-- Enquanto `searchTerm.trim().length < 2` → renderiza a **view atual** (Destaques + Todos os Repertórios).
-- Quando `searchTerm.trim().length >= 2` → renderiza a **view de resultados**:
-  - Query direta ao Supabase: `.from("musicas").select("*").or("title.ilike.%X%,artist.ilike.%X%").order("title").limit(60)`.
-  - Loading: `MusicGridSkeleton count={12}`.
-  - Zero resultados: `EmptyState` com ícone `Search` e mensagem "Nenhuma música encontrada para '<termo>'".
-  - Com resultados: grid de `MusicCard` (reutiliza o componente que já toca, baixa, favorita e usa `queueContext`).
-  - **Fila para autoplay**: passar `queueContext` = todas as músicas retornadas para o `MusicCard`, assim ao dar play em uma, a fila do player se enche com os resultados da busca e as próximas tocam sozinhas (como no YouTube Music).
-  - Cabeçalho da seção: "X resultados para '<termo>'" + botão "Tocar tudo" que dispara `usePlayerStore.play(resultados[0], resultados)`.
+2. **Ajustar `renderMusicGrid(tracks)`** para renderizar condicionalmente:
+   - `folderViewMode === "grid"` → mantém o grid atual com `MusicCard` (2/3/4/6 colunas).
+   - `folderViewMode === "list"` → renderiza uma lista vertical usando `MusicListRow` (import novo), dentro de um container `divide-y border rounded-xl` — idêntico ao padrão da busca da Biblioteca.
+   - Renomear a função para `renderMusicItems` para refletir os dois modos.
 
-### `src/components/layout/Header.tsx`
+3. **Reposicionar o toggle grid/lista** para ficar sempre visível quando existir conteúdo (subpastas ou músicas):
+   - Hoje o toggle só aparece dentro do bloco `currentLevelFolders.length > 0`.
+   - Mover o botão para o cabeçalho da seção de músicas (linha com "Músicas em …" + "Baixar pasta"), assim ele aparece mesmo quando a pasta selecionada não tem subpastas — que é justamente o cenário em que o usuário quer ver a lista de faixas.
+   - Se ainda existirem subpastas no nível atual, elas continuam respeitando o mesmo `folderViewMode` (comportamento atual preservado).
 
-- Nenhuma mudança funcional obrigatória. Opcional: quando o usuário clicar num resultado do dropdown do Header, em vez de navegar para `/musica/:id`, chamar `usePlayerStore.play(track)` direto para consistência com a Biblioteca. **Decisão:** manter o comportamento atual do Header (navegar para detalhes) — só a Biblioteca vira "buscador YouTube Music". Se você quiser trocar depois, é uma linha.
+4. **Animação**: manter o `motion.div` com stagger no modo grid; no modo lista aplicar o mesmo stagger em cada `MusicListRow` para transição suave.
 
-### Reutilização
+5. **Acessibilidade**: preservar `aria-pressed`, `aria-label="Visualizar em grade"` / `"Visualizar em lista"` no toggle.
 
-- `MusicCard` já suporta `queueContext` e `play`.
-- `MusicGridSkeleton`, `EmptyState`, `ErrorState`, `Input`, `Search`, `X` já existem no projeto.
-- `useMusicas` **não** vai ser usado para a busca (traz tudo e filtra no cliente = pesado). Vou fazer query dedicada no Supabase com `ilike`, que é como o Header já faz.
+## Fora do escopo
+- Não altera `MeusRepertoriosPage` (grid de capas dos repertórios).
+- Não altera `MusicCard`, `MusicListRow`, nem lógica de player, download ou paginação.
+- Sem mudanças de backend, migrations ou tipos.
 
-## Detalhes técnicos
-
-- Debounce: 250 ms — mesmo padrão do Header.
-- Limite: 60 resultados (`.limit(60)`). Cobre 99% dos casos sem paginação. Se quiser paginar depois, adiciono botão "Carregar mais".
-- Sem `useQuery` — usar `useEffect` + `useState` para manter simples e evitar cache de chaves dinâmicas explodindo o React Query.
-- Cancelamento: usar um flag `cancelled` no efeito para descartar resposta antiga se o usuário continuar digitando.
-- Sem alterações no store do player, no Supabase, nem em nenhuma outra página.
-
-## O que NÃO vou fazer
-
-- Não vou mexer no player, no PWA nem nas rotas.
-- Não vou adicionar histórico de busca, sugestões, autocomplete ou trending — dá pra fazer numa próxima iteração se quiser.
-- Não vou tocar no dropdown do Header (comportamento fica).
-
-Arquivo único alterado: `src/pages/BibliotecaPage.tsx`.
+## Critérios de aceite
+- Abrir um repertório → clicar no ícone de lista → subpastas E músicas ficam em lista.
+- Preferência persiste ao recarregar a página (localStorage).
+- Ao entrar numa pasta sem subpastas, o toggle continua visível e funcional para as músicas.
+- Layout responsivo mantido em mobile (sem overflow horizontal).

@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MusicCard } from "@/components/music/MusicCard";
+import { MusicListRow } from "@/components/music/MusicListRow";
 import { usePlayerStore } from "@/stores/playerStore";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/button";
@@ -419,32 +420,55 @@ const RepertorioPage = () => {
     );
   }
 
-  const renderMusicGrid = (tracks: Musica[]) => (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-      className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6"
-    >
-      {tracks.map((t) => (
+  const renderMusicItems = (tracks: Musica[]) => {
+    if (folderViewMode === "list") {
+      return (
         <motion.div
-          key={t.id}
-          className="min-w-0 max-w-full overflow-hidden"
-          variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
+          initial="hidden"
+          animate="show"
+          variants={{ show: { transition: { staggerChildren: 0.03 } } }}
+          className="flex w-full min-w-0 max-w-full flex-col divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-card/40"
         >
-          <MusicCard
-            id={t.id}
-            title={t.title}
-            artist={t.artist}
-            coverUrl={t.cover_url}
-            fileUrl={t.file_url}
-            driveId={t.drive_id}
-            queueContext={displayMusicas}
-          />
+          {tracks.map((t, i) => (
+            <motion.div
+              key={t.id}
+              className="min-w-0 max-w-full overflow-hidden"
+              variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+            >
+              <MusicListRow musica={t} queueContext={displayMusicas} index={i} />
+            </motion.div>
+          ))}
         </motion.div>
-      ))}
-    </motion.div>
-  );
+      );
+    }
+    return (
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+        className="grid w-full min-w-0 max-w-full grid-cols-2 gap-3 overflow-hidden sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6"
+      >
+        {tracks.map((t) => (
+          <motion.div
+            key={t.id}
+            className="min-w-0 max-w-full overflow-hidden"
+            variants={{ hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0 } }}
+          >
+            <MusicCard
+              id={t.id}
+              title={t.title}
+              artist={t.artist}
+              coverUrl={t.cover_url}
+              fileUrl={t.file_url}
+              driveId={t.drive_id}
+              queueContext={displayMusicas}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
+    );
+  };
+
 
   return (
     <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
@@ -733,8 +757,38 @@ const RepertorioPage = () => {
                       </>
                     )}
                   </h3>
-                  {selectedFolder && (
-                    <div className="flex min-w-0 shrink-0 items-center gap-2">
+                  <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+                    {paginatedItems.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSetFolderViewMode("grid")}
+                          aria-label="Visualizar em grade"
+                          aria-pressed={folderViewMode === "grid"}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                            folderViewMode === "grid"
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <LayoutGrid className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetFolderViewMode("list")}
+                          aria-label="Visualizar em lista"
+                          aria-pressed={folderViewMode === "list"}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                            folderViewMode === "list"
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <List className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                    {selectedFolder && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -749,13 +803,13 @@ const RepertorioPage = () => {
                         )}
                         <span className="truncate">Baixar pasta</span>
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                 
                 {paginatedItems.length > 0 ? (
                   <>
-                    {renderMusicGrid(paginatedItems)}
+                    {renderMusicItems(paginatedItems)}
                     <PaginationComponent />
                   </>
                 ) : (
