@@ -380,19 +380,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   pause: () => {
     audio?.pause();
     set({ isPlaying: false });
+    setMediaSessionPlaybackState("paused");
   },
 
   close: () => {
     destroyAudio();
     set({ currentTrack: null, isPlaying: false, progress: 0, duration: 0, currentTime: 0, isLoading: false });
+    if (hasMediaSession()) {
+      try {
+        (navigator as any).mediaSession.metadata = null;
+      } catch {}
+      setMediaSessionPlaybackState("none");
+    }
   },
 
   resume: () => {
     if (audio) {
-      audio.play().catch(console.error);
-      set({ isPlaying: true });
+      audio.play().then(() => {
+        set({ isPlaying: true });
+        setMediaSessionPlaybackState("playing");
+      }).catch(console.error);
     }
   },
+
 
   next: () => {
     const { queue, currentTrack } = get();
