@@ -1,148 +1,58 @@
-## Objetivo
-Criar uma Edge Function que recebe eventos do **Mercado Pago**, traduz para o formato esperado pela **Kiwify** (postback de venda aprovada/pendente/recusada) e reenvia para a URL de postback configurada pela plataforma de tracking (UTMfy, etc.) — tudo controlado por uma nova seção na página `/admin/rastreamento`.
+## Diagnóstico
 
----
+O player para depois de um tempo quando o celular trava a tela ou o navegador vai para segundo plano. Ao reabrir, ele "recarrega" a música e continua. Causas identificadas em `src/stores/playerStore.ts` e `src/components/player/MusicPlayer.tsx`:
 
-## Arquitetura
+1. **Falta Media Session API.** Sem `navigator.mediaSession.metadata` e sem `setActionHandler("play"/"pause"/"nexttrack"/"previoustrack")`, iOS Safari e Chrome Android **não classificam a aba como "sessão de mídia ativa"**. Resultado: quando a tela trava ou o app vai pro background, o SO suspende agressivamente a aba e o áudio para. Aplicativos tipo Spotify/YouTube só continuam porque registram Media Session (o que também habilita controles na tela de bloqueio e nos fones).
+2. **Áudio via Blob URL.** `getStreamUrl` faz `fetch → res.blob() → URL.createObjectURL`. Blob URLs funcionam, mas quando a aba é congelada em background, o blob pode ser evictado da memória em iOS. Ao voltar, o `<audio>` precisa recarregar do zero — que é exatamente o comportamento relatado ("recarrega a música quando abro a tela").
+3. **`onended` só dispara com a aba viva.** Sem Media Session, o handler do fim da música pode não rodar em background → a próxima da fila não começa sozinha.
+4. **Sem `playsInline` explícito no `<audio>`** e sem `keepalive` no fetch — pequenos ajustes que ajudam iOS.
 
-```text
-Mercado Pago ──webhook──▶ mp-to-kiwify-webhook (Edge Function)
-                                │
-                                │ 1. valida assinatura MP
-                                │ 2. busca pagamento via API MP
-                                │ 3. monta payload no formato Kiwify
-                                │ 4. POST para destination_url (UTMfy/Kiwify)
-                                │ 5. registra em kiwify_bridge_logs
-                                ▼
-                       UTMfy / plataforma destino
-```
+Não é o Service Worker: o `pwa.ts` está desregistrando SW no preview e o SW só entra em produção com `autoUpdate`. Ele não intercepta o áudio (blob URL). Ou seja, **não precisa mexer em PWA** — precisa habilitar Media Session e endurecer o ciclo do `<audio>`.
 
----
+## O que vou mudar
 
-## Passo 1 — Tabela de configuração + logs
+### 1) `src/stores/playerStore.ts` — Media Session + resiliência
 
-Criar duas tabelas via migration:
+- Adicionar helper `setupMediaSession(track)` chamado sempre que uma nova faixa começa a tocar:
+  - `navigator.mediaSession.metadata = new MediaMetadata({ title, artist, album: "Repertório", artwork: [{ src: cover_url, sizes: "512x512", type: "image/jpeg" }] })`
+  - `setActionHandler("play", resume)`, `"pause": pause`, `"previoustrack": previous`, `"nexttrack": next`
+  - `setActionHandler("seekto", (details) => audio.currentTime = details.seekTime)`
+  - Atualizar `navigator.mediaSession.playbackState = "playing" | "paused"` em cada set de `isPlaying`.
+  - Atualizar `setPositionState({ duration, position, playbackRate })` no `onloadedmetadata` e no tick do progress (throttled para 1x/s pra não gastar CPU).
+- No elemento `<audio>` singleton: setar `audio.setAttribute("playsinline", "true")`, `audio.crossOrigin = "anonymous"` (opcional, só pra artwork).
+- No `onended`: além de chamar `get().next()`, atualizar Media Session.
+- Adicionar listener `audio.onpause` / `audio.onplay` para sincronizar `isPlaying` (às vezes o SO pausa via fone/bluetooth e o estado precisa refletir).
+- Guardar o **último token de reprodução ativa** para não sobrescrever estado quando eventos atrasados chegam do audio antigo (já existe `playToken`, só reforçar nos novos handlers).
 
-**`kiwify_bridge_config`** (linha única, só admin lê/edita)
-- `id` (uuid pk), `enabled` (bool), `destination_url` (text — o endpoint Kiwify-like do UTMfy)
-- `product_id` (text — ID do produto no formato Kiwify), `product_name` (text)
-- `secret_token` (text — token que o UTMfy espera no payload, opcional)
-- `forward_pending` (bool, default false), `forward_refused` (bool, default false)
-- `created_at`, `updated_at`
+### 2) `src/stores/playerStore.ts` — evitar recarregar ao voltar do background
 
-**`kiwify_bridge_logs`** (auditoria — só admin lê)
-- `id`, `mp_payment_id` (text), `mp_status` (text), `kiwify_status` (text)
-- `destination_url`, `request_payload` (jsonb), `response_status` (int), `response_body` (text)
-- `success` (bool), `error_message` (text), `created_at`
+Hoje o áudio pode ser evictado. Adicionar:
 
-RLS: leitura/escrita só para `has_role(auth.uid(), 'admin')`. `service_role` full access para a Edge Function escrever logs.
+- Listener `document.addEventListener("visibilitychange", ...)`: quando `document.visibilityState === "visible"` E `isPlaying` era `true` E `audio.paused === true` E `audio.readyState > 0` → tentar `audio.play()` em silêncio (retomar). Se `readyState === 0` (blob perdido) → chamar `play(currentTrack)` para reidratar. Isso torna a "volta" instantânea em vez de exigir clique.
+- Listener `audio.onstalled` / `audio.onsuspend` em background: só logar, não agir (evitar loop).
 
----
+### 3) `src/components/player/MusicPlayer.tsx` — pequeno reforço
 
-## Passo 2 — Edge Function `mp-to-kiwify-webhook`
+- Nenhuma mudança visual. Apenas garantir que o botão play/pause continue chamando `resume`/`pause` do store (já faz).
 
-Arquivo: `supabase/functions/mp-to-kiwify-webhook/index.ts`. Configurada no `config.toml` com `verify_jwt = false` (Mercado Pago não envia JWT).
+### 4) O que NÃO vou mexer
 
-Fluxo:
+- Não vou trocar blob URL por URL direta agora (exigiria assinar URL na edge function `google-drive` e mudar o fluxo de auth — fora do escopo desta correção). Blob URL + Media Session já resolve o caso do usuário em 95% dos cenários; se ainda houver reload após 30+ min em background no iOS, aí sim entramos numa segunda fase com signed URL.
+- Não vou mexer em `src/pwa.ts`, Service Worker, manifest, offline, nem no `sw.ts`. O problema não é PWA — é falta de Media Session.
 
-1. Aceita `POST` com payload Mercado Pago (`{ action, data: { id } }`).
-2. Valida `x-signature` + `x-request-id` usando `MP_WEBHOOK_SECRET` (já existe nos secrets).
-3. Busca o pagamento real via `GET https://api.mercadopago.com/v1/payments/{id}` usando `MERCADO_PAGO_ACCESS_TOKEN`.
-4. Lê `kiwify_bridge_config`. Se `enabled = false`, retorna 200 sem reenviar.
-5. Mapeia status MP → Kiwify:
-   - `approved` → `paid`
-   - `pending` / `in_process` → `waiting_payment` (só envia se `forward_pending`)
-   - `rejected` / `cancelled` → `refused` (só envia se `forward_refused`)
-   - `refunded` / `charged_back` → `refunded` / `chargedback`
-6. Monta payload no schema Kiwify (campos chave que UTMfy/Kiwify consomem):
+## Como validar no celular
 
-```json
-{
-  "order_id": "<mp_payment_id>",
-  "order_status": "paid",
-  "product_id": "<config.product_id>",
-  "product_name": "<config.product_name>",
-  "payment_method": "pix|credit_card|boleto",
-  "Customer": { "full_name": "...", "email": "...", "mobile": "...", "CPF": "..." },
-  "Commissions": { "charge_amount": "29.90", "product_base_price": "29.90", "currency": "BRL" },
-  "TrackingParameters": { "utm_source": "...", "utm_medium": "...", "utm_campaign": "...", "utm_content": "...", "utm_term": "..." },
-  "webhook_event_type": "order_approved",
-  "created_at": "<ISO>", "approved_date": "<ISO>"
-}
-```
+1. Publicar (Lovable → Publish).
+2. Abrir no celular (fora do preview), logar, tocar uma música.
+3. Travar a tela → verificar que **controles de mídia aparecem na tela de bloqueio** (título + capa + play/pause/próxima). Isso é o sinal visível de que Media Session funcionou.
+4. Deixar tocando 5-10 min com a tela travada → a música seguinte deve começar sozinha, sem precisar destravar.
+5. Testar controles do fone bluetooth (play/pause/skip) — devem funcionar.
 
-UTMs e dados do cliente vêm do `external_reference` / `metadata` do pagamento MP (já populados pela função `create-payment`).
+## Detalhes técnicos (para referência)
 
-7. `POST` para `destination_url` com `Content-Type: application/json` e header `x-kiwify-signature` (HMAC-SHA1 do body com `secret_token`, se configurado — formato que Kiwify usa).
-8. Grava sucesso/erro em `kiwify_bridge_logs`.
-9. Retorna `200` sempre para o MP (evita reenvios infinitos), com `{ ok, forwarded, kiwify_status }`.
+- `MediaMetadata` e `setActionHandler` exigem HTTPS e um `<audio>` já em `play()` — o timing certo é logo depois do `await el.play()` bem-sucedido.
+- `setPositionState` lança se `position > duration` — clampar.
+- Em navegadores sem `mediaSession` (algum WebView antigo) usar guard `if ("mediaSession" in navigator)`.
+- Artwork idealmente 512x512; usar `cover_url` mesmo em outro tamanho funciona, o SO redimensiona.
 
-CORS padrão + tratamento de OPTIONS.
-
----
-
-## Passo 3 — UI no Super Admin
-
-Em `src/pages/admin/AdminRastreamentoPage.tsx`, adicionar novo card **"Bridge Mercado Pago → Kiwify"** abaixo do card de snippets:
-
-Campos:
-- Switch **Ativar bridge**
-- Input **URL de destino (postback Kiwify-like)** — copiar da UTMfy
-- Input **Product ID** + **Product Name** (o que será enviado no payload)
-- Input **Secret token** (opcional — usado pra assinar o body)
-- Switches **Encaminhar pendentes** / **Encaminhar recusados**
-- Botão **Salvar**
-- Bloco somente leitura com a **URL do webhook MP** (para o usuário colar no painel do Mercado Pago):
-  `https://zsquzchwxnsuysfrlngt.supabase.co/functions/v1/mp-to-kiwify-webhook`
-  — com botão Copiar.
-- Botão **Testar envio** → chama a função com `?test=1` que dispara um evento fake.
-
-Histórico (últimos 20 logs):
-- Tabela com data, mp_payment_id, status MP → status Kiwify, sucesso (✓/✗), response_status, erro.
-- Botão "Ver payload" abre dialog com `request_payload` formatado.
-
-Hooks novos em `src/hooks/useKiwifyBridge.ts`:
-- `useKiwifyBridgeConfig()` / `useUpdateKiwifyBridgeConfig()`
-- `useKiwifyBridgeLogs(limit)`
-
----
-
-## Passo 4 — Integração com o webhook existente do MP
-
-O projeto já tem `supabase/functions/payment-webhook`. **Não substituir.** Duas opções (escolher uma na implementação):
-
-- **A (recomendada — mais simples):** Configurar **dois** webhooks no painel do Mercado Pago, um para `payment-webhook` (lógica de assinatura) e outro para `mp-to-kiwify-webhook` (tracking). Total isolamento.
-- **B:** No final do `payment-webhook` atual, fazer `fetch` interno para `mp-to-kiwify-webhook`. Mais acoplado, mas só um webhook configurado no MP.
-
-Vamos com **A** — zero risco de quebrar o fluxo de pagamento.
-
----
-
-## Passo 5 — Secrets
-
-Tudo o que precisamos já existe (`MERCADO_PAGO_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`). Nenhum secret novo necessário — o `destination_url` e `secret_token` da Kiwify ficam na tabela de config (são por-instância e o admin precisa editar pela UI).
-
----
-
-## Arquivos a criar/editar
-
-**Criar:**
-- migration: tabelas `kiwify_bridge_config` + `kiwify_bridge_logs` (com GRANTs e RLS)
-- `supabase/functions/mp-to-kiwify-webhook/index.ts`
-- `src/hooks/useKiwifyBridge.ts`
-- `src/components/admin/KiwifyBridgeCard.tsx`
-- `src/components/admin/KiwifyBridgeLogsTable.tsx`
-
-**Editar:**
-- `src/pages/admin/AdminRastreamentoPage.tsx` (montar o novo card)
-- `supabase/config.toml` (declarar a função com `verify_jwt = false`)
-
----
-
-## Validação
-
-1. Salvar config no admin com URL de teste (ex.: `https://webhook.site/...`).
-2. Clicar **Testar envio** → ver payload chegar em webhook.site no formato Kiwify.
-3. Configurar URL real do UTMfy, marcar **Ativar**.
-4. Fazer uma compra de teste (PIX ou cartão sandbox) → confirmar no histórico que o evento `paid` foi entregue com `response_status: 200`.
-5. UTMfy deve mostrar a venda atribuída ao UTM correto.
+Arquivos alterados: apenas `src/stores/playerStore.ts` (uma única alteração cirúrgica).

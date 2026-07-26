@@ -15,9 +15,96 @@ function getAudio(): HTMLAudioElement {
   if (!audio) {
     audio = new Audio();
     audio.preload = "auto";
+    audio.setAttribute("playsinline", "true");
   }
   return audio;
 }
+
+function hasMediaSession(): boolean {
+  return typeof navigator !== "undefined" && "mediaSession" in navigator;
+}
+
+function setMediaSessionMetadata(track: Musica) {
+  if (!hasMediaSession()) return;
+  try {
+    const artwork = track.cover_url
+      ? [
+          { src: track.cover_url, sizes: "96x96", type: "image/jpeg" },
+          { src: track.cover_url, sizes: "192x192", type: "image/jpeg" },
+          { src: track.cover_url, sizes: "512x512", type: "image/jpeg" },
+        ]
+      : [];
+    (navigator as any).mediaSession.metadata = new (window as any).MediaMetadata({
+      title: track.title || "",
+      artist: track.artist || "",
+      album: "Repertório",
+      artwork,
+    });
+  } catch (err) {
+    console.warn("[Player] mediaSession metadata error:", err);
+  }
+}
+
+function setMediaSessionPlaybackState(state: "playing" | "paused" | "none") {
+  if (!hasMediaSession()) return;
+  try {
+    (navigator as any).mediaSession.playbackState = state;
+  } catch {}
+}
+
+function updatePositionState(el: HTMLAudioElement) {
+  if (!hasMediaSession()) return;
+  try {
+    const ms: any = (navigator as any).mediaSession;
+    if (typeof ms.setPositionState !== "function") return;
+    const duration = isFinite(el.duration) && el.duration > 0 ? el.duration : 0;
+    if (!duration) return;
+    const position = Math.max(0, Math.min(el.currentTime || 0, duration));
+    ms.setPositionState({ duration, position, playbackRate: el.playbackRate || 1 });
+  } catch {}
+}
+
+let mediaSessionHandlersBound = false;
+function bindMediaSessionHandlers(store: {
+  resume: () => void;
+  pause: () => void;
+  next: () => void;
+  previous: () => void;
+}) {
+  if (!hasMediaSession() || mediaSessionHandlersBound) return;
+  const ms: any = (navigator as any).mediaSession;
+  try {
+    ms.setActionHandler("play", () => store.resume());
+    ms.setActionHandler("pause", () => store.pause());
+    ms.setActionHandler("previoustrack", () => store.previous());
+    ms.setActionHandler("nexttrack", () => store.next());
+    try {
+      ms.setActionHandler("seekto", (details: any) => {
+        if (!audio) return;
+        if (details.fastSeek && typeof (audio as any).fastSeek === "function") {
+          (audio as any).fastSeek(details.seekTime);
+        } else {
+          audio.currentTime = details.seekTime;
+        }
+        updatePositionState(audio);
+      });
+    } catch {}
+    try {
+      ms.setActionHandler("seekbackward", (details: any) => {
+        if (!audio) return;
+        audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 10));
+      });
+      ms.setActionHandler("seekforward", (details: any) => {
+        if (!audio) return;
+        audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + (details.seekOffset || 10));
+      });
+    } catch {}
+    mediaSessionHandlersBound = true;
+  } catch (err) {
+    console.warn("[Player] mediaSession handlers error:", err);
+  }
+}
+
 
 function clearProgress() {
   if (progressInterval) {
@@ -214,16 +301,41 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       el.onloadedmetadata = () => {
         if (myToken !== playToken) return;
         set({ duration: el.duration || 0, isLoading: false });
+        updatePositionState(el);
       };
       el.onended = () => {
         if (myToken !== playToken) return;
+        setMediaSessionPlaybackState("none");
         get().next();
       };
       el.onerror = (e) => {
         if (myToken !== playToken) return;
         console.error("[Player] Audio error:", e);
         set({ isPlaying: false, isLoading: false });
+        setMediaSessionPlaybackState("paused");
       };
+      el.onpause = () => {
+        if (myToken !== playToken) return;
+        // Only sync state if not caused by track change
+        if (!el.ended && get().currentTrack?.id === track.id) {
+          set({ isPlaying: false });
+          setMediaSessionPlaybackState("paused");
+        }
+      };
+      el.onplay = () => {
+        if (myToken !== playToken) return;
+        set({ isPlaying: true });
+        setMediaSessionPlaybackState("playing");
+      };
+
+      // Bind Media Session BEFORE play() so the OS picks up the session
+      bindMediaSessionHandlers({
+        resume: () => get().resume(),
+        pause: () => get().pause(),
+        next: () => get().next(),
+        previous: () => get().previous(),
+      });
+      setMediaSessionMetadata(track);
 
       await el.play();
 
@@ -234,15 +346,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       }
 
       set({ isPlaying: true, isLoading: false });
+      setMediaSessionPlaybackState("playing");
+      updatePositionState(el);
 
       clearProgress();
+      let lastPosSync = 0;
       progressInterval = setInterval(() => {
         if (myToken !== playToken) return;
         if (el && !el.paused) {
           const prog = el.duration ? (el.currentTime / el.duration) * 100 : 0;
           set({ progress: prog, currentTime: el.currentTime });
+          const now = Date.now();
+          if (now - lastPosSync > 1000) {
+            lastPosSync = now;
+            updatePositionState(el);
+          }
         }
       }, 250);
+
     } catch (err: any) {
       if (myToken !== playToken) return;
       console.error("[Player] Play error:", err);
@@ -259,19 +380,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   pause: () => {
     audio?.pause();
     set({ isPlaying: false });
+    setMediaSessionPlaybackState("paused");
   },
 
   close: () => {
     destroyAudio();
     set({ currentTrack: null, isPlaying: false, progress: 0, duration: 0, currentTime: 0, isLoading: false });
+    if (hasMediaSession()) {
+      try {
+        (navigator as any).mediaSession.metadata = null;
+      } catch {}
+      setMediaSessionPlaybackState("none");
+    }
   },
 
   resume: () => {
     if (audio) {
-      audio.play().catch(console.error);
-      set({ isPlaying: true });
+      audio.play().then(() => {
+        set({ isPlaying: true });
+        setMediaSessionPlaybackState("playing");
+      }).catch(console.error);
     }
   },
+
 
   next: () => {
     const { queue, currentTrack } = get();
@@ -359,3 +490,27 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   setDuration: (d) => set({ duration: d }),
 }));
+
+// Resume playback silently when the tab returns to the foreground.
+// Mobile browsers may pause background audio; on return, retry play()
+// or reidratar (re-fetch blob) if the source was evicted.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    const state = usePlayerStore.getState();
+    if (!state.currentTrack || !state.isPlaying) return;
+    const el = audio;
+    if (!el) return;
+    if (el.paused) {
+      if (el.readyState > 0) {
+        el.play().catch(() => {
+          // Source was likely evicted — reidratar
+          if (state.currentTrack) usePlayerStore.getState().play(state.currentTrack);
+        });
+      } else if (state.currentTrack) {
+        usePlayerStore.getState().play(state.currentTrack);
+      }
+    }
+  });
+}
+
