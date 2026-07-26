@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Banner } from "@/components/ui/Banner";
 import { MusicCard } from "@/components/music/MusicCard";
+import { MusicListRow } from "@/components/music/MusicListRow";
 import { Link } from "react-router-dom";
 import { useCategorias } from "@/hooks/useMusics";
 import { useRepertorios } from "@/hooks/useRepertorios";
@@ -133,20 +134,17 @@ const BibliotecaPage = () => {
                   Tocar tudo
                 </Button>
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {results.map((m) => (
-                  <MusicCard
+              <div className="divide-y divide-border/40 rounded-lg border border-border/40 bg-card/30">
+                {results.map((m, idx) => (
+                  <MusicListRow
                     key={m.id}
-                    id={m.id}
-                    title={m.title}
-                    artist={m.artist}
-                    coverUrl={m.cover_url}
-                    fileUrl={m.file_url}
-                    driveId={m.drive_id}
+                    musica={m}
                     queueContext={results}
+                    index={idx + 1}
                   />
                 ))}
               </div>
+
             </>
           )}
         </section>
