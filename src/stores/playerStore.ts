@@ -15,9 +15,96 @@ function getAudio(): HTMLAudioElement {
   if (!audio) {
     audio = new Audio();
     audio.preload = "auto";
+    audio.setAttribute("playsinline", "true");
   }
   return audio;
 }
+
+function hasMediaSession(): boolean {
+  return typeof navigator !== "undefined" && "mediaSession" in navigator;
+}
+
+function setMediaSessionMetadata(track: Musica) {
+  if (!hasMediaSession()) return;
+  try {
+    const artwork = track.cover_url
+      ? [
+          { src: track.cover_url, sizes: "96x96", type: "image/jpeg" },
+          { src: track.cover_url, sizes: "192x192", type: "image/jpeg" },
+          { src: track.cover_url, sizes: "512x512", type: "image/jpeg" },
+        ]
+      : [];
+    (navigator as any).mediaSession.metadata = new (window as any).MediaMetadata({
+      title: track.title || "",
+      artist: track.artist || "",
+      album: "Repertório",
+      artwork,
+    });
+  } catch (err) {
+    console.warn("[Player] mediaSession metadata error:", err);
+  }
+}
+
+function setMediaSessionPlaybackState(state: "playing" | "paused" | "none") {
+  if (!hasMediaSession()) return;
+  try {
+    (navigator as any).mediaSession.playbackState = state;
+  } catch {}
+}
+
+function updatePositionState(el: HTMLAudioElement) {
+  if (!hasMediaSession()) return;
+  try {
+    const ms: any = (navigator as any).mediaSession;
+    if (typeof ms.setPositionState !== "function") return;
+    const duration = isFinite(el.duration) && el.duration > 0 ? el.duration : 0;
+    if (!duration) return;
+    const position = Math.max(0, Math.min(el.currentTime || 0, duration));
+    ms.setPositionState({ duration, position, playbackRate: el.playbackRate || 1 });
+  } catch {}
+}
+
+let mediaSessionHandlersBound = false;
+function bindMediaSessionHandlers(store: {
+  resume: () => void;
+  pause: () => void;
+  next: () => void;
+  previous: () => void;
+}) {
+  if (!hasMediaSession() || mediaSessionHandlersBound) return;
+  const ms: any = (navigator as any).mediaSession;
+  try {
+    ms.setActionHandler("play", () => store.resume());
+    ms.setActionHandler("pause", () => store.pause());
+    ms.setActionHandler("previoustrack", () => store.previous());
+    ms.setActionHandler("nexttrack", () => store.next());
+    try {
+      ms.setActionHandler("seekto", (details: any) => {
+        if (!audio) return;
+        if (details.fastSeek && typeof (audio as any).fastSeek === "function") {
+          (audio as any).fastSeek(details.seekTime);
+        } else {
+          audio.currentTime = details.seekTime;
+        }
+        updatePositionState(audio);
+      });
+    } catch {}
+    try {
+      ms.setActionHandler("seekbackward", (details: any) => {
+        if (!audio) return;
+        audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 10));
+      });
+      ms.setActionHandler("seekforward", (details: any) => {
+        if (!audio) return;
+        audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + (details.seekOffset || 10));
+      });
+    } catch {}
+    mediaSessionHandlersBound = true;
+  } catch (err) {
+    console.warn("[Player] mediaSession handlers error:", err);
+  }
+}
+
 
 function clearProgress() {
   if (progressInterval) {
