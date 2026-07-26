@@ -490,3 +490,27 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   setDuration: (d) => set({ duration: d }),
 }));
+
+// Resume playback silently when the tab returns to the foreground.
+// Mobile browsers may pause background audio; on return, retry play()
+// or reidratar (re-fetch blob) if the source was evicted.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    const state = usePlayerStore.getState();
+    if (!state.currentTrack || !state.isPlaying) return;
+    const el = audio;
+    if (!el) return;
+    if (el.paused) {
+      if (el.readyState > 0) {
+        el.play().catch(() => {
+          // Source was likely evicted — reidratar
+          if (state.currentTrack) usePlayerStore.getState().play(state.currentTrack);
+        });
+      } else if (state.currentTrack) {
+        usePlayerStore.getState().play(state.currentTrack);
+      }
+    }
+  });
+}
+
