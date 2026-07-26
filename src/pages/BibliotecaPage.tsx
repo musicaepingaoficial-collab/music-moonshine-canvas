@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Banner } from "@/components/ui/Banner";
 import { MusicCard } from "@/components/music/MusicCard";
+import { MusicListRow } from "@/components/music/MusicListRow";
 import { Link } from "react-router-dom";
 import { useCategorias } from "@/hooks/useMusics";
 import { useRepertorios } from "@/hooks/useRepertorios";
