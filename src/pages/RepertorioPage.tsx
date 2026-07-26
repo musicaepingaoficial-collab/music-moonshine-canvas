@@ -779,7 +779,7 @@ const RepertorioPage = () => {
                 
                 {paginatedItems.length > 0 ? (
                   <>
-                    {renderMusicGrid(paginatedItems)}
+                    {renderMusicItems(paginatedItems)}
                     <PaginationComponent />
                   </>
                 ) : (
