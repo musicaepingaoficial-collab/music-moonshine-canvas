@@ -301,16 +301,41 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       el.onloadedmetadata = () => {
         if (myToken !== playToken) return;
         set({ duration: el.duration || 0, isLoading: false });
+        updatePositionState(el);
       };
       el.onended = () => {
         if (myToken !== playToken) return;
+        setMediaSessionPlaybackState("none");
         get().next();
       };
       el.onerror = (e) => {
         if (myToken !== playToken) return;
         console.error("[Player] Audio error:", e);
         set({ isPlaying: false, isLoading: false });
+        setMediaSessionPlaybackState("paused");
       };
+      el.onpause = () => {
+        if (myToken !== playToken) return;
+        // Only sync state if not caused by track change
+        if (!el.ended && get().currentTrack?.id === track.id) {
+          set({ isPlaying: false });
+          setMediaSessionPlaybackState("paused");
+        }
+      };
+      el.onplay = () => {
+        if (myToken !== playToken) return;
+        set({ isPlaying: true });
+        setMediaSessionPlaybackState("playing");
+      };
+
+      // Bind Media Session BEFORE play() so the OS picks up the session
+      bindMediaSessionHandlers({
+        resume: () => get().resume(),
+        pause: () => get().pause(),
+        next: () => get().next(),
+        previous: () => get().previous(),
+      });
+      setMediaSessionMetadata(track);
 
       await el.play();
 
@@ -321,15 +346,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       }
 
       set({ isPlaying: true, isLoading: false });
+      setMediaSessionPlaybackState("playing");
+      updatePositionState(el);
 
       clearProgress();
+      let lastPosSync = 0;
       progressInterval = setInterval(() => {
         if (myToken !== playToken) return;
         if (el && !el.paused) {
           const prog = el.duration ? (el.currentTime / el.duration) * 100 : 0;
           set({ progress: prog, currentTime: el.currentTime });
+          const now = Date.now();
+          if (now - lastPosSync > 1000) {
+            lastPosSync = now;
+            updatePositionState(el);
+          }
         }
       }, 250);
+
     } catch (err: any) {
       if (myToken !== playToken) return;
       console.error("[Player] Play error:", err);
