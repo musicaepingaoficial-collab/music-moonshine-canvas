@@ -757,8 +757,38 @@ const RepertorioPage = () => {
                       </>
                     )}
                   </h3>
-                  {selectedFolder && (
-                    <div className="flex min-w-0 shrink-0 items-center gap-2">
+                  <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+                    {paginatedItems.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSetFolderViewMode("grid")}
+                          aria-label="Visualizar em grade"
+                          aria-pressed={folderViewMode === "grid"}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                            folderViewMode === "grid"
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <LayoutGrid className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetFolderViewMode("list")}
+                          aria-label="Visualizar em lista"
+                          aria-pressed={folderViewMode === "list"}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                            folderViewMode === "list"
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <List className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                    {selectedFolder && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -773,8 +803,8 @@ const RepertorioPage = () => {
                         )}
                         <span className="truncate">Baixar pasta</span>
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                 
                 {paginatedItems.length > 0 ? (
