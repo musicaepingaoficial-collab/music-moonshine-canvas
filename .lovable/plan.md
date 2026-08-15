@@ -1,23 +1,34 @@
-# Plano de Estabilização PWA e Áudio em Background
+# Plano: Recuperação de Vendas via WhatsApp com QR Code PIX
 
-O usuário relatou que as músicas param de tocar e o app fecha sozinho quando a tela está bloqueada. Embora já tenhamos implementado a Media Session API, precisamos de garantias adicionais de que o sistema operacional (iOS/Android) não suspenda o processo do navegador ou remova o áudio da memória.
+Este plano descreve a implementação de uma funcionalidade na aba de recuperação de vendas (Super Admin) que permite gerar um QR Code PIX dinâmico para facilitar o pagamento direto pelo cliente durante o atendimento manual via WhatsApp.
 
-## 1. Otimização do Service Worker para PWA
-Atualmente o projeto parece estar usando uma configuração básica de PWA. Precisamos garantir que o Service Worker mantenha a conexão ativa e não cause fechamentos inesperados por falta de cache de ativos críticos.
+## Alterações de Banco de Dados
 
-## 2. Reforço da Media Session e Wake Lock
-Mesmo com Media Session, alguns sistemas suspendem abas "inativas". Vamos implementar o **Screen Wake Lock API** (quando disponível) para tentar manter o contexto de execução ativo enquanto o áudio está em reprodução.
+- Criar uma nova política de RLS para permitir que administradores consultem logs de recuperação e perfis de forma otimizada para esta funcionalidade.
+- (Opcional) Adicionar metadados ao `whatsapp_recovery_log` para registrar quando um QR Code foi gerado.
 
-## 3. Melhoria na Resiliência do Stream (Blobs)
-Atualmente usamos `URL.createObjectURL(blob)`. Se o navegador sofrer pressão de memória em background, ele pode invalidar esses blobs.
-- **Mudança:** Implementar uma estratégia de "retry" que, se o áudio falhar em background, tenta re-gerar o link de stream automaticamente sem intervenção do usuário.
+## Backend (Edge Functions)
 
-## 4. Manifest e Metadados do iOS
-O iOS é particularmente agressivo com PWAs em background.
-- Ajustar o `manifest.json` (ou garantir que os campos `standalone` estejam corretos).
-- Adicionar metadados específicos para "Audio Background" se possível via meta tags.
+### 1. Atualização da `create-payment`
+- Garantir que a função suporte a criação de pagamentos PIX para usuários existentes (não anônimos) solicitados por um administrador.
+- Retornar o `qr_code` e `qr_code_base64` do Mercado Pago.
+
+### 2. Nova Função `admin-generate-recovery-pix`
+- Criar uma Edge Function dedicada para administradores gerarem um link/QR Code de pagamento sem que o usuário precise estar logado no momento.
+- Esta função chamará o Mercado Pago e retornará os dados do PIX.
+
+## Frontend (Admin)
+
+### 1. `WhatsAppRecoveryDialog.tsx`
+- Adicionar uma seção "Gerar Pagamento PIX".
+- Permitir que o admin escolha o plano (Mensal, Anual, etc.).
+- Botão "Gerar QR Code".
+- Exibir o QR Code na tela e permitir copiar a "Chave Copia e Cola".
+- Botão "Enviar no WhatsApp com Link/PIX" que anexa automaticamente a chave PIX ou o link de checkout à mensagem.
+
+### 2. `AdminRecuperacaoPage.tsx`
+- Melhorar a visualização dos destinatários para mostrar rapidamente se o usuário já tem um pagamento pendente ou se um QR Code foi gerado recentemente.
 
 ## Detalhes Técnicos
-- **Wake Lock:** Ativar `navigator.wakeLock.request('screen')` enquanto `isPlaying` é true no `playerStore`.
-- **Blob Management:** Adicionar verificação de erro 404/403 no elemento de áudio que dispara uma re-autenticação e novo fetch do stream.
-- **Keep-alive:** Pequeno "silêncio" ou loop de áudio pode ser necessário se o SO ignorar a Media Session (último recurso).
+- O QR Code será gerado via integração direta com a API do Mercado Pago (v1/payments) usando o `payment_method_id: 'pix'`.
+- O link de checkout gerado poderá conter UTMs para rastrear que a venda veio da recuperação manual.
