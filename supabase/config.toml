@@ -6,3 +6,6 @@ verify_jwt = false
 [functions.mp-to-kiwify-webhook]
 verify_jwt = false
 
+[functions.admin-generate-pix]
+verify_jwt = true
+
