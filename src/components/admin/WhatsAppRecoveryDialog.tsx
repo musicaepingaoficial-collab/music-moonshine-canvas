@@ -48,7 +48,7 @@ export function WhatsAppRecoveryDialog({ open, onOpenChange, user }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [pixPlan, setPixPlan] = useState<string>("mensal");
-  const [pixData, setPixData] = useState<{ qr_code_base64: string; copy_paste: string } | null>(null);
+  const [pixData, setPixData] = useState<{ id: string; qr_code_base64: string; copy_paste: string } | null>(null);
 
 
   const { data: templates, isLoading } = useQuery({
@@ -115,7 +115,9 @@ export function WhatsAppRecoveryDialog({ open, onOpenChange, user }: Props) {
         sent_by: currentAdmin.id,
         template_id: selectedId,
         message,
+        pix_payment_id: pixData?.id || null,
       });
+
       if (error) throw error;
       if (openWa) {
         if (!phone) throw new Error("Usuário sem WhatsApp.");

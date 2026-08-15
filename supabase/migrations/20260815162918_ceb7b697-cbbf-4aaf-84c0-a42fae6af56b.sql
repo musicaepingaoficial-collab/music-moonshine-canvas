@@ -1,0 +1,1 @@
+ALTER TABLE public.whatsapp_recovery_log ADD COLUMN IF NOT EXISTS pix_payment_id text;
