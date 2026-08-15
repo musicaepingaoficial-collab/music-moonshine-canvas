@@ -10,6 +10,8 @@ let audio: HTMLAudioElement | null = null;
 let progressInterval: ReturnType<typeof setInterval> | null = null;
 let currentBlobUrl: string | null = null;
 let playToken = 0;
+let wakeLock: any = null;
+
 
 function getAudio(): HTMLAudioElement {
   if (!audio) {
@@ -104,6 +106,28 @@ function bindMediaSessionHandlers(store: {
     console.warn("[Player] mediaSession handlers error:", err);
   }
 }
+
+async function requestWakeLock() {
+  if (typeof navigator !== "undefined" && "wakeLock" in navigator) {
+    try {
+      wakeLock = await (navigator as any).wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => {
+        wakeLock = null;
+      });
+    } catch (err) {
+      console.warn("[Player] WakeLock error:", err);
+    }
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().then(() => {
+      wakeLock = null;
+    }).catch(() => {});
+  }
+}
+
 
 
 function clearProgress() {
@@ -311,22 +335,37 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       el.onerror = (e) => {
         if (myToken !== playToken) return;
         console.error("[Player] Audio error:", e);
+        
+        // Se o erro for de decodificação ou rede em background, o blob pode ter expirado.
+        // Tentamos tocar novamente o que forçará um novo fetch do stream.
+        const state = get();
+        if (state.currentTrack && !state.isLoading) {
+          console.log("[Player] Tentando recuperar áudio após erro...");
+          state.play(state.currentTrack);
+          return;
+        }
+
         set({ isPlaying: false, isLoading: false });
         setMediaSessionPlaybackState("paused");
+        releaseWakeLock();
       };
+
       el.onpause = () => {
         if (myToken !== playToken) return;
         // Only sync state if not caused by track change
         if (!el.ended && get().currentTrack?.id === track.id) {
           set({ isPlaying: false });
           setMediaSessionPlaybackState("paused");
+          releaseWakeLock();
         }
       };
       el.onplay = () => {
         if (myToken !== playToken) return;
         set({ isPlaying: true });
         setMediaSessionPlaybackState("playing");
+        requestWakeLock();
       };
+
 
       // Bind Media Session BEFORE play() so the OS picks up the session
       bindMediaSessionHandlers({
@@ -381,11 +420,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     audio?.pause();
     set({ isPlaying: false });
     setMediaSessionPlaybackState("paused");
+    releaseWakeLock();
   },
+
 
   close: () => {
     destroyAudio();
     set({ currentTrack: null, isPlaying: false, progress: 0, duration: 0, currentTime: 0, isLoading: false });
+    releaseWakeLock();
     if (hasMediaSession()) {
       try {
         (navigator as any).mediaSession.metadata = null;
@@ -393,6 +435,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       setMediaSessionPlaybackState("none");
     }
   },
+
 
   resume: () => {
     if (audio) {
@@ -498,19 +541,16 @@ if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     const state = usePlayerStore.getState();
-    if (!state.currentTrack || !state.isPlaying) return;
-    const el = audio;
-    if (!el) return;
-    if (el.paused) {
-      if (el.readyState > 0) {
-        el.play().catch(() => {
-          // Source was likely evicted — reidratar
-          if (state.currentTrack) usePlayerStore.getState().play(state.currentTrack);
-        });
-      } else if (state.currentTrack) {
-        usePlayerStore.getState().play(state.currentTrack);
-      }
+    if (state.isPlaying && audio && audio.paused) {
+      console.log("[Player] Visibility change: retomando áudio em background...");
+      audio.play().catch(err => {
+        console.error("[Player] Falha ao retomar áudio:", err);
+        // Se falhar drasticamente, tenta re-iniciar a track (novo stream)
+        if (state.currentTrack) state.play(state.currentTrack);
+      });
+      requestWakeLock();
     }
   });
 }
+
 
