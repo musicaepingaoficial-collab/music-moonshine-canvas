@@ -167,7 +167,7 @@ serve(async (req) => {
     if (action === "eligible") {
       // chama a mesma lógica do send-recovery-emails mas em dry-run, retornando até 200
       const { data: profiles } = await supabase.from("profiles")
-        .select("id, email, name").not("email", "is", null).neq("email", "").limit(2000);
+        .select("id, email, name, whatsapp").not("email", "is", null).neq("email", "").limit(2000);
       const ids = (profiles ?? []).map((p: any) => p.id);
       if (ids.length === 0) return json({ rows: [] });
       const [{ data: subs }, { data: admins }, { data: logs }, { data: cfg }] = await Promise.all([
