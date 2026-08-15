@@ -1647,6 +1647,7 @@ export type Database = {
         Row: {
           id: string
           message: string
+          pix_payment_id: string | null
           sent_at: string
           sent_by: string | null
           template_id: string | null
@@ -1655,6 +1656,7 @@ export type Database = {
         Insert: {
           id?: string
           message: string
+          pix_payment_id?: string | null
           sent_at?: string
           sent_by?: string | null
           template_id?: string | null
@@ -1663,6 +1665,7 @@ export type Database = {
         Update: {
           id?: string
           message?: string
+          pix_payment_id?: string | null
           sent_at?: string
           sent_by?: string | null
           template_id?: string | null
