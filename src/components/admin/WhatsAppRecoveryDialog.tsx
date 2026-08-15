@@ -13,9 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Check, Phone } from "lucide-react";
+import { MessageCircle, Check, Phone, QrCode, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useUser";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 interface Props {
   open: boolean;
@@ -45,6 +47,9 @@ export function WhatsAppRecoveryDialog({ open, onOpenChange, user }: Props) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [pixPlan, setPixPlan] = useState<string>("mensal");
+  const [pixData, setPixData] = useState<{ qr_code_base64: string; copy_paste: string } | null>(null);
+
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ["whatsapp-recovery-templates"],
@@ -73,6 +78,34 @@ export function WhatsAppRecoveryDialog({ open, onOpenChange, user }: Props) {
   }, [open, templates, user, selectedId]);
 
   const phone = useMemo(() => user?.whatsapp?.replace(/\D/g, "") ?? "", [user]);
+
+  const { data: plans } = useQuery({
+    queryKey: ["active-plans"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("planos").select("*").eq("active", true);
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  const generatePix = useMutation({
+    mutationFn: async () => {
+      if (!user) return;
+      const { data, error } = await supabase.functions.invoke("admin-generate-pix", {
+        body: { target_user_id: user.id, plan_slug: pixPlan },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      setPixData(data);
+      const pixMsg = `\n\n*Pagamento PIX:* \nCopie e cole a chave abaixo no seu banco:\n\n${data.copy_paste}`;
+      setMessage((prev) => prev + pixMsg);
+      toast.success("PIX gerado e adicionado à mensagem");
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao gerar PIX"),
+  });
 
   const logMutation = useMutation({
     mutationFn: async ({ openWa }: { openWa: boolean }) => {
@@ -103,7 +136,9 @@ export function WhatsAppRecoveryDialog({ open, onOpenChange, user }: Props) {
   const pickTemplate = (t: Template) => {
     setSelectedId(t.id);
     setMessage(applyPlaceholders(t.body, user?.name ?? null));
+    setPixData(null); // Reset pix when changing template
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -165,6 +200,58 @@ export function WhatsAppRecoveryDialog({ open, onOpenChange, user }: Props) {
             )}
           </div>
 
+          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+            <p className="text-xs font-bold uppercase text-muted-foreground">
+              Gerar PIX para Pagamento
+            </p>
+            <div className="flex gap-2">
+              <Select value={pixPlan} onValueChange={setPixPlan}>
+                <SelectTrigger className="flex-1 bg-background">
+                  <SelectValue placeholder="Selecione o plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(plans ?? []).map((p) => (
+                    <SelectItem key={p.slug} value={p.slug}>
+                      {p.name} - R$ {p.price}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                onClick={() => generatePix.mutate()}
+                disabled={generatePix.isPending}
+                className="gap-2"
+              >
+                {generatePix.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+                Gerar PIX
+              </Button>
+            </div>
+
+            {pixData && (
+              <div className="flex flex-col items-center gap-3 pt-2">
+                <div className="bg-white p-2 rounded-lg border">
+                  <img 
+                    src={`data:image/png;base64,${pixData.qr_code_base64}`} 
+                    alt="PIX QR Code" 
+                    className="w-32 h-32"
+                  />
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  className="w-full gap-2"
+                  onClick={() => {
+                    navigator.clipboard.writeText(pixData.copy_paste);
+                    toast.success("Chave PIX copiada!");
+                  }}
+                >
+                  <Copy className="h-3 w-3" /> Copiar chave PIX
+                </Button>
+              </div>
+            )}
+          </div>
+
           {selectedId && (
             <div>
               <p className="text-xs font-bold uppercase text-muted-foreground mb-2">
@@ -181,6 +268,7 @@ export function WhatsAppRecoveryDialog({ open, onOpenChange, user }: Props) {
               </p>
             </div>
           )}
+
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
