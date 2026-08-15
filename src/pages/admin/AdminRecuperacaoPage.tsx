@@ -11,10 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Play, Save, Send, MailWarning, Download, AlertCircle } from "lucide-react";
+import { Loader2, Play, Save, Send, MailWarning, Download, AlertCircle, MessageCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { WhatsAppRecoveryDialog } from "@/components/admin/WhatsAppRecoveryDialog";
+
 
 type Config = {
   enabled: boolean;
@@ -74,10 +76,12 @@ function downloadCSV(filename: string, csv: string) {
 export default function AdminRecuperacaoPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState("overview");
+  const [waTarget, setWaTarget] = useState<any>(null);
 
   const statsQ = useQuery({ queryKey: ["rc-stats"], queryFn: () => call("stats") });
   const tsQ = useQuery({ queryKey: ["rc-ts"], queryFn: () => call("timeseries", { days: 30 }) });
   const cfgQ = useQuery({ queryKey: ["rc-cfg"], queryFn: () => call("get_config") });
+
 
   const runNow = useMutation({
     mutationFn: () => call("run_now"),
@@ -193,17 +197,24 @@ export default function AdminRecuperacaoPage() {
         </TabsContent>
 
         <TabsContent value="recipients" className="space-y-6">
-          <EligibleTable embedded />
+          <EligibleTable embedded onContactWa={setWaTarget} />
           <RecipientsTable />
         </TabsContent>
 
         <TabsContent value="eligible">
-          <EligibleTable />
+          <EligibleTable onContactWa={setWaTarget} />
         </TabsContent>
       </Tabs>
+
+      <WhatsAppRecoveryDialog
+        open={!!waTarget}
+        onOpenChange={(v) => !v && setWaTarget(null)}
+        user={waTarget}
+      />
     </div>
   );
 }
+
 
 function ConfigForm({ initial, onSaved }: { initial: Config; onSaved: () => void }) {
   const [cfg, setCfg] = useState<Config>(initial);
@@ -383,7 +394,7 @@ function RecipientsTable() {
   );
 }
 
-function EligibleTable({ embedded = false }: { embedded?: boolean }) {
+function EligibleTable({ embedded = false, onContactWa }: { embedded?: boolean; onContactWa: (u: any) => void }) {
   const qc = useQueryClient();
   const [stepFilter, setStepFilter] = useState<string>("");
   const dataQ = useQuery({
@@ -454,7 +465,7 @@ function EligibleTable({ embedded = false }: { embedded?: boolean }) {
         {rows.length > 0 && (
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Próximo step</TableHead><TableHead>Motivo</TableHead></TableRow>
+              <TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Próximo step</TableHead><TableHead>Motivo</TableHead><TableHead className="text-right">Ações</TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((r: any) => (
@@ -463,7 +474,19 @@ function EligibleTable({ embedded = false }: { embedded?: boolean }) {
                   <TableCell className="font-mono text-xs">{r.email}</TableCell>
                   <TableCell><Badge>Step {r.next_step}</Badge></TableCell>
                   <TableCell className="text-xs">{r.reason}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-primary"
+                      onClick={() => onContactWa(r)}
+                      title="Recuperação manual via WhatsApp"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
+
               ))}
             </TableBody>
           </Table>
