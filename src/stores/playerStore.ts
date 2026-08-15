@@ -553,19 +553,4 @@ if (typeof document !== "undefined") {
   });
 }
 
-    if (!state.currentTrack || !state.isPlaying) return;
-    const el = audio;
-    if (!el) return;
-    if (el.paused) {
-      if (el.readyState > 0) {
-        el.play().catch(() => {
-          // Source was likely evicted — reidratar
-          if (state.currentTrack) usePlayerStore.getState().play(state.currentTrack);
-        });
-      } else if (state.currentTrack) {
-        usePlayerStore.getState().play(state.currentTrack);
-      }
-    }
-  });
-}
 
