@@ -186,3 +186,56 @@ O domínio final deve ser prefixado a essas rotas pelo agente (ex.: `https://SEU
 - Afiliados: `afiliados`, `afiliado_clicks`, `indicacoes`, RPC `admin_afiliados_stats`.
 - Recuperação de vendas: `whatsapp_recovery_templates`, `whatsapp_recovery_log`, `recovery_campaign_config`, edge function `admin-generate-pix` (gera QR Code PIX para cobrança manual).
 - FAQ e provas sociais: `src/pages/LandingPage.tsx`.
+
+## 15. Dados operacionais [PREENCHER]
+
+Estes campos não existem no sistema — precisam ser preenchidos manualmente antes de colocar os agentes em produção. Substitua `[PREENCHER]` pelo valor real e repasse a mesma informação para os prompts em `docs/agente-vendas.md` e `docs/agente-suporte.md`.
+
+### 15.1 Identidade do atendimento
+- Nome/persona usada pelo agente: [PREENCHER]
+- Tom de voz desejado (ex: informal-profissional, sem gírias): [PREENCHER]
+- Uso de emoji (proibido / no máximo 1 por mensagem / livre): [PREENCHER]
+- Assinatura ao final da conversa (se houver): [PREENCHER]
+
+### 15.2 Atendimento e SLA
+- Horário de atendimento humano: [PREENCHER]
+- Fuso de referência: [PREENCHER]
+- Tempo médio de primeira resposta: [PREENCHER]
+- Tempo médio de resolução de casos financeiros: [PREENCHER]
+- Mensagem automática fora do horário: [PREENCHER]
+
+### 15.3 Canais oficiais
+- WhatsApp oficial de suporte: [PREENCHER]
+- E-mail oficial de suporte: [PREENCHER]
+- Instagram / redes: [PREENCHER]
+- Canal interno de escalonamento (para onde o agente encaminha): [PREENCHER]
+- Responsável pelo escalonamento: [PREENCHER]
+
+### 15.4 Reembolso
+- Prazo de reembolso oferecido (ex: 7 dias): [PREENCHER]
+- Condições e exceções: [PREENCHER]
+- Prazo de devolução do valor por forma de pagamento (PIX / cartão / boleto): [PREENCHER]
+- Texto oficial que o agente pode dizer ao cliente: [PREENCHER]
+
+### 15.5 Cancelamento
+- Como o cliente cancela (o plano é avulso e não renova sozinho): [PREENCHER]
+- O acesso continua até a data de expiração? [PREENCHER]
+- Texto oficial de cancelamento: [PREENCHER]
+
+### 15.6 Cupons e promoções
+- Existem cupons ativos? [PREENCHER]
+- Códigos válidos e desconto de cada um: [PREENCHER]
+- Validade / campanha: [PREENCHER]
+- O agente pode oferecer desconto por iniciativa própria? [PREENCHER]
+
+### 15.7 Acervo
+- Frequência de atualização que pode ser divulgada: [PREENCHER]
+- Quantidade aproximada de faixas/packs que pode ser citada: [PREENCHER]
+- Estilos com maior volume: [PREENCHER]
+- Pedidos de música: são aceitos? Como? [PREENCHER]
+
+### 15.8 Jurídico e dados
+- Link da Política de Privacidade: [PREENCHER]
+- Link dos Termos de Uso: [PREENCHER]
+- Responsável/e-mail para LGPD: [PREENCHER]
+- CNPJ / razão social usada nas cobranças: [PREENCHER]
