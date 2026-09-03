@@ -293,6 +293,8 @@ const LoginPage = () => {
           </button>
         </p>
       </motion.div>
+
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={email} />
     </div>
   );
 };
