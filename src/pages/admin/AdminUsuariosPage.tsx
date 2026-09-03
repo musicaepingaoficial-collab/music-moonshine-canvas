@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User, MessageCircle, ChevronRight } from "lucide-react";
+import { Search, Users, Disc, Trash2, Eye, Phone, CreditCard, Calendar, User, MessageCircle, ChevronRight, KeyRound, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,7 @@ import { useAuth } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { WhatsAppRecoveryDialog } from "@/components/admin/WhatsAppRecoveryDialog";
+import { sendPasswordReset } from "@/components/auth/ForgotPasswordDialog";
 
 interface UserWithSub {
   id: string;
@@ -67,6 +68,21 @@ const AdminUsuariosPage = () => {
   const [viewTarget, setViewTarget] = useState<UserWithSub | null>(null);
   const [waTarget, setWaTarget] = useState<UserWithSub | null>(null);
   const [confirmText, setConfirmText] = useState("");
+  const [resetTarget, setResetTarget] = useState<UserWithSub | null>(null);
+  const [sendingReset, setSendingReset] = useState(false);
+
+  const handleSendReset = async (email: string) => {
+    setSendingReset(true);
+    try {
+      await sendPasswordReset(email);
+      toast.success(`Email de redefinição de senha enviado para ${email}.`);
+      setResetTarget(null);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar email de redefinição.");
+    } finally {
+      setSendingReset(false);
+    }
+  };
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
 
