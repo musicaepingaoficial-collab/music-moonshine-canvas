@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/pixels";
 import { CONSENT_VERSION } from "@/hooks/useCookieConsent";
 import { registerPendingReferral } from "@/lib/referrals";
+import { ForgotPasswordDialog } from "@/components/auth/ForgotPasswordDialog";
 
 
 function formatWhatsApp(value: string) {
@@ -30,6 +31,7 @@ const LoginPage = () => {
   const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -231,6 +233,17 @@ const LoginPage = () => {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            {!isSignUp && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setForgotOpen(true)}
+                  className="text-xs text-primary transition-colors hover:underline hover:text-primary/80"
+                >
+                  Esqueceu a senha?
+                </button>
+              </div>
+            )}
           </div>
           {isSignUp && (
             <div className="space-y-2">
@@ -280,6 +293,8 @@ const LoginPage = () => {
           </button>
         </p>
       </motion.div>
+
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={email} />
     </div>
   );
 };

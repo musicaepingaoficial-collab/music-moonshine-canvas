@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,15 +6,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, ArrowLeft, User, Phone, CreditCard, Calendar, Disc, Mail, UserCheck, MessageCircle } from "lucide-react";
+import { Loader2, ArrowLeft, User, Phone, CreditCard, Calendar, Disc, Mail, UserCheck, MessageCircle, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { toast } from "sonner";
+import { sendPasswordReset } from "@/components/auth/ForgotPasswordDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AdminUserDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
+
+  const handleSendReset = async (email: string) => {
+    setSendingReset(true);
+    try {
+      await sendPasswordReset(email);
+      toast.success(`Email de redefinição de senha enviado para ${email}.`);
+      setResetDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar email de redefinição.");
+    } finally {
+      setSendingReset(false);
+    }
+  };
 
   const toggleDiscografiasMutation = useMutation({
     mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
@@ -124,7 +151,15 @@ const AdminUserDetailsPage = () => {
               <UserCheck className="h-4 w-4 text-muted-foreground" />
               <span>Indicado por: {user.referred_by || "Direto"}</span>
             </div>
-            <div className="pt-2">
+            <div className="space-y-2 pt-2">
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => setResetDialogOpen(true)}
+              >
+                <KeyRound className="h-4 w-4" />
+                Enviar redefinição de senha
+              </Button>
               <Button 
                 className="w-full gap-2" 
                 variant="outline"
@@ -200,6 +235,23 @@ const AdminUserDetailsPage = () => {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar redefinição de senha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Um link de redefinição será enviado para <strong>{user.email}</strong>. O usuário poderá criar uma nova senha pelo link recebido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sendingReset}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={sendingReset} onClick={() => void handleSendReset(user.email)}>
+              {sendingReset ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar email"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
