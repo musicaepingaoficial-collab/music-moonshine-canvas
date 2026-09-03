@@ -385,13 +385,23 @@ const AdminUsuariosPage = () => {
                                 </Badge>
                               ) : null;
                             })()}
-                            <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
-                              if (!user.whatsapp) return toast.error("Usuário sem WhatsApp");
-                              setWaTarget(user);
-                            }}>
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={currentUser?.id === user.id} onClick={() => { setDeleteTarget(user); setConfirmText(""); }}>
+                             <Button size="icon" variant="ghost" className="text-primary hover:text-primary" onClick={() => {
+                               if (!user.whatsapp) return toast.error("Usuário sem WhatsApp");
+                               setWaTarget(user);
+                             }}>
+                               <MessageCircle className="h-4 w-4" />
+                             </Button>
+                             <Button
+                               size="icon"
+                               variant="ghost"
+                               title="Enviar redefinição de senha"
+                               aria-label={`Enviar redefinição de senha para ${user.email}`}
+                               className="text-muted-foreground hover:text-foreground"
+                               onClick={() => setResetTarget(user)}
+                             >
+                               <KeyRound className="h-4 w-4" />
+                             </Button>
+                             <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={currentUser?.id === user.id} onClick={() => { setDeleteTarget(user); setConfirmText(""); }}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -417,8 +427,18 @@ const AdminUsuariosPage = () => {
                             {user.assinaturas.find(s => s.status === "active")?.plan || "Free"}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex flex-col items-end gap-1">
+                         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                           <Button
+                             size="icon"
+                             variant="ghost"
+                             title="Enviar redefinição de senha"
+                             aria-label={`Enviar redefinição de senha para ${user.email}`}
+                             className="text-muted-foreground hover:text-foreground"
+                             onClick={() => setResetTarget(user)}
+                           >
+                             <KeyRound className="h-4 w-4" />
+                           </Button>
+                           <div className="flex flex-col items-end gap-1">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase">Discografia</span>
                             <Switch 
                               checked={user.has_discografias || user.assinaturas.some(s => s.plan === "vitalicio" || s.plan === "anual")}

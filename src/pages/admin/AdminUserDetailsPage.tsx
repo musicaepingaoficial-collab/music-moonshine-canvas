@@ -5,15 +5,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, ArrowLeft, User, Phone, CreditCard, Calendar, Disc, Mail, UserCheck, MessageCircle } from "lucide-react";
+import { Loader2, ArrowLeft, User, Phone, CreditCard, Calendar, Disc, Mail, UserCheck, MessageCircle, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { toast } from "sonner";
+import { sendPasswordReset } from "@/components/auth/ForgotPasswordDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AdminUserDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
+
+  const handleSendReset = async () => {
+    setSendingReset(true);
+    try {
+      await sendPasswordReset(user?.email || "");
+      toast.success(`Email de redefinição de senha enviado para ${user?.email}.`);
+      setResetDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar email de redefinição.");
+    } finally {
+      setSendingReset(false);
+    }
+  };
 
   const toggleDiscografiasMutation = useMutation({
     mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
