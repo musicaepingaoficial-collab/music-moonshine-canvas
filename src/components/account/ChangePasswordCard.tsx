@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sendPasswordReset } from "@/components/auth/ForgotPasswordDialog";
 
 export function ChangePasswordCard() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -19,10 +20,7 @@ export function ChangePasswordCard() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) throw new Error("Usuário não autenticado");
-      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
+      await sendPasswordReset(user.email);
       toast.success(`Enviamos um link de recuperação para ${user.email}.`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao enviar email de recuperação");

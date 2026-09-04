@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,25 +9,27 @@ import { toast } from "sonner";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  const [ready, setReady] = useState(!!token);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Supabase puts recovery token in the URL hash; the SDK handles it on auth state change.
+    if (token) return;
+    // Fluxo antigo: token de recuperação no hash da URL, tratado pelo SDK.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setReady(true);
       }
     });
-    // Fallback: if a session already exists when we land here
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) setReady(true);
     });
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +43,17 @@ export default function ResetPasswordPage() {
     }
     setLoading(true);
     try {
+      if (token) {
+        const { data, error } = await supabase.functions.invoke("confirm-password-reset", {
+          body: { token, password },
+        });
+        if (error) throw new Error("Não foi possível redefinir a senha. Solicite um novo link.");
+        if ((data as any)?.error) throw new Error((data as any).error);
+        toast.success("Senha redefinida com sucesso! Faça login com a nova senha.");
+        await supabase.auth.signOut().catch(() => {});
+        navigate("/login", { replace: true });
+        return;
+      }
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       toast.success("Senha redefinida com sucesso!");

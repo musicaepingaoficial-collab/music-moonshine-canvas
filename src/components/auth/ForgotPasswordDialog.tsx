@@ -16,16 +16,17 @@ import { toast } from "sonner";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Envia o email de redefinição de senha com redirect para /reset-password. */
+/** Envia o email de redefinição de senha com link para /reset-password. */
 export async function sendPasswordReset(email: string) {
   const clean = email.trim().toLowerCase();
   if (!clean || !EMAIL_RE.test(clean)) {
     throw new Error("Informe um email válido.");
   }
-  const { error } = await supabase.auth.resetPasswordForEmail(clean, {
-    redirectTo: `${window.location.origin}/reset-password`,
+  const { data, error } = await supabase.functions.invoke("request-password-reset", {
+    body: { email: clean },
   });
-  if (error) throw error;
+  if (error) throw new Error("Não foi possível enviar o email de recuperação.");
+  if ((data as any)?.error) throw new Error((data as any).error);
   return clean;
 }
 

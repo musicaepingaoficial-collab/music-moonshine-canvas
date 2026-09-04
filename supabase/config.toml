@@ -9,3 +9,8 @@ verify_jwt = false
 [functions.admin-generate-pix]
 verify_jwt = true
 
+[functions.request-password-reset]
+verify_jwt = false
+
+[functions.confirm-password-reset]
+verify_jwt = false
