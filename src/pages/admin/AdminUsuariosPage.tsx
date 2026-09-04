@@ -487,6 +487,23 @@ const AdminUsuariosPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!resetTarget} onOpenChange={(v) => { if (!v) setResetTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar redefinição de senha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Um link de redefinição será enviado para <strong>{resetTarget?.email}</strong>. O usuário poderá criar uma nova senha pelo link recebido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sendingReset}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={sendingReset} onClick={() => resetTarget && handleSendReset(resetTarget.email)}>
+              {sendingReset ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar email"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={!!viewTarget} onOpenChange={(v) => !v && setViewTarget(null)}>
         <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
