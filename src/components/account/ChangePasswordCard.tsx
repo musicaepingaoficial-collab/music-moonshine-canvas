@@ -19,10 +19,7 @@ export function ChangePasswordCard() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) throw new Error("Usuário não autenticado");
-      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
+      await sendPasswordReset(user.email);
       toast.success(`Enviamos um link de recuperação para ${user.email}.`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao enviar email de recuperação");
