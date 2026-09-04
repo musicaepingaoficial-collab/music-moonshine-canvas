@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sendPasswordReset } from "@/components/auth/ForgotPasswordDialog";
 
 export function ChangePasswordCard() {
   const [currentPassword, setCurrentPassword] = useState("");
