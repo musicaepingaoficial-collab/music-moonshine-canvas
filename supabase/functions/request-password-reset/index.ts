@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFor } from "../_shared/cors.ts";
 
 const TOKEN_TTL_MINUTES = 60;
+const PASSWORD_RESET_BASE_URL = "https://musicaepinga.shop";
 
 async function sha256(value: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -26,11 +27,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-
-    // Base do link: origem permitida da requisição, senão SITE_URL.
-    const origin = req.headers.get("Origin");
-    const allowedOrigin = cors["Access-Control-Allow-Origin"];
-    const base = (origin && origin === allowedOrigin ? origin : (Deno.env.get("SITE_URL") || allowedOrigin)).replace(/\/$/, "");
 
     const { data: profile } = await admin
       .from("profiles")
@@ -60,7 +56,9 @@ Deno.serve(async (req) => {
     });
     if (insertErr) throw insertErr;
 
-    const link = `${base}/reset-password?token=${rawToken}`;
+    // O link de e-mail deve sempre abrir o domínio público, mesmo quando o
+    // pedido é feito pelo preview, localhost ou pelo painel administrativo.
+    const link = `${PASSWORD_RESET_BASE_URL}/reset-password?token=${rawToken}`;
     const firstName = (profile.name || "").split(" ")[0] || "";
 
     const html = `
