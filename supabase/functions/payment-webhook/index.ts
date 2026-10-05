@@ -396,7 +396,7 @@ serve(async (req) => {
             .eq("id", pendingId)
             .maybeSingle();
 
-          const siteUrl = (Deno.env.get("SITE_URL") || "https://sua-plataforma.com").replace(/\\/g, "/");
+          const siteUrl = "https://www.musicaepinga.com.br".replace(/\\/g, "/");
           const claimLink = pending ? `${siteUrl}/finalizar-cadastro?token=${pending.claim_token}` : null;
 
           if (pending) {

@@ -1,9 +1,11 @@
 // Helper de CORS com lista de origens permitidas.
-// - Produção: https://musicaepinga.shop
+// - Produção: https://www.musicaepinga.com.br
 // - Preview Lovable: *.lovableproject.com / *.lovable.app
 // - Localhost (dev)
 
 const ALLOWED_ORIGINS = [
+  "https://www.musicaepinga.com.br",
+  "https://musicaepinga.com.br",
   "https://musicaepinga.shop",
   "https://www.musicaepinga.shop",
 ];
