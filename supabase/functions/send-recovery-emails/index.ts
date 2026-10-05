@@ -7,7 +7,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeadersFor } from "../_shared/cors.ts";
 
-const SITE_URL = Deno.env.get("SITE_URL") || "https://musicaepinga.shop";
+const SITE_URL = "https://www.musicaepinga.com.br";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 

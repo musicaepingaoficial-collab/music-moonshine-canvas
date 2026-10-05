@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFor } from "../_shared/cors.ts";
 
 const TOKEN_TTL_MINUTES = 60;
-const PASSWORD_RESET_BASE_URL = "https://musicaepinga.shop";
+const PASSWORD_RESET_BASE_URL = "https://www.musicaepinga.com.br";
 
 async function sha256(value: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));

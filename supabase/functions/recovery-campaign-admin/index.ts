@@ -18,7 +18,7 @@ import { corsHeadersFor } from "../_shared/cors.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SITE_URL = Deno.env.get("SITE_URL") || "https://musicaepinga.shop";
+const SITE_URL = "https://www.musicaepinga.com.br";
 
 const svc = () => createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
